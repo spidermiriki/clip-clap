@@ -18,10 +18,10 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 | Backend | Spring Boot 3 |
 | Sécurité | Spring Security (rôles) |
 | Persistance | Spring Data JPA + PostgreSQL |
-| Vues | Thymeleaf |
+| Frontend | React |
 | Stockage médias | Cloudinary |
-| Hébergement | Render / Railway / Fly.io |
-| Build | Maven |
+| Conteneurisation | Docker (application + base de données) |
+| Build | Gradle |
 | Java | 17+ |
 
 ## Rôles utilisateurs
@@ -36,6 +36,15 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 - [Fonctionnalités détaillées](docs/fonctionnalites.md)
 - [Plan de release](docs/plan-de-release.md)
 - [Wireframes](docs/wireframes.md)
+- [Plan de tests](docs/tests.md)
+
+## Installation et lancement
+
+> Section à compléter à la fin de la séance 1, une fois le squelette
+> de l'application créé et déployé.
+
+Elle contiendra : prérequis, configuration, commande de lancement
+en local et commande pour exécuter les tests.
 
 ## Convention de branches
 
