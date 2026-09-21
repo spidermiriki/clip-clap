@@ -20,10 +20,10 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 | Persistance | Spring Data JPA + PostgreSQL |
 | Frontend | React |
 | Stockage médias | Cloudinary |
-| Conteneurisation | Docker |
-| Hébergement | Render / Railway / Fly.io |
+| Conteneurisation | Docker (application + base de données) |
 | Build | Gradle |
 | Java | 17+ |
+
 
 
 ## Rôles utilisateurs
