@@ -18,11 +18,13 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 | Backend | Spring Boot 3 |
 | Sécurité | Spring Security (rôles) |
 | Persistance | Spring Data JPA + PostgreSQL |
-| Vues | Thymeleaf |
+| Frontend | React |
 | Stockage médias | Cloudinary |
+| Conteneurisation | Docker |
 | Hébergement | Render / Railway / Fly.io |
-| Build | Maven |
+| Build | Gradle |
 | Java | 17+ |
+
 
 ## Rôles utilisateurs
 
