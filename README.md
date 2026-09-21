@@ -24,6 +24,8 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 | Build | Gradle |
 | Java | 17+ |
 
+
+
 ## Rôles utilisateurs
 
 - **Visiteur** — navigation publique, galerie, profils créateurs
