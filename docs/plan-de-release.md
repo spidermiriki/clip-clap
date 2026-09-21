@@ -4,7 +4,7 @@
 
 | Version | Séances | Contenu | Livraison |
 |---------|---------|---------|-----------|
-| **Cadrage** | S1 | Nom, docs, wireframes, dépôt GitHub, squelette Spring Boot déployé en ligne | S1 |
+| **Cadrage** | S1 | Nom, docs, wireframes, dépôt GitHub | S1 |
 | **v0.1 (MVP)** | S2 à S4 | Inscription/connexion avec rôles, profil créateur, albums, upload de photos, galerie publique avec filtres | S4 |
 | **v0.2** | S5 à S7 | Demandes de prestation, statuts, tableaux de bord créateur et client | S7 |
 | **v0.3** | S8 à S9 | Avis et notes, favoris, vidéos par lien, recherche avancée | S9 |
@@ -19,11 +19,9 @@
 
 - [ ] Choisir le nom du projet et créer le dépôt GitHub privé
 - [ ] Ajouter l'enseignant comme collaborateur
-- [ ] Rédiger `README.md`, `docs/fonctionnalites.md`, `docs/plan-de-release.md`, `docs/wireframes.md`
-- [ ] Initialiser le squelette Spring Boot (pom.xml, structure de packages)
-- [ ] Déployer le squelette vide en ligne (Render / Railway / Fly.io)
-- [ ] Configurer la base de données PostgreSQL en ligne
-- [ ] Mettre en place la convention de branches (`main`, `develop`, `feature/*`)
+- [ ] Rédiger la documentation initiale (fonctionnalités, plan de release, wireframes)
+- [ ] Mettre en place la convention de branches et les règles de travail en binôme
+- [ ] Déployer l'application en ligne (environnement vide)
 
 ---
 
@@ -31,18 +29,16 @@
 **Objectif :** Une application utilisable avec les fonctions de base.
 
 #### Séance 2
-- [ ] Entités JPA : `User`, `CreatorProfile`, `Category`
-- [ ] Spring Security : inscription, connexion, déconnexion
-- [ ] Gestion des rôles : CLIENT, CREATOR, ADMIN
+- [ ] Inscription et connexion des utilisateurs
+- [ ] Gestion des rôles (client, créateur)
 
 #### Séance 3
-- [ ] Entités JPA : `Album`, `Media`
-- [ ] Interface créateur : création/modification du profil
-- [ ] Création d'albums et upload de photos (Cloudinary)
+- [ ] Création et modification du profil créateur
+- [ ] Création d'albums et upload de photos
 
 #### Séance 4
 - [ ] Galerie publique avec liste des créateurs
-- [ ] Filtres : type de prestation, ville, type de média
+- [ ] Filtres par type de prestation, ville et type de média
 - [ ] Profil public d'un créateur (bio, albums, tarifs)
 - [ ] **Déploiement v0.1 + tests**
 
@@ -52,8 +48,7 @@
 **Objectif :** Le flux de prestation complet entre client et créateur.
 
 #### Séance 5
-- [ ] Entité JPA : `ServiceRequest`
-- [ ] Formulaire de demande de prestation (client)
+- [ ] Formulaire de demande de prestation (côté client)
 - [ ] Envoi de la demande à un créateur
 
 #### Séance 6
@@ -70,9 +65,8 @@
 **Objectif :** Enrichir l'expérience utilisateur.
 
 #### Séance 8
-- [ ] Entités JPA : `Review`, `Favorite`
-- [ ] Système d'avis et de notes (client → créateur après prestation terminée)
-- [ ] Favoris : ajouter/retirer, liste des favoris
+- [ ] Système d'avis et de notes (client vers créateur, après prestation terminée)
+- [ ] Favoris : ajouter/retirer un créateur, consulter sa liste
 
 #### Séance 9
 - [ ] Ajout de vidéos par lien YouTube / Vimeo
@@ -90,7 +84,7 @@
 - [ ] Gestion des catégories et statistiques
 
 #### Séance 11
-- [ ] Tests d'intégration et tests manuels complets
+- [ ] Tests complets
 - [ ] Corrections de bugs
 - [ ] Documentation finale mise à jour
 - [ ] **Déploiement v1.0 + validation finale**
@@ -102,7 +96,7 @@
 Pour chaque release, une version est considérée comme livrée si et seulement si :
 
 1. Toutes les fonctionnalités prévues sont **opérationnelles**
-2. Les **tests** correspondants sont réalisés (manuels et/ou automatisés)
+2. Les **tests** correspondants sont réalisés
 3. L'application est **déployée en ligne** et accessible
 
 ---
@@ -116,8 +110,8 @@ Pour chaque release, une version est considérée comme livrée si et seulement 
 | Demandes de prestation | Dassi Kouam Gedeon |
 | Avis et notes | Dassi Kouam Gedeon |
 | Favoris | Dassi Kouam Gedeon |
+| Authentification et gestion des rôles | Les deux |
 | Back-office admin | Les deux (croisement) |
-| Spring Security / rôles | Les deux |
 | Déploiement | Les deux |
 
 ---

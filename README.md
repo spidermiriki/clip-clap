@@ -31,49 +31,6 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 - **Client** — envoi de demandes, suivi, favoris, avis
 - **Administrateur** — validation des comptes, modération, statistiques
 
-## Structure du projet
-
-```
-clic-et-clap/
-├── src/
-│   ├── main/
-│   │   ├── java/be/heh/clicetclap/
-│   │   │   ├── controller/
-│   │   │   ├── service/
-│   │   │   ├── repository/
-│   │   │   ├── model/
-│   │   │   └── config/
-│   │   └── resources/
-│   │       ├── templates/       (Thymeleaf)
-│   │       ├── static/          (CSS, JS, images)
-│   │       └── application.properties
-│   └── test/
-├── docs/
-│   ├── fonctionnalites.md
-│   ├── plan-de-release.md
-│   └── wireframes.md
-├── pom.xml
-└── README.md
-```
-
-## Lancer le projet en local
-
-> Prérequis : Java 17+, Maven 3.8+, PostgreSQL
-
-```bash
-# Cloner le dépôt
-git clone https://github.com/<organisation>/clic-et-clap.git
-cd clic-et-clap
-
-# Configurer la base de données dans src/main/resources/application.properties
-# (voir application.properties.example)
-
-# Lancer l'application
-./mvnw spring-boot:run
-```
-
-L'application est accessible sur `http://localhost:8080`.
-
 ## Documentation
 
 - [Fonctionnalités détaillées](docs/fonctionnalites.md)
@@ -94,4 +51,4 @@ Toute fonctionnalité passe par une **pull request** relue par l'autre membre av
 
 L'application est déployée en continu dès la séance 1 afin d'anticiper les problèmes d'hébergement.
 
-URL de production : 
+URL de production : *(à compléter après déploiement)*
