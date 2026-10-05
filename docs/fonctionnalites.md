@@ -118,7 +118,7 @@
 ### 4.3 Gestion des catégories
 - Créer, modifier et supprimer les types de prestation
 
-### 4.4 Statistiques
+### 4.4 Statistiques(bonus)
 - Nombre total d'utilisateurs par rôle
 - Nombre de réservations par statut
 - Nombre de créateurs validés / en attente
