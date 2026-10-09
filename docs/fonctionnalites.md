@@ -3,12 +3,14 @@
 ## 1. Visiteur (non connecté)
 
 ### 1.1 Galerie publique
-- Afficher la liste de tous les créateurs actifs
+- Afficher la liste de tous les créateurs **visibles** (voir la règle de visibilité en 1.4)
 - Filtrer par **type de prestation** : mariage, événementiel, sport, produit, clip, etc.
 - Filtrer par **ville**
 - Filtrer par **pays**
-- Filtrer par **type de média** : photo ou vidéo
 - Combiner plusieurs filtres simultanément
+- Chaque carte affiche : nom, ville, pays, première photo du portfolio, note moyenne, nombre d'avis et badge
+
+> Le filtre par **type de média** (photo ou vidéo) est reporté en bonus avec les vidéos par lien (voir section 7).
 
 ### 1.2 Profil public d'un créateur
 - Voir la bio, la ville, le pays et les zones d'intervention
@@ -16,11 +18,25 @@
 - Voir les prestations proposées (nom, durée, prix, options)
 - Voir les badges du créateur (Nouveau, Top créateur, Réponse rapide)
 - Voir les avis et la note moyenne laissés par les clients
+- Le profil d'un créateur non visible renvoie une erreur **404** (« créateur introuvable »), pour ne pas révéler l'existence du compte
 
 ### 1.3 Inscription et connexion
 - S'inscrire en tant que **client** ou **créateur** (choix du rôle à l'inscription)
-- Se connecter avec email et mot de passe
+- Après l'inscription :
+  - un **client** est redirigé vers la galerie ;
+  - un **créateur** est redirigé vers « Compléter mon profil », puis vers son tableau de bord
+    (avec un bandeau « Compte en attente de validation » à partir de la v0.2)
+- Se connecter avec e-mail et mot de passe
 - Se déconnecter
+
+### 1.4 Règle de visibilité d'un créateur
+Un créateur apparaît dans la galerie et son profil public est accessible **uniquement si** :
+- son compte est **validé** par l'administrateur (statut `VALIDATED` ; automatique en v0.1) ;
+- son compte n'est **pas suspendu** ;
+- il a publié **au moins une photo** dans un de ses albums.
+
+Ces données ne sont pas copiées : la galerie et le profil public les lisent à chaque visite.
+Un créateur devient donc visible dès que ces trois conditions sont remplies.
 
 ---
 
@@ -29,8 +45,11 @@
 > Compte soumis à validation par l'administrateur avant activation complète (fonctionnalité introduite en v0.2). En v0.1, l'activation est automatique.
 
 ### 2.1 Gestion du profil
-- Renseigner et modifier : bio, ville, pays, zones d'intervention
+- Renseigner et modifier : nom affiché, photo de profil, bio, ville, pays, zones d'intervention
 - Choisir un ou plusieurs types de prestation proposés
+- Cette page s'affiche automatiquement juste après l'inscription, puis reste accessible via « Mon profil »
+- **Prévisualiser son profil public** (« Voir mon profil public »), y compris tant que le compte n'est pas validé :
+  l'aperçu est réservé au créateur lui-même et affiche le bandeau « Aperçu — pas encore visible publiquement »
 
 ### 2.2 Albums et médias
 - Créer, renommer et supprimer des albums
@@ -59,6 +78,8 @@
 - Vue synthétique : nombre de réservations par statut
 - Taux d'acceptation et délai moyen de réponse (données sources des badges)
 - Liste des avis reçus et note globale
+- Tant que le compte n'est pas validé (à partir de la v0.2) : bandeau « Compte en attente de validation »
+  et liste « Pour bien démarrer » (compléter le profil, créer un album, créer une prestation, définir ses créneaux)
 
 ---
 
@@ -98,7 +119,7 @@
 - Modifier ou supprimer son propre avis
 
 ### 3.5 Signalement
-- Signaler un avis ou un média jugé inapproprié
+- Signaler un avis ou un média jugé inapproprié (bouton visible uniquement pour les utilisateurs connectés)
 - Le signalement est transmis à l'administrateur pour modération
 
 ---
@@ -117,8 +138,9 @@
 
 ### 4.3 Gestion des catégories
 - Créer, modifier et supprimer les types de prestation
+- En v0.1, les catégories de départ sont créées par script SQL ; leur gestion par l'administrateur arrive en v1.0
 
-### 4.4 Statistiques(bonus)
+### 4.4 Statistiques (bonus)
 - Nombre total d'utilisateurs par rôle
 - Nombre de réservations par statut
 - Nombre de créateurs validés / en attente
@@ -138,7 +160,19 @@
 ## 6. Règles d'intégrité
 
 - Un créateur ne peut pas réserver ses propres prestations
-- Un créateur non validé ou suspendu n'apparaît pas dans la galerie et ses créneaux sont inaccessibles
+- Un créateur non visible (non validé, suspendu ou sans photo publiée) n'apparaît pas dans la galerie, son profil public renvoie une 404 et ses créneaux sont inaccessibles
 - Une prestation liée à une réservation confirmée ne peut pas être supprimée
 - Deux clients ne peuvent pas confirmer le même créneau simultanément (contrainte d'unicité)
 - Un journal des changements de statut est conservé (qui, quand, de quel statut vers quel statut)
+
+---
+
+## 7. Fonctionnalités bonus (si le temps le permet)
+
+| Fonctionnalité | Profil concerné |
+|----------------|-----------------|
+| Favoris | Client |
+| Vidéos par lien (YouTube, Vimeo) et filtre par type de média dans la galerie | Créateur, Visiteur |
+| Statistiques administrateur (section 4.4) | Administrateur |
+| Recherche avancée | Visiteur, Client |
+| Connexion avec un compte Google (OAuth2) | Tous |
