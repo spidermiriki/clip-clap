@@ -1,71 +1,197 @@
 # Wireframes
 
+Maquettes basse fidélité des écrans principaux de l'application.
+Réalisées par Dassi Kouam Gedeon.
 
+---
 
-## Liste des écrans
+## 1. Galerie publique (accueil)
 
-| # | Écran | Profil | Responsable | Release |
-|---|-------|--------|-------------|---------|
-| 01 | Accueil / Galerie publique | Visiteur | Francisco | v0.1 |
-| 02 | Connexion | Visiteur | Gedeon | v0.1 |
-| 03 | Inscription | Visiteur | Gedeon | v0.1 |
-| 04 | Profil public d'un créateur | Visiteur / Client | Francisco | v0.1 |
-| 05 | Réservation d'un créneau | Client | Gedeon | v0.2 |
-| 06 | Réservation multiple (pack) | Client | Gedeon | v0.3 |
-| 07 | Prestations et agenda | Créateur | Francisco | v0.2 |
-| 08 | Tableau de bord créateur | Créateur | Francisco | v0.2 |
-| 09 | Mes réservations (et avis) | Client | Gedeon | v0.2 / v0.3 |
-| 10 | Gestion des albums | Créateur | Francisco | v0.1 |
-| 11 | Back-office administrateur | Administrateur | Francisco | v0.2 / v1.0 |
-| 12 | Mon profil créateur (après inscription) | Créateur | Francisco | v0.1 |
+```
++----------------------------------------------------------+
+|  CLIC & CLAP    [Accueil] [Recherche] [Connexion] [S'inscrire] |
++----------------------------------------------------------+
+|                                                          |
+|  [         IMAGE HERO — pleine largeur              ]   |
+|                                                          |
++----------------------------------------------------------+
+|                                                          |
+|  Find by Categorie                                       |
+|                                                          |
+|  +--------+  +--------+  +--------+  +--------+         |
+|  | [img]  |  | [img]  |  | [img]  |  | [img]  |         |
+|  | Cat. 1 |  | Cat. 2 |  | Cat. 3 |  | Cat. 4 |         |
+|  +--------+  +--------+  +--------+  +--------+         |
+|                                                          |
++----------------------------------------------------------+
+|                                                          |
+|  Statistiques                                            |
+|                                                          |
+|  650+           12k+          4.9           <48h         |
+|  Photographes   Commandes     Note /5       Livraison    |
+|                 terminées                  en moyenne    |
+|                                                          |
++----------------------------------------------------------+
+|                                                          |
+|  Professionnels recommandés                              |
+|                                                          |
+|  +----------+  +----------+  +----------+               |
+|  | [photo]  |  | [photo]  |  | [photo]  |               |
+|  | Nom      |  | Nom      |  | Nom      |               |
+|  | Ville    |  | Ville    |  | Ville    |               |
+|  | ★★★★☆   |  | ★★★★★   |  | ★★★☆☆   |               |
+|  +----------+  +----------+  +----------+               |
+|                                                          |
++----------------------------------------------------------+
+|  [Contact]                         [Footer]              |
++----------------------------------------------------------+
+```
+
+---
+
+## 2. Connexion
+
+```
++----------------------------------------------------------+
+|                                                          |
+|                    CLIC & CLAP                           |
+|                                                          |
+|         [✉] Email    [_________________________]         |
+|         [🔒] Mot de passe [________________] [👁]        |
+|                                                          |
+|                  [ Se connecter ]                        |
+|                                                          |
+|                        — ou —                            |
+|                                                          |
+|            [ Continuer avec Google ]                     |
+|            [ Continuer avec Apple  ]                     |
+|                                                          |
++----------------------------------------------------------+
+```
+
+> **Note :** La connexion via Google et Apple (OAuth2) est à valider
+> avec l'enseignant avant implémentation.
+
+---
+
+## 3. Inscription client
+
+```
++----------------------------------------------------------+
+|                                                          |
+|                  CRÉER UN COMPTE                         |
+|                                                          |
+|         Nom       [_________________________]            |
+|         Prénom    [_________________________]            |
+|         Email     [_________________________]            |
+|         Mot de passe [____________________]              |
+|                                                          |
+|         Vous êtes :  (●) Client                          |
+|                                                          |
+|                  [ Créer mon compte ]                    |
+|                                                          |
+|         Déjà un compte ?  [Se connecter]                 |
+|                                                          |
++----------------------------------------------------------+
+```
+
+---
+
+## 4. Création de profil professionnel (créateur)
+
+```
++----------------------------------------------------------+
+|                                                          |
+|            Créez votre profil professionnel              |
+|                                                          |
+|  Vous êtes :  [ Photographe ]  [ Vidéaste ]              |
+|                                                          |
+|  Spécialité  [__________________________ v]              |
+|  Ville       [__________________________]                |
+|  Pays        [__________________________]                |
+|  Tarifs à partir de  [__________] €                      |
+|  Description                                             |
+|  +--------------------------------------------------+    |
+|  |                                                  |    |
+|  +--------------------------------------------------+    |
+|                                                          |
+|                  [ Créer mon profil ]                    |
+|                                                          |
++----------------------------------------------------------+
+```
+
+---
+
+## 5. Tableau de bord (profil connecté)
+
+```
++----------------------------------------------------------+
+|  CLIC & CLAP   [Accueil] [Demande] [Profil]              |
++----------------------------------------------------------+
+|                                                          |
+|  +-------------------+  +-------------------+           |
+|  |   Mes demandes    |  |  Mes réservations  |           |
+|  +-------------------+  +-------------------+           |
+|                                                          |
+|  +-------------------+                                   |
+|  |   Mon portfolio   |                                   |
+|  +-------------------+                                   |
+|                                                          |
++----------------------------------------------------------+
+```
+
+---
+
+## 6. Recherche / Espace professionnel
+
+```
++----------------------------------------------------------+
+|  CLIC & CLAP   [Accueil] [Recherche] [Profil]            |
++----------------------------------------------------------+
+|                                                          |
+|  [ 🔍 Rechercher un professionnel...              ]      |
+|                                                          |
+|  Catégorie                                               |
+|  +--------+  +--------+  +--------+  +--------+         |
+|  | [img]  |  | [img]  |  | [img]  |  | [img]  |         |
+|  | Cat. 1 |  | Cat. 2 |  | Cat. 3 |  | Cat. 4 |         |
+|  +--------+  +--------+  +--------+  +--------+         |
+|                                                          |
+|  Professionnels recommandés                              |
+|  +----------+  +----------+  +----------+               |
+|  | [photo]  |  | [photo]  |  | [photo]  |               |
+|  | Nom      |  | Nom      |  | Nom      |               |
+|  | Ville    |  | Ville    |  | Ville    |               |
+|  +----------+  +----------+  +----------+               |
+|                                                          |
++----------------------------------------------------------+
+```
+
+---
+
+## Écrans restants à réaliser
+
+| Écran | Priorité | Release |
+|-------|----------|---------|
+| Profil public d'un créateur (bio, prestations, albums, avis) | Haute | v0.1 |
+| Gestion des albums (créateur) | Haute | v0.1 |
+| Réservation d'un créneau (client) | Haute | v0.2 |
+| Gestion des prestations et de l'agenda (créateur) | Haute | v0.2 |
+| Tableau de bord créateur (demandes reçues, accepter / refuser) | Haute | v0.2 |
+| Tableau de bord client (mes réservations, suivi des statuts) | Haute | v0.2 |
+| Réservation multiple — pack | Moyenne | v0.3 |
+| Avis et notes (formulaire client) | Moyenne | v0.3 |
+| Back-office administrateur | Moyenne | v1.0 |
+
+---
 
 ## Navigation par rôle
 
-- **Visiteur** : Galerie (01) → Profil public (04) → Inscription (03) / Connexion (02)
-- **Client** : Galerie (01) → Profil public (04) → Réservation simple (05) ou pack (06) → Mes réservations et avis (09)
-- **Créateur** : Inscription (03) → Mon profil (12) → Tableau de bord (08) → Prestations et agenda (07) → Albums (10)
-- **Administrateur** : Back-office (11) : validation des créateurs, signalements, catégories, comptes
-
-## Écrans
-
-### 01 · Accueil / Galerie publique
-![01 Accueil](wireframes/01-accueil.png)
-
-### 02 · Connexion
-![02 Connexion](wireframes/02-connexion.png)
-
-### 03 · Inscription
-Après l'inscription : un client est redirigé vers la galerie (01), un créateur vers « Mon profil » (12).
-
-![03 Inscription](wireframes/03-inscription.png)
-
-### 04 · Profil public d'un créateur
-![04 Profil public](wireframes/04-profil-public.png)
-
-### 05 · Réservation d'un créneau
-![05 Réservation](wireframes/05-reservation.png)
-
-### 06 · Réservation multiple (pack)
-![06 Pack](wireframes/06-reservation-pack.png)
-
-### 07 · Prestations et agenda
-![07 Prestations et agenda](wireframes/07-prestations-agenda.png)
-
-### 08 · Tableau de bord créateur
-Le bandeau en pointillés n'apparaît que si le compte n'est pas encore validé (à partir de la v0.2).
-
-![08 Tableau de bord](wireframes/08-tableau-de-bord-createur.png)
-
-### 09 · Mes réservations (client)
-![09 Mes réservations](wireframes/09-mes-reservations.png)
-
-### 10 · Gestion des albums
-![10 Albums](wireframes/10-albums.png)
-
-### 11 · Back-office administrateur
-![11 Back-office](wireframes/11-back-office.png)
-
-### 12 · Mon profil créateur
-Page affichée juste après l'inscription d'un créateur, puis accessible via « Mon profil ».
-
-![12 Mon profil](wireframes/12-mon-profil.png)
+| Écran | Visiteur | Client | Créateur | Admin |
+|-------|----------|--------|----------|-------|
+| Galerie publique | ✓ | ✓ | ✓ | ✓ |
+| Connexion / Inscription | ✓ | — | — | — |
+| Création profil créateur | — | — | ✓ | — |
+| Recherche | ✓ | ✓ | ✓ | ✓ |
+| Tableau de bord | — | ✓ | ✓ | — |
+| Back-office admin | — | — | — | ✓ |
