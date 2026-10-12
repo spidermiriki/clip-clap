@@ -9,12 +9,12 @@ Clic & Clap est un **monolithe modulaire** : un seul projet Spring Boot, compil�
 
 Conventions **Spring Modulith** (cours, chapitre 5) :
 
-- chaque module est un **sous-package direct** du package principal (ex. `be.heh.clicetclap.bookings`) ;
+- chaque module est un **sous-package direct** du package principal (ex. `be.heh.clipclap.bookings`) ;
 - les types placés **à la racine** du module forment son API (façade `BookingApi`, records, événements comme `BookingConfirmed`) ;
 - tout le reste (contrôleur, service, repository `JdbcClient`) va dans le sous-package **`internal`** et reste invisible pour les autres modules ;
 - les dépendances entre modules forment un **graphe sans cycle** ;
 - les modules communiquent **de préférence par événements** (`ApplicationEventPublisher.publishEvent` + `@ApplicationModuleListener`), et par appel direct de l'API publique seulement quand une réponse immédiate est nécessaire (ex. vérifier qu'un créneau est libre) ;
-- la structure est vérifiée par un test `ApplicationModules.of(ClicEtClapApplication.class).verify()` (cycles + visibilité).
+- la structure est vérifiée par un test `ApplicationModules.of(ClipclapApplication.class).verify()` (cycles + visibilité).
 
 Les diagrammes officiels sont réalisés dans **IcePanel** (outil imposé), en reprenant les conventions de l'exemple **PubNotify** fourni par l'enseignant. Ce document sert de référence pour les saisir ; les blocs Mermaid ne sont qu'un aperçu lisible sur GitHub.
 
@@ -262,8 +262,8 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 | Developer laptop → OS du poste | tout ce qui suit | Windows 11 (Francisco) — OS Gedeon à confirmer |
 | Serveur web — `Group: Vite.js` | Static content | `npm run dev` — Node.js 22.13.1 |
 | Navigateur web — `Group: Chrome` | UI | React exécuté dans le navigateur |
-| Java Virtual Machine — `Group: Java` | Backend | le `.jar` Spring Boot (Gradle) — OpenJDK Temurin 25.0.4.1 |
-| Docker (`compose.yaml`) | Database | image `postgres:18` (à confirmer à la création du `compose.yaml`) — Docker 29.8.0 |
+| Java Virtual Machine — `Group: Java` | Backend | le `.jar` Spring Boot (Gradle) — Java 17 (toolchain Gradle) |
+| Docker (`compose.yaml`) | Database | image `postgres:17-alpine` (aussi utilisée par les tests via Testcontainers) — Docker 29.8.0 |
 | (hors laptop) | Stockage des photos, Service d'envoi d'e-mails | services SaaS |
 
 > Capture IcePanel — environnement local : Spring Boot, Docker (PostgreSQL), Vite, sur le poste du développeur.
@@ -284,6 +284,7 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 
 | Date | Version | Modification | Raison |
 |------|---------|--------------|--------|
+| 2026-10-12 | v1.5 | Package racine `be.heh.clipclap` et classe `ClipclapApplication`, Java 17, image `postgres:17-alpine` | Alignement sur le code réel après la décision du binôme (issue #24) |
 | 2026-10-12 | v1.4 | Ajout des 7 captures PNG IcePanel dans `docs/architecture/` ; niveau 3 découpé en 4 vues (Modules, Réservation, Consultation-réputation, Administration-modération) ; chemins d'images corrigés | L'essai IcePanel se termine ; les PNG font référence permanente |
 | 2026-10-05 | v1.3 | Ajout du module **`catalog`** (lecture seule : galerie, filtres, profil public, stats d'accueil) ; ajout de la relation `notifications → users` ; versions déploiement renseignées (Temurin 25, Node 22, Docker 29, postgres:18) | Supprime le cycle `creators ↔ offerings` et isole l'assemblage de données publiques dans un module dédié |
 | 2026-09-21 | v1.2 | Ajout du diagramme déploiement, choix upload signé Cloudinary, module `notifications` en statut Future | Aligner avec les décisions d'architecture prises en séance |
