@@ -15,7 +15,7 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 
 | Couche | Technologie |
 |--------|-------------|
-| Architecture | Monolithe modulaire (Spring Modulith) — voir [docs/architecture.md](docs/architecture.md) |
+| Architecture | Monolithe modulaire (Spring Modulith) — voir [docs/architecture/architecture-c4.md](docs/architecture/architecture-c4.md) |
 | Backend | Spring Boot 4 |
 | Sécurité | Spring Security (rôles) |
 | Persistance | Spring JDBC (`JdbcClient`) + PostgreSQL |
@@ -30,7 +30,7 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 
 Clic & Clap est un **monolithe modulaire** : un seul projet Spring Boot, compilé en un seul `.jar` et connecté à une seule base PostgreSQL. Le code est découpé en modules métier (`users`, `creators`, `offerings`, `bookings`, `reputation`, `moderation`, `catalog`, `admin`, `notifications`) qui communiquent uniquement via leur API publique ou par événements.
 
-L'architecture est documentée avec le **modèle C4** (contexte, conteneurs, composants) et un diagramme de déploiement, réalisés dans IcePanel. Le détail se trouve dans [docs/architecture.md](docs/architecture.md).
+L'architecture est documentée avec le **modèle C4** (contexte, conteneurs, composants) et un diagramme de déploiement, réalisés dans IcePanel. Le détail se trouve dans [docs/architecture/architecture-c4.md](docs/architecture/architecture-c4.md).
 
 ## Rôles utilisateurs
 
@@ -46,7 +46,7 @@ L'architecture est documentée avec le **modèle C4** (contexte, conteneurs, com
 - [Fonctionnalités détaillées](docs/fonctionnalites.md)
 - [Plan de release](docs/plan-de-release.md)
 - [Wireframes](docs/wireframes.md)
-- [Architecture (monolithe modulaire et modèle C4)](docs/architecture.md)
+- [Architecture (monolithe modulaire et modèle C4)](docs/architecture/architecture-c4.md)
 - [Plan de tests](docs/tests.md)
 
 ## Installation et lancement
