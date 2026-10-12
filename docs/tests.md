@@ -84,7 +84,7 @@ Dépendance Gradle à ajouter : `testImplementation 'org.springframework.modulit
 | `ModularityTests` | `ApplicationModules.verify()` | Aucun cycle entre modules, visibilité `internal` respectée |
 | `AuthControllerTest` | `@WebMvcTest(AuthController.class)` + Mockito | Inscription retourne 201, mauvais identifiants retournent 401 |
 | `GalleryControllerTest` | `@WebMvcTest(GalleryController.class)` + Mockito | GET `/api/gallery` retourne la liste ; filtre par pays filtre les résultats |
-| `JdbcUserRepositoryTest` | `@JdbcTest` + Testcontainers (`postgres:18`) | `save` puis `findByEmail` retourne l'utilisateur ; email dupliqué lève une exception |
+| `JdbcUserRepositoryTest` | `@JdbcTest` + Testcontainers (`postgres:17-alpine`) | `save` puis `findByEmail` retourne l'utilisateur ; email dupliqué lève une exception |
 
 ### Dès v0.2 — Événements de réservation
 
@@ -114,4 +114,6 @@ class BookingEventsTest {
 ## Notes
 
 - Les tests manuels (scénarios 1–40) sont réalisés sur l'environnement déployé en ligne à la fin de chaque release.
-- Les tests automatisés couvrent les cas critiques (anti-collision, événements, structure modulaire) et sont exécutés en CI à chaque push sur `develop`.
+- Les tests automatisés couvrent les cas critiques (anti-collision, événements, structure modulaire). Ils sont écrits en même temps que le code, lancés avec `./gradlew test` (dans `backend/`) et exécutés en CI à chaque pull request vers `main`.
+- Outils : **JUnit** (tests unitaires), **Mockito** (stubs et mocks), **RestTestClient** (contrôleurs REST), **Spring Modulith** (`ModularityTests` et `@ApplicationModuleTest`), **Testcontainers** (PostgreSQL).
+- Les tests qui ont besoin de la base importent `TestcontainersConfiguration` (`@Import(TestcontainersConfiguration.class)`) : chaque lancement démarre une base `postgres:17-alpine` jetable, la même image que `compose.yaml`, indépendante de la base locale. Seul Docker doit être lancé.
