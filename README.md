@@ -58,15 +58,26 @@ Elle contiendra : prérequis, configuration (dont les identifiants Cloudinary,
 à ne jamais commiter), commande de lancement en local et commande pour
 exécuter les tests.
 
-## Convention de branches
+## Workflow Git (GitHub Flow)
 
-```
-main          — production stable
-develop       — intégration continue
-feature/<nom> — une branche par fonctionnalité
-```
+Le projet suit **GitHub Flow** : `main` est la seule branche permanente et reste toujours déployable. Le suivi des tâches se fait dans le [GitHub Project](https://github.com/users/Gedeondk/projects/1).
 
-Toute fonctionnalité passe par une **pull request** relue par l'autre membre avant merge.
+1. Chaque tâche est une **issue** du GitHub Project, rattachée au milestone de sa release (`v0.1`, `v0.2`…).
+2. Une branche courte part de `main` et porte le numéro de l'issue : `<type>/<n°>-<description>`.
+3. Les commits suivent les **Conventional Commits** : `feat(users): ...`, `fix(bookings): ...`, `docs: ...`.
+4. Une **pull request** vers `main` contient `Closes #<n°>`. Elle est relue et commentée par l'autre membre avant le merge.
+5. Après le merge, la branche est supprimée.
+
+| Type | Usage | Exemple |
+|------|-------|---------|
+| `feat` | Nouvelle fonctionnalité | `feat/10-zitadel-auth` |
+| `fix` | Correction de bug | `fix/42-collision-creneaux` |
+| `test` | Ajout ou correction de tests | `test/7-testcontainers` |
+| `docs` | Documentation | `docs/3-github-flow` |
+| `ci` | Build, déploiement, GitHub Actions | `ci/6-github-actions` |
+| `chore` | Maintenance, configuration | `chore/18-donnees-de-depart` |
+
+Chaque release livrée reçoit un **tag de version** sur `main` (`v0.1`, `v0.2`, `v0.3`, `v1.0`).
 
 ## Déploiement
 

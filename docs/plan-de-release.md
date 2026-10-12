@@ -139,15 +139,11 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 
 ---
 
-## Convention de branches
+## Suivi des releases
 
-```
-main              ← production stable (merge après chaque release)
-develop           ← intégration continue
-feature/<nom>     ← une branche par fonctionnalité
-```
-
-**Règle :** toute `feature/*` est mergée via **pull request** relue et approuvée par l'autre membre du binôme.
+- Le projet suit **GitHub Flow** : une branche courte par issue, partie de `main` et nommée `<type>/<n°>-<description>`, puis une pull request vers `main` contenant `Closes #<n°>`, relue par l'autre membre. Le détail est dans le [README](../README.md#workflow-git-github-flow).
+- Chaque tâche de ce plan est une **issue** du [GitHub Project](https://github.com/users/Gedeondk/projects/1), rattachée au **milestone** de sa release.
+- Une release est livrée quand sa Definition of Done est remplie. Elle reçoit alors un **tag** sur `main` (`v0.1`, `v0.2`, `v0.3`, `v1.0`).
 
 ---
 
@@ -163,3 +159,4 @@ feature/<nom>     ← une branche par fonctionnalité
 | 2026-09-21 | v1.0 | Ajout des **badges automatiques** (Nouveau, Top créateur, Réponse rapide) | Enrichit la réputation sans écran supplémentaire |
 | 2026-09-21 | Bonus | **Favoris, vidéos par lien, statistiques admin, recherche avancée** déplacés en bonus | Allègement pour tenir les délais ; ces fonctionnalités ne bloquent pas le cœur du projet |
 | 2026-10-12 | Toutes | Répartition du travail **par module** (un responsable par module) au lieu de par fonctionnalité : la galerie, les filtres et les catégories passent à Francisco ; l'acceptation et le refus, l'anti-collision, l'expiration et le statut Terminée passent à Gedeon | Le module `bookings` était partagé entre les deux membres, ce qui créait des conflits et brouillait l'historique des contributions |
+| 2026-10-12 | Toutes | Passage de la convention `main` / `develop` / `feature/*` au workflow **GitHub Flow** (branches courtes liées aux issues, PR vers `main`, tag par release) et suivi des tâches dans **GitHub Projects** | Workflow imposé par les consignes du cours ; la branche `develop` a été supprimée |
