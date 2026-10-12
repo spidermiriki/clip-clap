@@ -75,5 +75,9 @@ Ils couvrent les scénarios fonctionnels principaux décrits dans [fonctionnalit
 
 ## Notes
 
-- Les tests sont réalisés manuellement sur l'environnement déployé en ligne.
-- Des tests automatisés pourront être ajoutés en v1.0 si le temps le permet.
+- Les scénarios ci-dessus sont vérifiés manuellement sur l'environnement déployé en ligne à chaque release.
+- Ils s'appuient sur des **tests automatisés** écrits en même temps que le code et lancés avec `./gradlew test` (dans `backend/`) :
+  - **JUnit** pour les tests unitaires, **Mockito** pour les stubs et les mocks ;
+  - **RestTestClient** pour les contrôleurs REST ;
+  - un test **Spring Modulith** qui vérifie la structure des modules (`ModularityTests`), et des tests de module isolés (`@ApplicationModuleTest`) ;
+  - **Testcontainers** pour les tests qui ont besoin de PostgreSQL : chaque lancement démarre une base jetable (`TestcontainersConfiguration`), indépendante de la base locale. Seul Docker doit être lancé.
