@@ -6,7 +6,7 @@
 
 | # | Écran | Profil | Responsable | Release |
 |---|-------|--------|-------------|---------|
-| 01 | Accueil / Galerie publique | Visiteur | Gedeon | v0.1 |
+| 01 | Accueil / Galerie publique | Visiteur | Francisco | v0.1 |
 | 02 | Connexion | Visiteur | Gedeon | v0.1 |
 | 03 | Inscription | Visiteur | Gedeon | v0.1 |
 | 04 | Profil public d'un créateur | Visiteur / Client | Francisco | v0.1 |
@@ -16,7 +16,7 @@
 | 08 | Tableau de bord créateur | Créateur | Francisco | v0.2 |
 | 09 | Mes réservations (et avis) | Client | Gedeon | v0.2 / v0.3 |
 | 10 | Gestion des albums | Créateur | Francisco | v0.1 |
-| 11 | Back-office administrateur | Administrateur | Les deux | v0.2 / v1.0 |
+| 11 | Back-office administrateur | Administrateur | Francisco | v0.2 / v1.0 |
 | 12 | Mon profil créateur (après inscription) | Créateur | Francisco | v0.1 |
 
 ## Navigation par rôle
