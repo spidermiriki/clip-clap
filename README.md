@@ -6,10 +6,10 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 
 | Nom | Rôle principal |
 |-----|----------------|
-| Derouck Arredondo Francisco Homero | Côté créateur (profil, albums, upload, prestations, agenda) |
-| Dassi Kouam Gedeon | Côté client (inscription, galerie, réservations, avis, signalements) |
+| Derouck Arredondo Francisco Homero | Modules `creators`, `offerings`, `catalog`, `admin`, `notifications` (profil, albums, prestations, agenda, galerie, back-office) |
+| Dassi Kouam Gedeon | Modules `users`, `bookings`, `reputation`, `moderation` (authentification, réservations, avis, badges, signalements) |
 
-> Les deux membres se croisent sur le back-office administrateur.
+> Chaque module a un seul responsable ; l'autre membre relit ses pull requests. Détail dans le [plan de release](docs/plan-de-release.md#répartition-des-responsabilités).
 
 ## Stack technique
 
