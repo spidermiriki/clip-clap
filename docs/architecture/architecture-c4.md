@@ -1,7 +1,7 @@
 # Architecture — monolithe modulaire et modèle C4 (IcePanel)
 
 Projet **Clic & Clap** — Derouck Arredondo Francisco Homero · Dassi Kouam Gedeon
-Version 1.4 — Octobre 2026
+Version 1.6 — Octobre 2026
 
 ## Choix d'architecture
 
@@ -17,6 +17,8 @@ Conventions **Spring Modulith** (cours, chapitre 5) :
 - la structure est vérifiée par un test `ApplicationModules.of(ClipclapApplication.class).verify()` (cycles + visibilité).
 
 Les diagrammes officiels sont réalisés dans **IcePanel** (outil imposé), en reprenant les conventions de l'exemple **PubNotify** fourni par l'enseignant. Ce document sert de référence pour les saisir ; les blocs Mermaid ne sont qu'un aperçu lisible sur GitHub.
+
+**Schéma physique de la base de données** : [schema-bd.md](schema-bd.md)
 
 **Diagrammes IcePanel** : [https://s.icepanel.io/LhJJxAELCMfdkx/YeYM](https://s.icepanel.io/LhJJxAELCMfdkx/YeYM)
 Fichier d'import et instructions : [docs/icepanel/README.md](../icepanel/README.md).
@@ -60,7 +62,7 @@ Fichier d'import et instructions : [docs/icepanel/README.md](../icepanel/README.
 | Clic & Clap | System | Plateforme web de réservation de photographes et vidéastes |
 | Stockage des photos | External system | `External system: Cloudinary` |
 | Service d'envoi d'e-mails | External system | `External system: Brevo` — statut **Future** **(à confirmer)** |
-| Fournisseur d'identité | External system | `External system: Google (OAuth2)` — statut **Future** **(Bonus, à confirmer avec l'enseignant)** |
+| Fournisseur d'identité | External system | `External system: Zitadel (OIDC/OAuth2)` — statut **Live** |
 
 ### Relations
 
@@ -74,7 +76,8 @@ Fichier d'import et instructions : [docs/icepanel/README.md](../icepanel/README.
 | Clic & Clap | Service d'envoi d'e-mails | Envoie les notifications de réservation |
 | Service d'envoi d'e-mails | Créateur | Notifie une nouvelle demande |
 | Service d'envoi d'e-mails | Client | Notifie la confirmation, le refus ou l'expiration |
-| Clic & Clap | Fournisseur d'identité | Authentifie l'utilisateur **(si OAuth2 validé)** |
+| UI | Fournisseur d'identité | Authentifie l'utilisateur (OIDC/PKCE) |
+| Backend | Fournisseur d'identité | Valide les JWT (OAuth2 Resource Server) |
 
 ```mermaid
 C4Context
@@ -86,6 +89,7 @@ C4Context
   System(cc, "Clic & Clap", "Plateforme de réservation de créateurs visuels")
   System_Ext(cloudinary, "Stockage des photos", "Cloudinary")
   System_Ext(mail, "Service d'envoi d'e-mails", "Brevo (Future)")
+  System_Ext(idp, "Fournisseur d'identité", "Zitadel (OIDC)")
   Rel(visiteur, cc, "Parcourt, consulte, s'inscrit")
   Rel(client, cc, "Réserve, annule, laisse un avis")
   Rel(createur, cc, "Gère profil, agenda, réservations")
@@ -94,9 +98,10 @@ C4Context
   Rel(cc, mail, "Envoie les notifications")
   Rel(mail, createur, "Notifie une nouvelle demande")
   Rel(mail, client, "Notifie confirmation / refus")
+  Rel(cc, idp, "Authentifie (OIDC/PKCE + JWT validation)")
 ```
 
-> Capture IcePanel — vue d'ensemble : acteurs, système Clic & Clap et systèmes externes (Cloudinary, Brevo, Google).
+> Capture IcePanel — vue d'ensemble : acteurs, système Clic & Clap et systèmes externes (Cloudinary, Brevo, Zitadel).
 >
 > ![Niveau 1 — Contexte](niveau1-contexte.png)
 
@@ -270,13 +275,14 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 >
 > ![Déploiement local](deploiement-local.png)
 
-### Environnement en ligne (production) — (à confirmer)
+### Environnement en ligne (production)
 
-| Group | Contient |
-|-------|----------|
-| Hébergeur frontend (à choisir) | Static content |
-| Hébergeur backend — conteneur Docker | Backend (un seul `.jar`) |
-| PostgreSQL managé ou conteneur Docker | Database |
+| Group | Contient | Détail |
+|-------|----------|--------|
+| Render — Static Site | Static content | Build Vite déployé comme site statique ; PR previews disponibles sur le plan gratuit |
+| Render — Web Service | Backend | Image Docker du `.jar` Spring Boot ; démarrage automatique à chaque push sur `main` |
+| Neon — PostgreSQL managé | Database | Base PostgreSQL serverless (plan gratuit) ; `DATABASE_URL` injectée via variable d'environnement Render |
+| (hors plateforme) | Zitadel, Cloudinary, Brevo | Services SaaS externes |
 
 ---
 
@@ -284,6 +290,7 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 
 | Date | Version | Modification | Raison |
 |------|---------|--------------|--------|
+| 2026-10-12 | v1.6 | Fournisseur d'identité → **Zitadel Live** (OIDC/PKCE côté UI + JWT Resource Server côté Backend) ; section production mise à jour Render + Neon ; référence ajoutée vers `schema-bd.md` | Alignement avec les consignes v2 du cours |
 | 2026-10-12 | v1.5 | Package racine `be.heh.clipclap` et classe `ClipclapApplication`, Java 17, image `postgres:17-alpine` | Alignement sur le code réel après la décision du binôme (issue #24) |
 | 2026-10-12 | v1.4 | Ajout des 7 captures PNG IcePanel dans `docs/architecture/` ; niveau 3 découpé en 4 vues (Modules, Réservation, Consultation-réputation, Administration-modération) ; chemins d'images corrigés | L'essai IcePanel se termine ; les PNG font référence permanente |
 | 2026-10-05 | v1.3 | Ajout du module **`catalog`** (lecture seule : galerie, filtres, profil public, stats d'accueil) ; ajout de la relation `notifications → users` ; versions déploiement renseignées (Temurin 25, Node 22, Docker 29, postgres:18) | Supprime le cycle `creators ↔ offerings` et isole l'assemblage de données publiques dans un module dédié |

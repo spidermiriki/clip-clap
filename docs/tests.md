@@ -75,22 +75,25 @@ Ils couvrent les scénarios fonctionnels principaux décrits dans [fonctionnalit
 
 ## Tests automatisés
 
-Dépendance Gradle à ajouter : `testImplementation 'org.springframework.modulith:spring-modulith-starter-test'`.
+Dépendances Gradle à ajouter :
+- `testImplementation 'org.springframework.modulith:spring-modulith-starter-test'` — pour `@ApplicationModuleTest` et `Scenario`
+- `testImplementation 'org.springframework.boot:spring-boot-testcontainers'` — pour `@ServiceConnection`
+- `testImplementation 'org.testcontainers:postgresql'` — image PostgreSQL
 
 ### Dès v0.1 — Structure modulaire
 
 | Classe de test | Type | Ce qu'elle vérifie |
 |----------------|------|---------------------|
 | `ModularityTests` | `ApplicationModules.verify()` | Aucun cycle entre modules, visibilité `internal` respectée |
-| `AuthControllerTest` | `@WebMvcTest(AuthController.class)` + Mockito | Inscription retourne 201, mauvais identifiants retournent 401 |
-| `GalleryControllerTest` | `@WebMvcTest(GalleryController.class)` + Mockito | GET `/api/gallery` retourne la liste ; filtre par pays filtre les résultats |
-| `JdbcUserRepositoryTest` | `@JdbcTest` + Testcontainers (`postgres:17-alpine`) | `save` puis `findByEmail` retourne l'utilisateur ; email dupliqué lève une exception |
+| `AuthControllerTest` | `@SpringBootTest` + `RestTestClient` | Inscription retourne 201, token Zitadel invalide retourne 401 |
+| `GalleryControllerTest` | `@SpringBootTest` + `RestTestClient` | GET `/api/gallery` retourne la liste ; filtre par pays filtre les résultats |
+| `JdbcUserRepositoryTest` | `@JdbcTest` + Testcontainers (`postgres:17-alpine`) | `save` puis `findBySub` retourne l'utilisateur ; sub dupliqué lève une exception |
 
 ### Dès v0.2 — Événements de réservation
 
 | Classe de test | Type | Ce qu'elle vérifie |
 |----------------|------|---------------------|
-| `BookingControllerTest` | `@WebMvcTest(BookingController.class)` + Mockito | POST `/api/bookings` retourne 201 ; créneau déjà pris retourne 409 |
+| `BookingControllerTest` | `@SpringBootTest` + `RestTestClient` | POST `/api/bookings` retourne 201 ; créneau déjà pris retourne 409 |
 | `JdbcBookingRepositoryTest` | `@JdbcTest` + Testcontainers | `save` et `findById` ; deux inserts sur le même créneau violent la contrainte d'unicité |
 | `BookingEventsTest` | `@ApplicationModuleTest` + `Scenario` / `PublishedEvents` | Confirmer une réservation publie `BookingConfirmed` ; `BookingEventListener` reçoit l'événement |
 
