@@ -22,7 +22,9 @@
 - [ ] Ajouter l'enseignant comme collaborateur
 - [ ] Rédiger la documentation initiale (fonctionnalités, plan de release, wireframes, tests)
 - [ ] Mettre en place la convention de branches et les règles de travail en binôme
-- [ ] Déployer l'application en ligne (environnement vide)
+- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render + Neon + Cloudflare Pages)
+- [ ] Ajouter `Dockerfile`, `compose.yaml`, `.env.example` et `.gitignore` sur la branche `chore/deploiement-initial`
+- [ ] Déployer un backend Spring Boot vide (répondant à `GET /actuator/health → 200`)
 - [ ] Compléter la section Installation et lancement du README
 
 ---
@@ -162,3 +164,4 @@ feature/<nom>     ← une branche par fonctionnalité
 | 2026-09-21 | Bonus | **Favoris, vidéos par lien, statistiques admin, recherche avancée** déplacés en bonus | Allègement pour tenir les délais ; ces fonctionnalités ne bloquent pas le cœur du projet |
 | 2026-10-05 | v1.0 S10 | **Statistiques admin** rapatriées du Bonus vers v1.0 S10 | Cohérence avec la section 4.4 de fonctionnalites.md où elles font partie du périmètre normal |
 | 2026-10-05 | v0.2 S7 | Ajout du **journal des changements de statut** (qui, quand, de quel statut vers quel statut) | Règle d'intégrité déjà documentée dans fonctionnalites.md §6 mais absente du plan de release |
+| 2026-10-05 | Cadrage S1 | Décision hébergement : VM école prioritaire, sinon Render + Neon + Cloudflare Pages (tout gratuit, sans CB) ; ajout des tâches de déploiement initial en S1 | Contrainte projet : déploiement en ligne dès S1, zéro dépense |
