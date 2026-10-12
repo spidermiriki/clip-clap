@@ -52,7 +52,7 @@ Conventions clés :
 - Les données sont accédées via **`JdbcClient`** (pas de Spring Data JPA).
 - Chaque module expose son API à la racine du package ; tout le reste est dans `internal` et reste invisible pour les autres modules.
 - Les modules communiquent **par événements** (`publishEvent` / `@ApplicationModuleListener`) sauf quand une réponse immédiate est nécessaire (appel direct de l'API publique).
-- La structure est vérifiée automatiquement par `ApplicationModules.of(ClicclapApplication.class).verify()` (test `ModularityTests`).
+- La structure est vérifiée automatiquement par `ApplicationModules.of(ClipclapApplication.class).verify()` (test `ModularityTests`).
 
 Diagrammes C4 complets : [docs/architecture/architecture-c4.md](docs/architecture/architecture-c4.md)
 
