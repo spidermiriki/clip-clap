@@ -243,13 +243,22 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 | Docker (`compose.yaml`) | Database | image `postgres:18` (à confirmer à la création du `compose.yaml`) — Docker 29.8.0 |
 | (hors laptop) | Stockage des photos, Service d'envoi d'e-mails | services SaaS |
 
-### Environnement en ligne (production) — (à confirmer)
+### Environnement en ligne (production)
 
-| Group | Contient |
-|-------|----------|
-| Hébergeur frontend (à choisir) | Static content |
-| Hébergeur backend — conteneur Docker | Backend (un seul `.jar`) |
-| PostgreSQL managé ou conteneur Docker | Database |
+**Décision du binôme :** uniquement des offres gratuites sans carte bancaire.
+
+Priorité 1 — VM fournie par l'école (à confirmer avec l'enseignant) : on exécute `docker compose --profile prod up -d` avec le `compose.yaml` à la racine.
+
+Priorité 2 (si pas de VM école) — stack SaaS gratuite :
+
+| Rôle | Service | Détail |
+|------|---------|--------|
+| Backend | Render Free Web Service | Image Docker du `.jar` ; déployée depuis GitHub |
+| Base de données | Neon Free Tier | PostgreSQL serverless ; URL injectée via `DATABASE_URL` |
+| Frontend | Cloudflare Pages | Build Vite déployé depuis GitHub ; domaine `*.pages.dev` |
+| Stockage médias | Cloudinary Free | Déjà prévu dans l'architecture |
+
+> **Exclusions :** Railway (crédit limité), Fly.io (carte bancaire requise), base Postgres de Render (expire après 90 jours). Toute configuration passe par variables d'environnement (voir `.env.example` à la racine).
 
 ---
 
