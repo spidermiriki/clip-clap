@@ -1,7 +1,7 @@
 # Architecture — monolithe modulaire et modèle C4 (IcePanel)
 
 Projet **Clic & Clap** — Derouck Arredondo Francisco Homero · Dassi Kouam Gedeon
-Version 1.3 — Octobre 2026
+Version 1.4 — Octobre 2026
 
 ## Choix d'architecture
 
@@ -19,7 +19,7 @@ Conventions **Spring Modulith** (cours, chapitre 5) :
 Les diagrammes officiels sont réalisés dans **IcePanel** (outil imposé), en reprenant les conventions de l'exemple **PubNotify** fourni par l'enseignant. Ce document sert de référence pour les saisir ; les blocs Mermaid ne sont qu'un aperçu lisible sur GitHub.
 
 **Diagrammes IcePanel** : [https://s.icepanel.io/LhJJxAELCMfdkx/YeYM](https://s.icepanel.io/LhJJxAELCMfdkx/YeYM)
-Fichier d'import et instructions : [docs/icepanel/README.md](icepanel/README.md).
+Fichier d'import et instructions : [docs/icepanel/README.md](../icepanel/README.md).
 
 > L'essai IcePanel se termine prochainement ; les captures PNG dans `docs/architecture/` font foi comme référence permanente.
 
@@ -98,7 +98,7 @@ C4Context
 
 > Capture IcePanel — vue d'ensemble : acteurs, système Clic & Clap et systèmes externes (Cloudinary, Brevo, Google).
 >
-> ![Niveau 1 — Contexte](architecture/niveau1-contexte.png)
+> ![Niveau 1 — Contexte](niveau1-contexte.png)
 
 ---
 
@@ -157,7 +157,7 @@ C4Container
 
 > Capture IcePanel — un seul `.jar` backend, la base PostgreSQL, le frontend React et les systèmes SaaS.
 >
-> ![Niveau 2 — Conteneurs](architecture/niveau2-conteneurs.png)
+> ![Niveau 2 — Conteneurs](niveau2-conteneurs.png)
 
 ---
 
@@ -206,19 +206,19 @@ Zoom sur la boîte **Backend** (`App: Spring Boot`), comme le niveau 3 « Publis
 
 > **3a — Modules du monolithe** : les 9 modules et leurs dépendances (appels d'API publique et `publishEvent`).
 >
-> ![Niveau 3 — Modules](architecture/niveau3-modules.png)
+> ![Niveau 3 — Modules](niveau3-modules.png)
 >
 > **3b — Réservation** : flux de vie d'une réservation, de la demande à la confirmation, au refus ou à l'expiration automatique.
 >
-> ![Niveau 3 — Réservation](architecture/niveau3-reservation.png)
+> ![Niveau 3 — Réservation](niveau3-reservation.png)
 >
 > **3c — Consultation et réputation** : `catalog` agrège les données publiques ; `reputation` calcule les badges.
 >
-> ![Niveau 3 — Consultation et réputation](architecture/niveau3-consultation-reputation.png)
+> ![Niveau 3 — Consultation et réputation](niveau3-consultation-reputation.png)
 >
 > **3d — Administration et modération** : validation des créateurs, traitement des signalements, gestion des catégories.
 >
-> ![Niveau 3 — Administration et modération](architecture/niveau3-administration-moderation.png)
+> ![Niveau 3 — Administration et modération](niveau3-administration-moderation.png)
 
 ---
 
@@ -268,7 +268,7 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 
 > Capture IcePanel — environnement local : Spring Boot, Docker (PostgreSQL), Vite, sur le poste du développeur.
 >
-> ![Déploiement local](architecture/deploiement-local.png)
+> ![Déploiement local](deploiement-local.png)
 
 ### Environnement en ligne (production) — (à confirmer)
 

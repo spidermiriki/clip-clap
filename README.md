@@ -16,7 +16,7 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 - [Cahier des charges](docs/cdc-clic-et-clap.md)
 - [Fonctionnalités détaillées](docs/fonctionnalites.md)
 - [Plan de release](docs/plan-de-release.md)
-- [Architecture C4](docs/architecture-c4.md)
+- [Architecture C4](docs/architecture/architecture-c4.md)
 - [Wireframes](docs/wireframes.md)
 - [Plan de tests](docs/tests.md)
 
@@ -30,7 +30,7 @@ Conventions clés :
 - Les modules communiquent **par événements** (`publishEvent` / `@ApplicationModuleListener`) sauf quand une réponse immédiate est nécessaire (appel direct de l'API publique).
 - La structure est vérifiée automatiquement par `ApplicationModules.of(ClicEtClapApplication.class).verify()`.
 
-Diagrammes C4 complets : [docs/architecture-c4.md](docs/architecture-c4.md)
+Diagrammes C4 complets : [docs/architecture/architecture-c4.md](docs/architecture/architecture-c4.md)
 
 ## Installation et lancement
 
