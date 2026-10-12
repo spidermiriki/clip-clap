@@ -40,9 +40,10 @@
 - [ ] **(Francisco)** Création et modification du profil créateur (bio, ville, pays, zones d'intervention)
 
 #### Séance 3
-- [ ] **(Gedeon)** Galerie publique avec liste des créateurs
-- [ ] **(Gedeon)** Filtres : type de prestation, ville, pays, type de média
+- [ ] **(Francisco)** Galerie publique avec liste des créateurs
+- [ ] **(Francisco)** Filtres : type de prestation, ville, pays, type de média
 - [ ] **(Francisco)** Création d'albums et upload de photos
+- [ ] **(Gedeon)** Protection des routes par rôle (API et frontend), gestion de la session côté React
 
 #### Séance 4
 - [ ] **(Francisco)** Profil public d'un créateur (bio, albums, pays, zones, tarifs indicatifs)
@@ -58,18 +59,20 @@
 - [ ] **(Francisco)** Création de prestations à prix fixe par le créateur (nom, durée, prix, options payantes)
 - [ ] **(Francisco)** Gestion des disponibilités : le créateur définit ses créneaux libres et son préavis minimum
 - [ ] **(Gedeon)** Interface de réservation : le client choisit une prestation et un créneau disponible
+- [ ] **(Gedeon)** Anti-collision : un créneau confirmé n'est plus réservable ; marge entre deux rendez-vous (s'appuie sur les disponibilités exposées par `offerings`)
 
 #### Séance 6
-- [ ] **(Francisco)** Tableau de bord créateur : demandes reçues, accepter ou refuser
-- [ ] **(Francisco)** Anti-collision : un créneau confirmé n'est plus réservable ; marge entre deux rendez-vous
+- [ ] **(Gedeon)** API d'acceptation et de refus des demandes reçues (module `bookings`)
+- [ ] **(Francisco)** Tableau de bord créateur (page) : demandes reçues, boutons accepter ou refuser
 - [ ] **(Francisco)** Validation des comptes créateurs par l'administrateur
 
 #### Séance 7
 - [ ] **(Gedeon)** Tableau de bord client : suivi des statuts (En attente, Confirmée, Refusée, Annulée, Expirée, Terminée)
 - [ ] **(Gedeon)** Annulation par le client (gratuite jusqu'à 48 h avant, marquée « tardive » après)
-- [ ] **(Francisco)** Expiration automatique : demande non traitée après 7 jours → statut Expirée, créneau libéré
-- [ ] **(Francisco)** Marquer une prestation comme terminée (déclenchée par le créateur)
-- [ ] **(Les deux)** Journal des changements de statut (qui, quand, de quel statut vers quel statut)
+- [ ] **(Gedeon)** Expiration automatique : demande non traitée après 7 jours → statut Expirée, créneau libéré
+- [ ] **(Gedeon)** API pour marquer une prestation comme terminée
+- [ ] **(Francisco)** Bouton « Marquer comme terminée » sur le tableau de bord créateur
+- [ ] **(Gedeon)** Journal des changements de statut (qui, quand, de quel statut vers quel statut)
 - [ ] **Déploiement v0.2 + tests**
 
 ---
@@ -94,10 +97,11 @@
 **Objectif :** Version finale prête pour la livraison.
 
 #### Séance 10
-- [ ] **(Les deux)** Back-office admin : traitement des signalements (médias et avis)
-- [ ] **(Les deux)** Gestion des catégories de prestation
-- [ ] **(Les deux)** Badges automatiques sur les profils créateurs (Nouveau, Top créateur, Réponse rapide)
-- [ ] **(Les deux)** Statistiques admin (nombre d'utilisateurs par rôle, réservations par statut, créateurs validés / en attente)
+- [ ] **(Gedeon)** API de traitement des signalements (module `moderation`)
+- [ ] **(Francisco)** Back-office admin : écran de traitement des signalements (médias et avis)
+- [ ] **(Francisco)** Gestion des catégories de prestation
+- [ ] **(Gedeon)** Badges automatiques sur les profils créateurs (Nouveau, Top créateur, Réponse rapide)
+- [ ] **(Francisco)** Statistiques admin (nombre d'utilisateurs par rôle, réservations par statut, créateurs validés / en attente)
 
 #### Séance 11
 - [ ] Tests complets
@@ -119,35 +123,31 @@ Pour chaque release, une version est considérée comme livrée si et seulement 
 
 ## Répartition des responsabilités
 
-| Fonctionnalité | Responsable principal |
-|----------------|----------------------|
-| Profil créateur (pays, zones, bio) | Derouck Arredondo Francisco Homero |
-| Albums et upload de médias | Derouck Arredondo Francisco Homero |
-| Prestations à prix fixe et agenda | Derouck Arredondo Francisco Homero |
-| Anti-collision et marge entre RDV | Derouck Arredondo Francisco Homero |
-| Expiration automatique des demandes | Derouck Arredondo Francisco Homero |
-| Validation des créateurs (admin) | Derouck Arredondo Francisco Homero |
-| Inscription, connexion, rôles | Dassi Kouam Gedeon |
-| Galerie publique et filtres | Dassi Kouam Gedeon |
-| Interface de réservation client | Dassi Kouam Gedeon |
-| Réservation multiple, total, promo | Dassi Kouam Gedeon |
-| Annulation et suivi des statuts | Dassi Kouam Gedeon |
-| Avis, notes et signalement | Dassi Kouam Gedeon |
-| Back-office admin complet | Les deux (croisement) |
-| Badges automatiques | Les deux |
-| Déploiement | Les deux |
+Le travail est réparti **par module** du monolithe modulaire : chaque module a un seul responsable, qui en écrit le code backend et les pages frontend associées. L'autre membre relit les pull requests. Les modules communiquent uniquement via leur API publique ou par événements (vérifié par `ModularityTests`), ce qui évite de modifier les mêmes fichiers en parallèle.
+
+| Module | Responsable | Contenu |
+|--------|-------------|---------|
+| `users` | Dassi Kouam Gedeon | Inscription, connexion, rôles, sécurité |
+| `bookings` | Dassi Kouam Gedeon | Réservation simple et multiple, total et promo, acceptation et refus, anti-collision, annulation, expiration, statut Terminée, journal des changements de statut |
+| `reputation` | Dassi Kouam Gedeon | Avis, notes, badges automatiques |
+| `moderation` | Dassi Kouam Gedeon | Signalements des avis et des médias |
+| `creators` | Derouck Arredondo Francisco Homero | Profil créateur (bio, pays, zones), albums, upload des médias, statut de validation |
+| `offerings` | Derouck Arredondo Francisco Homero | Prestations à prix fixe, options payantes, agenda, disponibilités, préavis minimum, marge entre rendez-vous |
+| `catalog` | Derouck Arredondo Francisco Homero | Galerie publique, filtres, gestion des catégories |
+| `admin` | Derouck Arredondo Francisco Homero | Back-office : validation des créateurs, écran de traitement des signalements, statistiques |
+| `notifications` | Derouck Arredondo Francisco Homero | Réactions aux événements publiés par les autres modules |
+
+**Pages frontend (wireframes)** : Gedeon — 02, 03, 05, 06, 09 ; Francisco — 01, 04, 07, 08, 10, 11, 12.
+
+**En commun** : données de départ, déploiement, tests complets et documentation finale.
 
 ---
 
-## Convention de branches
+## Suivi des releases
 
-```
-main              ← production stable (merge après chaque release)
-develop           ← intégration continue
-feature/<nom>     ← une branche par fonctionnalité
-```
-
-**Règle :** toute `feature/*` est mergée via **pull request** relue et approuvée par l'autre membre du binôme.
+- Le projet suit **GitHub Flow** : une branche courte par issue, partie de `main` et nommée `<type>/<n°>-<description>`, puis une pull request vers `main` contenant `Closes #<n°>`, relue par l'autre membre. Le détail est dans le [README](../README.md#workflow-git-github-flow).
+- Chaque tâche de ce plan est une **issue** du [GitHub Project](https://github.com/users/spidermiriki/projects/6), rattachée au **milestone** de sa release.
+- Une release est livrée quand sa Definition of Done est remplie. Elle reçoit alors un **tag** sur `main` (`v0.1`, `v0.2`, `v0.3`, `v1.0`).
 
 ---
 
@@ -165,3 +165,5 @@ feature/<nom>     ← une branche par fonctionnalité
 | 2026-10-05 | v1.0 S10 | **Statistiques admin** rapatriées du Bonus vers v1.0 S10 | Cohérence avec la section 4.4 de fonctionnalites.md où elles font partie du périmètre normal |
 | 2026-10-05 | v0.2 S7 | Ajout du **journal des changements de statut** (qui, quand, de quel statut vers quel statut) | Règle d'intégrité déjà documentée dans fonctionnalites.md §6 mais absente du plan de release |
 | 2026-10-05 | Cadrage S1 | Décision hébergement : VM école prioritaire, sinon Render + Neon + Cloudflare Pages (tout gratuit, sans CB) ; ajout des tâches de déploiement initial en S1 | Contrainte projet : déploiement en ligne dès S1, zéro dépense |
+| 2026-10-12 | Toutes | Répartition du travail **par module** (un responsable par module) au lieu de par fonctionnalité : la galerie, les filtres, les catégories et les statistiques admin passent à Francisco ; l'acceptation et le refus, l'anti-collision, l'expiration, le statut Terminée et le journal des statuts passent à Gedeon | Le module `bookings` était partagé entre les deux membres, ce qui créait des conflits et brouillait l'historique des contributions |
+| 2026-10-12 | Toutes | Passage de la convention `main` / `develop` / `feature/*` au workflow **GitHub Flow** (branches courtes liées aux issues, PR vers `main`, tag par release) et suivi des tâches dans **GitHub Projects** | Workflow imposé par les consignes du cours ; la branche `develop` a été supprimée |
