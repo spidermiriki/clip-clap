@@ -21,11 +21,16 @@ Les diagrammes officiels sont réalisés dans **IcePanel** (outil imposé), en r
 **Diagrammes IcePanel** : [https://s.icepanel.io/LhJJxAELCMfdkx/YeYM](https://s.icepanel.io/LhJJxAELCMfdkx/YeYM)
 Fichier d'import et instructions : [docs/icepanel/README.md](icepanel/README.md).
 
+> L'essai IcePanel se termine prochainement ; les captures PNG dans `docs/architecture/` font foi comme référence permanente.
+
 | Niveau | Diagramme | Question à laquelle il répond |
 |--------|-----------|-------------------------------|
 | 1 | Contexte | Qui utilise Clic & Clap et avec quels systèmes externes communique-t-il ? |
 | 2 | Conteneurs | De quelles applications et bases de données le système est-il composé ? (on y voit le monolithe : une seule boîte backend) |
-| 3 | Modules du monolithe | Quels modules composent le monolithe et qui appelle qui ? |
+| 3a | Modules du monolithe | Quels modules composent le monolithe et qui appelle qui ? |
+| 3b | Réservation | Comment une réservation est-elle créée, confirmée et expirée ? |
+| 3c | Consultation et réputation | Comment `catalog` agrège les données publiques et comment `reputation` calcule les badges ? |
+| 3d | Administration et modération | Comment l'admin valide les créateurs et traite les signalements ? |
 | 4 | Code (facultatif) | Quelles classes composent le module `bookings` ? |
 | — | Déploiement | Sur quoi chaque conteneur tourne-t-il (local et en ligne) ? |
 
@@ -91,7 +96,9 @@ C4Context
   Rel(mail, client, "Notifie confirmation / refus")
 ```
 
-> Capture IcePanel : ![Niveau 1 — Contexte](images/c4/niveau1-contexte.png)
+> Capture IcePanel — vue d'ensemble : acteurs, système Clic & Clap et systèmes externes (Cloudinary, Brevo, Google).
+>
+> ![Niveau 1 — Contexte](architecture/niveau1-contexte.png)
 
 ---
 
@@ -148,7 +155,9 @@ C4Container
   Rel(api, mail, "Envoie les notifications")
 ```
 
-> Capture IcePanel : ![Niveau 2 — Conteneurs](images/c4/niveau2-conteneurs.png)
+> Capture IcePanel — un seul `.jar` backend, la base PostgreSQL, le frontend React et les systèmes SaaS.
+>
+> ![Niveau 2 — Conteneurs](architecture/niveau2-conteneurs.png)
 
 ---
 
@@ -195,7 +204,21 @@ Zoom sur la boîte **Backend** (`App: Spring Boot`), comme le niveau 3 « Publis
 
 > Le graphe de dépendances est **sans cycle** : `users` ← `creators` ← `offerings` ← `bookings` ← `reputation` ← `moderation`, avec `admin` tout en haut. `catalog` dépend de `creators`, `offerings`, `reputation` et `bookings` ; aucun autre module ne dépend de `catalog`. `notifications` dépend de `bookings` (il écoute ses événements) et de `users` (pour l'e-mail) ; `bookings` ne connaît pas `notifications`.
 
-> Capture IcePanel : ![Niveau 3 — Modules](images/c4/niveau3-modules.png)
+> **3a — Modules du monolithe** : les 9 modules et leurs dépendances (appels d'API publique et `publishEvent`).
+>
+> ![Niveau 3 — Modules](architecture/niveau3-modules.png)
+>
+> **3b — Réservation** : flux de vie d'une réservation, de la demande à la confirmation, au refus ou à l'expiration automatique.
+>
+> ![Niveau 3 — Réservation](architecture/niveau3-reservation.png)
+>
+> **3c — Consultation et réputation** : `catalog` agrège les données publiques ; `reputation` calcule les badges.
+>
+> ![Niveau 3 — Consultation et réputation](architecture/niveau3-consultation-reputation.png)
+>
+> **3d — Administration et modération** : validation des créateurs, traitement des signalements, gestion des catégories.
+>
+> ![Niveau 3 — Administration et modération](architecture/niveau3-administration-moderation.png)
 
 ---
 
@@ -243,22 +266,17 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 | Docker (`compose.yaml`) | Database | image `postgres:18` (à confirmer à la création du `compose.yaml`) — Docker 29.8.0 |
 | (hors laptop) | Stockage des photos, Service d'envoi d'e-mails | services SaaS |
 
-### Environnement en ligne (production)
+> Capture IcePanel — environnement local : Spring Boot, Docker (PostgreSQL), Vite, sur le poste du développeur.
+>
+> ![Déploiement local](architecture/deploiement-local.png)
 
-**Décision du binôme :** uniquement des offres gratuites sans carte bancaire.
+### Environnement en ligne (production) — (à confirmer)
 
-Priorité 1 — VM fournie par l'école (à confirmer avec l'enseignant) : on exécute `docker compose --profile prod up -d` avec le `compose.yaml` à la racine.
-
-Priorité 2 (si pas de VM école) — stack SaaS gratuite :
-
-| Rôle | Service | Détail |
-|------|---------|--------|
-| Backend | Render Free Web Service | Image Docker du `.jar` ; déployée depuis GitHub |
-| Base de données | Neon Free Tier | PostgreSQL serverless ; URL injectée via `DATABASE_URL` |
-| Frontend | Cloudflare Pages | Build Vite déployé depuis GitHub ; domaine `*.pages.dev` |
-| Stockage médias | Cloudinary Free | Déjà prévu dans l'architecture |
-
-> **Exclusions :** Railway (crédit limité), Fly.io (carte bancaire requise), base Postgres de Render (expire après 90 jours). Toute configuration passe par variables d'environnement (voir `.env.example` à la racine).
+| Group | Contient |
+|-------|----------|
+| Hébergeur frontend (à choisir) | Static content |
+| Hébergeur backend — conteneur Docker | Backend (un seul `.jar`) |
+| PostgreSQL managé ou conteneur Docker | Database |
 
 ---
 
@@ -266,5 +284,6 @@ Priorité 2 (si pas de VM école) — stack SaaS gratuite :
 
 | Date | Version | Modification | Raison |
 |------|---------|--------------|--------|
+| 2026-10-12 | v1.4 | Ajout des 7 captures PNG IcePanel dans `docs/architecture/` ; niveau 3 découpé en 4 vues (Modules, Réservation, Consultation-réputation, Administration-modération) ; chemins d'images corrigés | L'essai IcePanel se termine ; les PNG font référence permanente |
 | 2026-10-05 | v1.3 | Ajout du module **`catalog`** (lecture seule : galerie, filtres, profil public, stats d'accueil) ; ajout de la relation `notifications → users` ; versions déploiement renseignées (Temurin 25, Node 22, Docker 29, postgres:18) | Supprime le cycle `creators ↔ offerings` et isole l'assemblage de données publiques dans un module dédié |
 | 2026-09-21 | v1.2 | Ajout du diagramme déploiement, choix upload signé Cloudinary, module `notifications` en statut Future | Aligner avec les décisions d'architecture prises en séance |
