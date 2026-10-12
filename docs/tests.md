@@ -73,11 +73,47 @@ Ils couvrent les scénarios fonctionnels principaux décrits dans [fonctionnalit
 
 ---
 
+## Tests automatisés
+
+Dépendance Gradle à ajouter : `testImplementation 'org.springframework.modulith:spring-modulith-starter-test'`.
+
+### Dès v0.1 — Structure modulaire
+
+| Classe de test | Type | Ce qu'elle vérifie |
+|----------------|------|---------------------|
+| `ModularityTests` | `ApplicationModules.verify()` | Aucun cycle entre modules, visibilité `internal` respectée |
+| `AuthControllerTest` | `@WebMvcTest(AuthController.class)` + Mockito | Inscription retourne 201, mauvais identifiants retournent 401 |
+| `GalleryControllerTest` | `@WebMvcTest(GalleryController.class)` + Mockito | GET `/api/gallery` retourne la liste ; filtre par pays filtre les résultats |
+| `JdbcUserRepositoryTest` | `@JdbcTest` + Testcontainers (`postgres:17-alpine`) | `save` puis `findByEmail` retourne l'utilisateur ; email dupliqué lève une exception |
+
+### Dès v0.2 — Événements de réservation
+
+| Classe de test | Type | Ce qu'elle vérifie |
+|----------------|------|---------------------|
+| `BookingControllerTest` | `@WebMvcTest(BookingController.class)` + Mockito | POST `/api/bookings` retourne 201 ; créneau déjà pris retourne 409 |
+| `JdbcBookingRepositoryTest` | `@JdbcTest` + Testcontainers | `save` et `findById` ; deux inserts sur le même créneau violent la contrainte d'unicité |
+| `BookingEventsTest` | `@ApplicationModuleTest` + `Scenario` / `PublishedEvents` | Confirmer une réservation publie `BookingConfirmed` ; `BookingEventListener` reçoit l'événement |
+
+**Exemple de test d'événement :**
+
+```java
+@ApplicationModuleTest
+class BookingEventsTest {
+
+    @Test
+    void confirmingBookingPublishesEvent(Scenario scenario) {
+        scenario.stimulate(bookings -> bookings.confirm(42L))
+                .andWaitForEventOfType(BookingConfirmed.class)
+                .toArriveAndVerify(event -> assertThat(event.bookingId()).isEqualTo(42L));
+    }
+}
+```
+
+---
+
 ## Notes
 
-- Les scénarios ci-dessus sont vérifiés manuellement sur l'environnement déployé en ligne à chaque release.
-- Ils s'appuient sur des **tests automatisés** écrits en même temps que le code et lancés avec `./gradlew test` (dans `backend/`) :
-  - **JUnit** pour les tests unitaires, **Mockito** pour les stubs et les mocks ;
-  - **RestTestClient** pour les contrôleurs REST ;
-  - un test **Spring Modulith** qui vérifie la structure des modules (`ModularityTests`), et des tests de module isolés (`@ApplicationModuleTest`) ;
-  - **Testcontainers** pour les tests qui ont besoin de PostgreSQL : chaque lancement démarre une base jetable (`TestcontainersConfiguration`), indépendante de la base locale. Seul Docker doit être lancé.
+- Les tests manuels (scénarios 1–40) sont réalisés sur l'environnement déployé en ligne à la fin de chaque release.
+- Les tests automatisés couvrent les cas critiques (anti-collision, événements, structure modulaire). Ils sont écrits en même temps que le code, lancés avec `./gradlew test` (dans `backend/`) et exécutés en CI à chaque pull request vers `main`.
+- Outils : **JUnit** (tests unitaires), **Mockito** (stubs et mocks), **RestTestClient** (contrôleurs REST), **Spring Modulith** (`ModularityTests` et `@ApplicationModuleTest`), **Testcontainers** (PostgreSQL).
+- Les tests qui ont besoin de la base importent `TestcontainersConfiguration` (`@Import(TestcontainersConfiguration.class)`) : chaque lancement démarre une base `postgres:17-alpine` jetable, la même image que `compose.yaml`, indépendante de la base locale. Seul Docker doit être lancé.
