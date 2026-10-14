@@ -30,10 +30,11 @@ Ces valeurs ne sont pas codées en dur ; elles sont agrégées par le module `ca
 - Voir les badges du créateur (Nouveau, Top créateur, Réponse rapide)
 - Voir les avis et la note moyenne laissés par les clients
 
-### 1.4 Inscription et connexion
-- S'inscrire en tant que **client** ou **créateur** (choix du rôle à l'inscription)
-- Se connecter avec email et mot de passe
-- Se déconnecter
+### 1.4 Inscription et connexion (via Zitadel)
+- S'inscrire via **Zitadel** (fournisseur d'identité OIDC) — le frontend déclenche un flux PKCE, Zitadel émet un JWT
+- Choisir son rôle (**client** ou **créateur**) lors de la première connexion ; le choix est enregistré dans le module `users` (`sub` Zitadel + rôle)
+- Se connecter : redirection vers Zitadel, retour avec JWT validé par le backend (OAuth2 Resource Server)
+- Se déconnecter : invalidation de la session côté frontend
 
 ---
 

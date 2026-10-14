@@ -35,8 +35,8 @@
 > En v0.1, les comptes créateurs sont activés automatiquement. La validation manuelle par l'admin est introduite en v0.2. Des données de départ (créateurs et albums) sont ajoutées en S4 pour les tests.
 
 #### Séance 2
-- [ ] **(Gedeon)** Inscription et connexion des utilisateurs
-- [ ] **(Gedeon)** Gestion des rôles client et créateur
+- [ ] **(Gedeon)** Inscription et connexion via **Zitadel** (OIDC/PKCE côté frontend, JWT validé par le backend en tant qu'OAuth2 Resource Server)
+- [ ] **(Gedeon)** Gestion des rôles client et créateur (stockés dans `users` : `sub` + `role`, pas de mot de passe)
 - [ ] **(Francisco)** Création et modification du profil créateur (bio, ville, pays, zones d'intervention)
 
 #### Séance 3
