@@ -59,10 +59,74 @@ Diagrammes C4 complets : [docs/architecture/architecture-c4.md](docs/architectur
 
 ## Installation et lancement
 
-> Section à compléter à la fin de la séance 1, une fois le squelette
-> de l'application créé et déployé.
+### Prérequis
 
-Elle contiendra : prérequis, configuration (dont les identifiants Zitadel et Cloudinary, à ne jamais commiter), commande de lancement en local et commande pour exécuter les tests.
+| Outil | Version | Utilisation |
+|-------|---------|-------------|
+| Java (JDK) | 17 | Backend Spring Boot |
+| Node.js | 22 ou plus récent | Frontend React (Vite) |
+| Docker Desktop | lancé avant de démarrer le backend ou les tests | Base PostgreSQL locale et tests |
+| Git | — | Récupération du code |
+
+Gradle n'est pas à installer : le wrapper `gradlew` du dépôt le télécharge automatiquement.
+
+### Récupérer le projet
+
+```bash
+git clone https://github.com/spidermiriki/clip-clap.git
+cd clip-clap
+```
+
+### Lancer le backend
+
+```bash
+cd backend
+./gradlew bootRun        # Windows (PowerShell) : .\gradlew.bat bootRun
+```
+
+- Spring Boot démarre **automatiquement** la base PostgreSQL décrite dans `backend/compose.yaml` (Docker doit être lancé). Les tables sont créées au démarrage par `schema.sql`.
+- L'API répond sur http://localhost:8080.
+- La documentation de l'API (Swagger UI) est disponible sur http://localhost:8080/swagger-ui.html.
+
+### Lancer le frontend
+
+Dans un second terminal :
+
+```bash
+cd frontend
+npm install              # uniquement la première fois, ou après un changement de package.json
+npm run dev
+```
+
+- L'application s'ouvre à l'adresse affichée dans le terminal, par défaut http://localhost:5173 (Vite prend le port suivant si celui-ci est occupé).
+- Les appels à `/api` sont redirigés vers le backend sur le port 8080 (`frontend/vite.config.js`).
+
+### Exécuter les tests
+
+```bash
+cd backend
+./gradlew test           # Windows (PowerShell) : .\gradlew.bat test
+```
+
+Docker doit être lancé : les tests démarrent leur propre base PostgreSQL jetable avec Testcontainers, indépendante de la base locale. Le rapport est généré dans `backend/build/reports/tests/test/index.html`.
+
+Pour vérifier le build du frontend :
+
+```bash
+cd frontend
+npm run build
+```
+
+### Configuration
+
+Aucune configuration n'est nécessaire pour l'instant : les identifiants de la base locale sont fournis par `backend/compose.yaml`.
+
+Les identifiants **Zitadel** (authentification) et **Cloudinary** (médias) seront ajoutés avec les fonctionnalités correspondantes. Ils seront lus depuis des variables d'environnement et **ne doivent jamais être commités**.
+
+### Problèmes fréquents
+
+- **Erreur Docker au démarrage du backend ou des tests** (`docker compose` ou Testcontainers ne trouve pas Docker) : Docker Desktop n'est pas lancé, ou pas encore prêt.
+- **`Port 8080 was already in use`** : un autre programme utilise ce port. Arrêtez-le, ou lancez le backend sur un autre port avec `./gradlew bootRun --args=--server.port=8081`. Le proxy `/api` du frontend vise toutefois le port 8080.
 
 ## Workflow Git (GitHub Flow)
 
