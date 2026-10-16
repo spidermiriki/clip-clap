@@ -8,7 +8,7 @@
 build/
 *.class
 *.jar
-!gradle/wrapper/gradle-wrapper.jar
+!**/gradle/wrapper/gradle-wrapper.jar
 
 # ── Spring Boot ───────────────────────────────────────────────────────────────
 *.log
