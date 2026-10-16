@@ -1,10 +1,10 @@
-# Compose racine — stack complète pour le développement local (hors spring-boot-docker-compose)
-# Usage : docker compose up --build
-# Pour le dev quotidien, utiliser backend/compose.yaml (démarré automatiquement par Spring Boot).
+# Fichier compose unique — utilisé par Spring Boot Docker Compose (dev) ET par docker compose (stack complète).
+# Dev quotidien (bootRun) : Spring Boot démarre uniquement 'db' (pas de profil actif).
+# Stack complète  : docker compose --profile app up --build
 
 services:
 
-  postgres:
+  db:
     image: postgres:17-alpine
     environment:
       POSTGRES_DB: clicclap
@@ -21,13 +21,14 @@ services:
       retries: 5
 
   backend:
+    profiles: [app]
     build:
       context: ./backend
       dockerfile: Dockerfile
     ports:
       - "8080:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/clicclap
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/clicclap
       SPRING_DATASOURCE_USERNAME: clicclap
       SPRING_DATASOURCE_PASSWORD: clicclap
       SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${ZITADEL_ISSUER}
@@ -35,7 +36,7 @@ services:
       CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
       CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
     depends_on:
-      postgres:
+      db:
         condition: service_healthy
 
 volumes:
