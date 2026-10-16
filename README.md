@@ -41,6 +41,7 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 - [Fonctionnalités détaillées](docs/fonctionnalites.md)
 - [Plan de release](docs/plan-de-release.md)
 - [Architecture C4](docs/architecture/architecture-c4.md)
+- [Schéma de la base de données](docs/architecture/schema-bd.md)
 - [Wireframes](docs/wireframes.md)
 - [Plan de tests](docs/tests.md)
 

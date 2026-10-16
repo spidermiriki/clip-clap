@@ -161,6 +161,12 @@ C4Container
 
 ---
 
+## Schéma physique de la base
+
+Le contenu du conteneur **Database** (tables, colonnes, clés, contraintes et index) est décrit dans [schema-bd.md](schema-bd.md), en cohérence avec `backend/src/main/resources/schema.sql`.
+
+---
+
 ## Niveau 3 — Modules du monolithe
 
 Zoom sur la boîte **Backend** (`App: Spring Boot`), comme le niveau 3 « Publishing / Notifications » du cours. Chaque **module** est un composant (`Component: Spring Framework`). Une flèche entre modules est soit un **appel de l'API publique**, soit un **`publishEvent`** (libellé de flèche repris du cours).
@@ -284,6 +290,7 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 
 | Date | Version | Modification | Raison |
 |------|---------|--------------|--------|
+| 2026-10-16 | v1.6 | Ajout du schéma physique de la base de données ([schema-bd.md](schema-bd.md)) | Exigé par la consigne (section 7), issue #26 |
 | 2026-10-12 | v1.5 | Package racine `be.heh.clipclap` et classe `ClipclapApplication`, Java 17, image `postgres:17-alpine` | Alignement sur le code réel après la décision du binôme (issue #24) |
 | 2026-10-12 | v1.4 | Ajout des 7 captures PNG IcePanel dans `docs/architecture/` ; niveau 3 découpé en 4 vues (Modules, Réservation, Consultation-réputation, Administration-modération) ; chemins d'images corrigés | L'essai IcePanel se termine ; les PNG font référence permanente |
 | 2026-10-05 | v1.3 | Ajout du module **`catalog`** (lecture seule : galerie, filtres, profil public, stats d'accueil) ; ajout de la relation `notifications → users` ; versions déploiement renseignées (Temurin 25, Node 22, Docker 29, postgres:18) | Supprime le cycle `creators ↔ offerings` et isole l'assemblage de données publiques dans un module dédié |
