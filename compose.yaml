@@ -1,0 +1,43 @@
+# Fichier compose unique — utilisé par Spring Boot Docker Compose (dev) ET par docker compose (stack complète).
+# Dev quotidien (bootRun) : Spring Boot démarre uniquement 'db' (pas de profil actif).
+# Stack complète  : docker compose --profile app up --build
+
+services:
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: clicclap
+      POSTGRES_USER: clicclap
+      POSTGRES_PASSWORD: clicclap
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clicclap"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    profiles: [app]
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/clicclap
+      SPRING_DATASOURCE_USERNAME: clicclap
+      SPRING_DATASOURCE_PASSWORD: clicclap
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${ZITADEL_ISSUER}
+      CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
+      CLOUDINARY_API_KEY: ${CLOUDINARY_API_KEY}
+      CLOUDINARY_API_SECRET: ${CLOUDINARY_API_SECRET}
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  postgres-data:
