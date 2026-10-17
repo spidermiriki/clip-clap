@@ -2,11 +2,13 @@ package be.heh.clipclap;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
-import org.springframework.test.web.client.RestTestClient;
+import org.springframework.test.web.servlet.client.RestTestClient;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@AutoConfigureRestTestClient
 @Import(TestcontainersConfiguration.class)
 class ActuatorHealthIT {
 
@@ -18,7 +20,6 @@ class ActuatorHealthIT {
         client.get()
               .uri("/actuator/health")
               .exchange()
-              .assertThat()
-              .hasStatusOk();
+              .expectStatus().isOk();
     }
 }
