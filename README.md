@@ -44,6 +44,7 @@ Plateforme web de mise en relation entre créateurs visuels (photographes et vid
 - [Schéma de la base de données](docs/architecture/schema-bd.md)
 - [Wireframes](docs/wireframes.md)
 - [Plan de tests](docs/tests.md)
+- [Journal des problèmes rencontrés](docs/journal-problemes.md)
 
 ## Architecture
 
