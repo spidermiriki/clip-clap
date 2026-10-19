@@ -1,0 +1,17 @@
+name: Vérification label release
+
+on:
+  pull_request:
+    types: [opened, labeled, unlabeled, synchronize]
+
+jobs:
+  check-release-label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Vérifie qu'un label release:* est présent
+        env:
+          LABELS: ${{ toJson(github.event.pull_request.labels) }}
+        run: |
+          echo "$LABELS" | \
+            jq -e '[.[].name | select(startswith("release:"))] | length > 0' \
+            || { echo "❌ Aucun label release:* sur cette PR. Ajoutez release:cadrage, release:v0.1, etc."; exit 1; }
