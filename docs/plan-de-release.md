@@ -146,7 +146,7 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 ## Suivi des releases
 
 - Le projet suit **GitHub Flow** : une branche courte par issue, partie de `main` et nommée `<type>/<n°>-<description>`, puis une pull request vers `main` contenant `Closes #<n°>`, relue par l'autre membre. Le détail est dans le [README](../README.md#workflow-git-github-flow).
-- Chaque tâche de ce plan est une **issue** du [GitHub Project](https://github.com/users/spidermiriki/projects/6), rattachée au **milestone** de sa release.
+- Chaque issue et chaque PR porte un label **`release:<version>`** (`release:cadrage`, `release:v0.1`, …, `release:v1.0`). Ce label remplace les milestones comme moyen de rattacher une tâche à sa release.
 - Une release est livrée quand sa Definition of Done est remplie. Elle reçoit alors un **tag** sur `main` (`v0.1`, `v0.2`, `v0.3`, `v1.0`).
 
 ---
@@ -167,4 +167,5 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 | 2026-10-05 | Cadrage S1 | Décision hébergement : VM école prioritaire, sinon Render + Neon + Cloudflare Pages (tout gratuit, sans CB) ; ajout des tâches de déploiement initial en S1 | Contrainte projet : déploiement en ligne dès S1, zéro dépense |
 | 2026-10-12 | Toutes | Répartition du travail **par module** (un responsable par module) au lieu de par fonctionnalité : la galerie, les filtres, les catégories et les statistiques admin passent à Francisco ; l'acceptation et le refus, l'anti-collision, l'expiration, le statut Terminée et le journal des statuts passent à Gedeon | Le module `bookings` était partagé entre les deux membres, ce qui créait des conflits et brouillait l'historique des contributions |
 | 2026-10-12 | Toutes | Passage de la convention `main` / `develop` / `feature/*` au workflow **GitHub Flow** (branches courtes liées aux issues, PR vers `main`, tag par release) et suivi des tâches dans **GitHub Projects** | Workflow imposé par les consignes du cours ; la branche `develop` a été supprimée |
+| 2026-10-19 | Toutes | **Milestones remplacés par des labels `release:<version>`** sur toutes les issues et PRs ; ajout du workflow `pr-labels.yml` (vérifie la présence du label sur chaque PR) | Demande du professeur |
 | 2026-10-19 | Cadrage S1 | Hébergement du frontend : **Cloudflare Pages remplacé par Render** (Static Sites) — cf. [architecture-c4.md](architecture/architecture-c4.md) et issue #60 en cours | Cohérence avec la décision d'infrastructure ; #60 tranche si le frontend est finalement servi par Spring Boot |
