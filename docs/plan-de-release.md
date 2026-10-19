@@ -22,7 +22,7 @@
 - [ ] Ajouter l'enseignant comme collaborateur
 - [ ] Rédiger la documentation initiale (fonctionnalités, plan de release, wireframes, tests)
 - [ ] Mettre en place la convention de branches et les règles de travail en binôme
-- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render + Neon + Cloudflare Pages)
+- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render + Neon + Render Static Sites) (cf. #60)
 - [ ] Ajouter `Dockerfile`, `compose.yaml`, `.env.example` et `.gitignore` sur la branche `chore/deploiement-initial`
 - [ ] Déployer un backend Spring Boot vide (répondant à `GET /actuator/health → 200`)
 - [ ] Compléter la section Installation et lancement du README
@@ -168,3 +168,4 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 | 2026-10-12 | Toutes | Répartition du travail **par module** (un responsable par module) au lieu de par fonctionnalité : la galerie, les filtres, les catégories et les statistiques admin passent à Francisco ; l'acceptation et le refus, l'anti-collision, l'expiration, le statut Terminée et le journal des statuts passent à Gedeon | Le module `bookings` était partagé entre les deux membres, ce qui créait des conflits et brouillait l'historique des contributions |
 | 2026-10-12 | Toutes | Passage de la convention `main` / `develop` / `feature/*` au workflow **GitHub Flow** (branches courtes liées aux issues, PR vers `main`, tag par release) et suivi des tâches dans **GitHub Projects** | Workflow imposé par les consignes du cours ; la branche `develop` a été supprimée |
 | 2026-10-19 | Toutes | **Milestones remplacés par des labels `release:<version>`** sur toutes les issues et PRs ; ajout du workflow `pr-labels.yml` (vérifie la présence du label sur chaque PR) | Demande du professeur |
+| 2026-10-19 | Cadrage S1 | Hébergement du frontend : **Cloudflare Pages remplacé par Render** (Static Sites) — cf. [architecture-c4.md](architecture/architecture-c4.md) et issue #60 en cours | Cohérence avec la décision d'infrastructure ; #60 tranche si le frontend est finalement servi par Spring Boot |
