@@ -32,9 +32,15 @@
 ![01 Accueil](wireframes/01-accueil.png)
 
 ### 02 · Connexion
+L'authentification est déléguée à **Zitadel** : le bouton « Se connecter » redirige vers la page de connexion Zitadel (e-mail et mot de passe, ou compte Google en bonus). Clic & Clap ne saisit ni ne stocke aucun mot de passe.
+
+Après la connexion, Zitadel renvoie un token. Le backend vérifie sa signature, puis utilise son identifiant (`sub`) pour retrouver l'utilisateur.
+
 ![02 Connexion](wireframes/02-connexion.png)
 
 ### 03 · Inscription
+Le visiteur choisit d'abord son rôle (**client** ou **créateur**) dans Clic & Clap, puis « Continuer » le redirige vers la page d'inscription Zitadel. Le rôle choisi est enregistré dans son compte.
+
 Après l'inscription : un client est redirigé vers la galerie (01), un créateur vers « Mon profil » (12).
 
 ![03 Inscription](wireframes/03-inscription.png)
