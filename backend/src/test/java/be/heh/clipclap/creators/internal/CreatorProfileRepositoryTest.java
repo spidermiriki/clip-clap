@@ -54,14 +54,14 @@ class CreatorProfileRepositoryTest {
         assertThat(repository.findByUserId(99999L)).isEmpty();
     }
 
-    // À adapter quand users passera à sub (#70)
     private long insertTestUser(String email) {
         return jdbcClient.sql("""
-                INSERT INTO users (email, password_hash, role)
-                VALUES (:email, 'hash', 'CREATOR')
+                INSERT INTO users (email, sub, role)
+                VALUES (:email, :sub, 'CREATOR')
                 RETURNING id
                 """)
                 .param("email", email)
+                .param("sub", "sub-" + email)
                 .query(Long.class)
                 .single();
     }
