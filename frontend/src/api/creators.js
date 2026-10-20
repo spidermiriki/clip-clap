@@ -17,10 +17,13 @@ function authHeaders() {
 
 async function handleResponse(res) {
   if (res.status === 404) return null
-  if (res.status === 409) throw { status: 409, message: 'Un profil créateur existe déjà pour ce compte.' }
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}))
+    throw { status: 409, message: body.detail ?? 'Un profil créateur existe déjà pour ce compte.' }
+  }
   if (res.status === 400) {
     const body = await res.json().catch(() => ({}))
-    throw { status: 400, message: body.message ?? 'Données invalides.' }
+    throw { status: 400, message: body.detail ?? 'Données invalides.' }
   }
   if (!res.ok) throw { status: res.status, message: `Erreur serveur (${res.status}).` }
   return res.json()
