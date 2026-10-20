@@ -23,7 +23,7 @@ erDiagram
     users {
         BIGSERIAL id PK
         VARCHAR(255) email UK "NOT NULL"
-        VARCHAR(255) password_hash "NOT NULL"
+        VARCHAR(255) sub UK "NOT NULL, identifiant Zitadel"
         VARCHAR(20) role "NOT NULL, CLIENT | CREATOR | ADMIN"
         BOOLEAN suspended "NOT NULL, défaut FALSE"
         TIMESTAMPTZ created_at "NOT NULL, défaut now()"
@@ -82,12 +82,12 @@ Un compte de la plateforme, quel que soit son rôle.
 |---------|------|-------------|
 | `id` | `BIGSERIAL` | clé primaire |
 | `email` | `VARCHAR(255)` | `NOT NULL`, `UNIQUE` |
-| `password_hash` | `VARCHAR(255)` | `NOT NULL` |
+| `sub` | `VARCHAR(255)` | `NOT NULL`, `UNIQUE` |
 | `role` | `VARCHAR(20)` | `NOT NULL`, `CHECK (role IN ('CLIENT', 'CREATOR', 'ADMIN'))` |
 | `suspended` | `BOOLEAN` | `NOT NULL`, défaut `FALSE` |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
 
-> **À faire dans #10 (authentification Zitadel)** : avec Zitadel, les mots de passe ne sont pas stockés dans notre base. La colonne `password_hash` devra être remplacée par l'identifiant du compte Zitadel (claim `sub` du token).
+> L'authentification est déléguée à Zitadel : aucun mot de passe n'est stocké dans notre base. Un compte est identifié par `sub`, l'identifiant du compte chez Zitadel (claim `sub` du token). Les autres modules obtiennent l'`id` d'un utilisateur à partir de son `sub` avec `UserApi.findIdBySub`.
 
 ### `categories` — module `catalog`
 
