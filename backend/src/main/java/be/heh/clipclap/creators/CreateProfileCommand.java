@@ -1,7 +1,9 @@
 package be.heh.clipclap.creators;
 
+import jakarta.validation.constraints.NotBlank;
+
 public record CreateProfileCommand(
-        String displayName,
+        @NotBlank String displayName,
         String bio,
         String city,
         String country,
