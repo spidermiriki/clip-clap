@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createMyProfile, getMyProfile, updateMyProfile } from '../api/creators'
+import styles from './MonProfilCreateur.module.css'
 
 const EMPTY_FORM = { displayName: '', bio: '', city: '', country: '', serviceAreas: '' }
 
@@ -64,11 +65,11 @@ export default function MonProfilCreateur() {
   if (loading) return <p>Chargement…</p>
 
   return (
-    <main>
+    <main className={styles.container}>
       <h1>{isCreation ? 'Créer mon profil créateur' : 'Mon profil créateur'}</h1>
 
-      <form onSubmit={handleSubmit} noValidate>
-        <div>
+      <form className={styles.form} onSubmit={handleSubmit} noValidate>
+        <div className={styles.field}>
           <label htmlFor="displayName">Nom affiché *</label>
           <input
             id="displayName"
@@ -80,36 +81,37 @@ export default function MonProfilCreateur() {
           />
         </div>
 
-        <div>
+        <div className={styles.field}>
           <label htmlFor="bio">Bio</label>
           <textarea id="bio" name="bio" value={form.bio} onChange={handleChange} rows={4} />
         </div>
 
-        <div>
+        <div className={styles.field}>
           <label htmlFor="city">Ville</label>
           <input id="city" name="city" type="text" value={form.city} onChange={handleChange} />
         </div>
 
-        <div>
+        <div className={styles.field}>
           <label htmlFor="country">Pays</label>
           <input id="country" name="country" type="text" value={form.country} onChange={handleChange} />
         </div>
 
-        <div>
+        <div className={styles.field}>
           <label htmlFor="serviceAreas">Zones d&apos;intervention</label>
           <input
             id="serviceAreas"
             name="serviceAreas"
             type="text"
+            placeholder="ex. Mons, Charleroi, Bruxelles"
             value={form.serviceAreas}
             onChange={handleChange}
           />
         </div>
 
-        {error && <p role="alert" style={{ color: 'red' }}>{error}</p>}
-        {success && <p role="status" style={{ color: 'green' }}>Profil enregistré.</p>}
+        {error && <p role="alert" className={styles.error}>{error}</p>}
+        {success && <p role="status" className={styles.success}>Profil enregistré.</p>}
 
-        <button type="submit" disabled={saving}>
+        <button type="submit" className={styles.submitButton} disabled={saving}>
           {saving ? 'Enregistrement…' : isCreation ? 'Créer le profil' : 'Enregistrer'}
         </button>
       </form>
