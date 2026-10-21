@@ -1,0 +1,32 @@
+.auth-page {
+  max-width: 480px;
+  margin: 96px auto;
+  padding: 0 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+}
+
+.auth-page button {
+  padding: 12px 20px;
+  font-size: 16px;
+  border: 2px solid currentColor;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.auth-page button.link {
+  padding: 0;
+  border: none;
+  text-decoration: underline;
+}
+
+.auth-error {
+  color: #b42318;
+}
+
+.auth-hint {
+  font-size: 14px;
+}
