@@ -69,7 +69,8 @@ class CreatorControllerTest {
                         {"displayName":"Ghost","bio":"","city":"","country":"","serviceAreas":""}
                         """)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectBody().jsonPath("$.title").isEqualTo("Utilisateur inconnu");
     }
 
     @Test
@@ -122,7 +123,8 @@ class CreatorControllerTest {
 
         restTestClient.get().uri("/api/creators/me")
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectBody().jsonPath("$.title").isEqualTo("Profil introuvable");
     }
 
     // PUT /api/creators/me ───────────────────────────────────────────────────
@@ -154,7 +156,8 @@ class CreatorControllerTest {
                         {"displayName":"Grace","bio":"","city":"","country":"","serviceAreas":""}
                         """)
                 .exchange()
-                .expectStatus().isNotFound();
+                .expectStatus().isNotFound()
+                .expectBody().jsonPath("$.title").isEqualTo("Profil introuvable");
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────
