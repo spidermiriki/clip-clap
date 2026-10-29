@@ -19,6 +19,7 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 8 | `main` cassé par une PR mergée sans CI | CI / tests | 2026-10-17 |
 | 9 | Dépôt dans OneDrive : fichiers verrouillés | Environnement | Octobre 2026 |
 | 10 | Ports 8080 et 5173 déjà occupés en local | Environnement | 2026-10-16 |
+| 11 | Endpoint Zitadel d'attribution de rôle déprécié | Sécurité | 2026-10-29 |
 
 ---
 
@@ -145,9 +146,22 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 ---
 
+## 11. Endpoint Zitadel d'attribution de rôle déprécié
+
+**Description.** La doc Zitadel propose deux endpoints pour attribuer un rôle de projet à un utilisateur : l'API de gestion v1 (`POST /management/v1/users/{userId}/grants`) et l'API v2 (`AuthorizationService.CreateAuthorization`). La référence officielle marque le v1 comme déprécié.
+
+**Cause.** Évolution de l'API Zitadel : le v2 (ressources « Core ») remplace progressivement les endpoints v1 équivalents, sans que l'ancien ne soit retiré immédiatement.
+
+**Solution.** Choix du v2 : `POST /zitadel.authorization.v2.AuthorizationService/CreateAuthorization`, avec le header `Connect-Protocol-Version: 1` et un corps `{ userId, projectId, organizationId, roleKeys }` (voir [`ZitadelRoleClient`](../backend/src/main/java/be/heh/clipclap/users/internal/ZitadelRoleClient.java), issue #11). Contrairement au v1, le v2 exige explicitement l'identifiant de l'organisation : ajout de la variable `ZITADEL_ORG_ID` en plus de `ZITADEL_SERVICE_TOKEN` et `ZITADEL_PROJECT_ID`.
+
+**Règle retenue.** Vérifier la référence officielle d'un endpoint Zitadel avant de l'utiliser (section « deprecated ») plutôt que de se fier à un exemple trouvé ailleurs ; une évolution v1 → v2 change souvent les champs requis du corps de la requête.
+
+---
+
 ## Mises à jour du journal
 
 | Date | Modification | Auteur |
 |------|--------------|--------|
 | 2026-10-12 | Création : problèmes 1, 3, 6 et 7 (première version) | Derouck Arredondo Francisco Homero |
 | 2026-10-19 | Ajout des problèmes 2, 4, 5, 8, 9 et 10 ; corrections des problèmes 6 et 7 ; plan commun pour chaque entrée | Dassi Kouam Gedeon |
+| 2026-10-29 | Ajout du problème 11 (endpoint Zitadel déprécié, issue #11) | Dassi Kouam Gedeon |
