@@ -29,18 +29,27 @@ class UserRepository {
 	}
 
 	/**
-	 * Crée le compte s'il n'existe pas encore. {@code ON CONFLICT} évite un doublon
-	 * si deux requêtes de la même personne arrivent en même temps.
+	 * Crée le compte avec ce rôle s'il n'existe pas encore, ou met à jour son rôle sinon.
+	 * {@code ON CONFLICT} évite un doublon si deux requêtes de la même personne arrivent
+	 * en même temps.
 	 */
-	void insertIfAbsent(String sub, String email, String role) {
+	void upsertRole(String sub, String email, String role) {
 		jdbc.sql("""
 				INSERT INTO users (sub, email, role)
 				VALUES (:sub, :email, :role)
-				ON CONFLICT (sub) DO NOTHING
+				ON CONFLICT (sub) DO UPDATE SET role = EXCLUDED.role
 				""")
 			.param("sub", sub)
 			.param("email", email)
 			.param("role", role)
+			.update();
+	}
+
+	/** Synchronise le rôle local sur celui du token, qui fait foi. */
+	void updateRole(String sub, String role) {
+		jdbc.sql("UPDATE users SET role = :role WHERE sub = :sub")
+			.param("role", role)
+			.param("sub", sub)
 			.update();
 	}
 
