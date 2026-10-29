@@ -11,10 +11,8 @@ export const oidcConfig = {
   redirect_uri: `${window.location.origin}/callback`,
   post_logout_redirect_uri: `${window.location.origin}/`,
   // email : lu par le backend à la création du compte ;
-  // audience du projet : exigée par le backend ; roles : utilisés à partir de #11
+  // audience du projet : exigée par le backend ; roles : le claim de rôles Zitadel (#11)
   scope: `openid profile email urn:zitadel:iam:org:project:id:${projectId}:aud urn:zitadel:iam:org:projects:roles`,
-  // Après le retour de Zitadel, retire le code de l'URL et revient à l'accueil
-  onSigninCallback: () => {
-    window.history.replaceState({}, document.title, '/')
-  },
+  // Pas d'onSigninCallback ici : la page /callback (src/pages/Callback.jsx) gère elle-même
+  // la redirection finale avec react-router, une fois le rôle vérifié ou attribué.
 }
