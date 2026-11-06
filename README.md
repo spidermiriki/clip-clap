@@ -132,6 +132,15 @@ Aucun fichier de configuration n'est nécessaire en local : les valeurs par déf
 
 Pour se connecter en local, utiliser un compte de test de l'instance Zitadel (créés dans la console Zitadel, rôles `CLIENT` et `CREATOR`). Les mots de passe ne sont jamais écrits dans le dépôt.
 
+**Attribution des rôles (issue #11).** Le choix client / créateur à l'inscription attribue le rôle dans Zitadel via l'API de gestion, avec un compte de service. Ces valeurs **sont secrètes** et ne doivent jamais être commitées :
+
+| Variable | Utilisée par | Rôle |
+|----------|--------------|------|
+| `ZITADEL_SERVICE_TOKEN` | backend | Jeton (PAT) d'un compte de service Zitadel avec la permission `user.grant.write` |
+| `ZITADEL_ORG_ID` | backend | Identifiant de l'organisation Zitadel (console Zitadel > Organisation > Détails) |
+
+Sans ces deux variables, l'application démarre normalement ; seul `POST /api/users/me/role` échoue tant qu'elles ne sont pas renseignées.
+
 Les identifiants **Cloudinary** (médias) seront ajoutés avec l'upload des photos. Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`, voir `.env.example`) et **ne doivent jamais être commités**.
 
 ### Problèmes fréquents
