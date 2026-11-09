@@ -2,25 +2,7 @@ import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from 'react-oidc-context'
 import { postJson } from '../api'
-
-const CLAIM_GENERIQUE = 'urn:zitadel:iam:org:project:roles'
-const CLAIM_PAR_PROJET = /^urn:zitadel:iam:org:project:.+:roles$/
-
-function roleFromProfile(profile) {
-  const entry = Object.entries(profile ?? {}).find(
-    ([cle]) => cle === CLAIM_GENERIQUE || CLAIM_PAR_PROJET.test(cle),
-  )
-  if (!entry) return null
-  const roles = Object.keys(entry[1] ?? {})
-  if (roles.includes('ADMIN')) return 'ADMIN'
-  if (roles.includes('CREATOR')) return 'CREATOR'
-  if (roles.includes('CLIENT')) return 'CLIENT'
-  return null
-}
-
-function routeForRole(role) {
-  return role === 'CREATOR' ? '/mon-profil' : '/'
-}
+import { roleFromProfile, routeForRole } from '../auth/role'
 
 // Retour de Zitadel après connexion ou inscription (#11). Si l'inscrit vient de choisir un
 // rôle sur /inscription (porté dans `auth.user.state`) et que le token n'en porte encore
