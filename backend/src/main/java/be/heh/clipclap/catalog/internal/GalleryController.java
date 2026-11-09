@@ -1,6 +1,8 @@
 package be.heh.clipclap.catalog.internal;
 
 import be.heh.clipclap.catalog.CreatorSummaryPage;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,7 +28,8 @@ class GalleryController {
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
-	ResponseEntity<String> handleIllegalArgument(IllegalArgumentException ex) {
-		return ResponseEntity.badRequest().body(ex.getMessage());
+	ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
+		return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+				.body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage()));
 	}
 }
