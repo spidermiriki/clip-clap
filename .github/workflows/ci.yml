@@ -27,7 +27,6 @@ jobs:
 
   build-frontend:
     name: Build frontend
-    needs: test
     runs-on: ubuntu-latest
 
     steps:
