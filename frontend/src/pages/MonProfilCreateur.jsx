@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
+import { useAuth } from 'react-oidc-context'
 import { createMyProfile, getMyProfile, updateMyProfile } from '../api/creators'
 import styles from './MonProfilCreateur.module.css'
 
 const EMPTY_FORM = { displayName: '', bio: '', city: '', country: '', serviceAreas: '' }
 
 export default function MonProfilCreateur() {
+  const { user } = useAuth()
+  const accessToken = user?.access_token ?? null
+
   const [form, setForm] = useState(EMPTY_FORM)
   const [isCreation, setIsCreation] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -13,7 +17,7 @@ export default function MonProfilCreateur() {
   const [success, setSuccess] = useState(false)
 
   useEffect(() => {
-    getMyProfile()
+    getMyProfile(accessToken)
       .then((profile) => {
         if (profile) {
           setForm({
@@ -30,7 +34,7 @@ export default function MonProfilCreateur() {
       })
       .catch(() => setError('Impossible de charger le profil.'))
       .finally(() => setLoading(false))
-  }, [])
+  }, [accessToken])
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -49,10 +53,10 @@ export default function MonProfilCreateur() {
     setSuccess(false)
     try {
       if (isCreation) {
-        await createMyProfile(form)
+        await createMyProfile(form, accessToken)
         setIsCreation(false)
       } else {
-        await updateMyProfile(form)
+        await updateMyProfile(form, accessToken)
       }
       setSuccess(true)
     } catch (err) {

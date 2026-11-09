@@ -1,10 +1,29 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { AuthProvider } from 'react-oidc-context'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
+import Callback from './pages/Callback.jsx'
+import Galerie from './pages/Galerie.jsx'
+import Inscription from './pages/Inscription.jsx'
+import MonProfilCreateur from './pages/MonProfilCreateur.jsx'
+import { oidcConfig } from './auth/oidcConfig.js'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <BrowserRouter>
+      <AuthProvider {...oidcConfig}>
+        <Routes>
+          <Route element={<App />}>
+            <Route index element={<Galerie />} />
+            <Route path="mon-profil" element={<MonProfilCreateur />} />
+            <Route path="inscription" element={<Inscription />} />
+          </Route>
+          {/* Hors de la mise en page commune : pas de nav pendant le traitement du retour Zitadel */}
+          <Route path="callback" element={<Callback />} />
+        </Routes>
+      </AuthProvider>
+    </BrowserRouter>
   </StrictMode>,
 )

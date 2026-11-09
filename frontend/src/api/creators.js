@@ -9,18 +9,23 @@ function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-// TODO: injecter le JWT Zitadel ici quand l'authentification sera en place (#10).
-function authHeaders() {
-  const token = null
+function authHeaders(token) {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
 async function handleResponse(res) {
-  if (res.status === 404) return null
-  if (res.status === 409) throw { status: 409, message: 'Un profil créateur existe déjà pour ce compte.' }
+  if (res.status === 404) {
+    const body = await res.json().catch(() => ({}))
+    if (body.title === 'Profil introuvable') return null
+    throw { status: 404, message: body.detail ?? 'Utilisateur inconnu.' }
+  }
+  if (res.status === 409) {
+    const body = await res.json().catch(() => ({}))
+    throw { status: 409, message: body.detail ?? 'Un profil créateur existe déjà pour ce compte.' }
+  }
   if (res.status === 400) {
     const body = await res.json().catch(() => ({}))
-    throw { status: 400, message: body.message ?? 'Données invalides.' }
+    throw { status: 400, message: body.detail ?? 'Données invalides.' }
   }
   if (!res.ok) throw { status: res.status, message: `Erreur serveur (${res.status}).` }
   return res.json()
@@ -55,24 +60,24 @@ async function mockUpdate(data) {
 
 // ── API réelle ────────────────────────────────────────────────────────────────
 
-async function fetchGet() {
-  const res = await fetch('/api/creators/me', { headers: authHeaders() })
+async function fetchGet(token) {
+  const res = await fetch('/api/creators/me', { headers: authHeaders(token) })
   return handleResponse(res)
 }
 
-async function fetchCreate(data) {
+async function fetchCreate(data, token) {
   const res = await fetch('/api/creators/me', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify(data),
   })
   return handleResponse(res)
 }
 
-async function fetchUpdate(data) {
+async function fetchUpdate(data, token) {
   const res = await fetch('/api/creators/me', {
     method: 'PUT',
-    headers: { 'Content-Type': 'application/json', ...authHeaders() },
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify(data),
   })
   return handleResponse(res)
@@ -80,17 +85,17 @@ async function fetchUpdate(data) {
 
 // ── Exports publics ───────────────────────────────────────────────────────────
 
-/** Renvoie le profil courant, ou null si aucun profil n'existe (404). */
-export function getMyProfile() {
-  return USE_MOCK ? mockGet() : fetchGet()
+/** Renvoie le profil courant, ou null si aucun profil n'existe (404 "Profil introuvable"). */
+export function getMyProfile(accessToken = null) {
+  return USE_MOCK ? mockGet() : fetchGet(accessToken)
 }
 
 /** Crée le profil. Lève { status: 409 } si un profil existe déjà, { status: 400 } si invalide. */
-export function createMyProfile(data) {
-  return USE_MOCK ? mockCreate(data) : fetchCreate(data)
+export function createMyProfile(data, accessToken = null) {
+  return USE_MOCK ? mockCreate(data) : fetchCreate(data, accessToken)
 }
 
 /** Met à jour le profil. Lève { status: 400 } si invalide. */
-export function updateMyProfile(data) {
-  return USE_MOCK ? mockUpdate(data) : fetchUpdate(data)
+export function updateMyProfile(data, accessToken = null) {
+  return USE_MOCK ? mockUpdate(data) : fetchUpdate(data, accessToken)
 }

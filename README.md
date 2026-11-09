@@ -85,7 +85,7 @@ cd backend
 ./gradlew bootRun        # Windows (PowerShell) : .\gradlew.bat bootRun
 ```
 
-- Spring Boot démarre **automatiquement** la base PostgreSQL décrite dans `backend/compose.yaml` (Docker doit être lancé). Les tables sont créées au démarrage par `schema.sql`.
+- Spring Boot démarre **automatiquement** la base PostgreSQL décrite dans `compose.yaml`, à la racine du dépôt (Docker doit être lancé). Les tables sont créées au démarrage par `schema.sql`.
 - L'API répond sur http://localhost:8080.
 - La documentation de l'API (Swagger UI) est disponible sur http://localhost:8080/swagger-ui.html.
 
@@ -99,7 +99,7 @@ npm install              # uniquement la première fois, ou après un changement
 npm run dev
 ```
 
-- L'application s'ouvre à l'adresse affichée dans le terminal, par défaut http://localhost:5173 (Vite prend le port suivant si celui-ci est occupé).
+- L'application s'ouvre sur http://localhost:5173. **Ce port est obligatoire pour la connexion** : c'est la seule adresse de retour autorisée dans Zitadel. Si Vite annonce un autre port, libérez le 5173 ou lancez `npm run dev -- --port 5173 --strictPort`.
 - Les appels à `/api` sont redirigés vers le backend sur le port 8080 (`frontend/vite.config.js`).
 
 ### Exécuter les tests
@@ -120,13 +120,33 @@ npm run build
 
 ### Configuration
 
-Aucune configuration n'est nécessaire pour l'instant : les identifiants de la base locale sont fournis par `backend/compose.yaml`.
+Aucun fichier de configuration n'est nécessaire en local : les valeurs par défaut pointent vers la base de `compose.yaml` et vers l'instance Zitadel du projet.
 
-Les identifiants **Zitadel** (authentification) et **Cloudinary** (médias) seront ajoutés avec les fonctionnalités correspondantes. Ils seront lus depuis des variables d'environnement et **ne doivent jamais être commités**.
+**Authentification (Zitadel).** La connexion et l'inscription sont déléguées à Zitadel (flux OIDC avec PKCE, aucun mot de passe stocké dans Clic & Clap). Le backend vérifie la signature et l'audience de chaque token ; le compte local est créé à la première connexion. Ces valeurs ne sont pas secrètes et peuvent être remplacées :
+
+| Variable | Utilisée par | Valeur par défaut |
+|----------|--------------|-------------------|
+| `ZITADEL_ISSUER` | backend | `https://clic-clap-jiufbb.eu1.zitadel.cloud` |
+| `ZITADEL_PROJECT_ID` | backend (audience attendue) | ID du projet « Clic & Clap » |
+| `VITE_ZITADEL_ISSUER`, `VITE_ZITADEL_CLIENT_ID`, `VITE_ZITADEL_PROJECT_ID` | frontend, dans `frontend/.env.local` (modèle : `frontend/.env.example`) | instance, application `clicclap-web` et projet « Clic & Clap » |
+
+Pour se connecter en local, utiliser un compte de test de l'instance Zitadel (créés dans la console Zitadel, rôles `CLIENT` et `CREATOR`). Les mots de passe ne sont jamais écrits dans le dépôt.
+
+**Attribution des rôles (issue #11).** Le choix client / créateur à l'inscription attribue le rôle dans Zitadel via l'API de gestion, avec un compte de service. Ces valeurs **sont secrètes** et ne doivent jamais être commitées :
+
+| Variable | Utilisée par | Rôle |
+|----------|--------------|------|
+| `ZITADEL_SERVICE_TOKEN` | backend | Jeton (PAT) d'un compte de service Zitadel avec la permission `user.grant.write` |
+| `ZITADEL_ORG_ID` | backend | Identifiant de l'organisation Zitadel (console Zitadel > Organisation > Détails) |
+
+Sans ces deux variables, l'application démarre normalement ; seul `POST /api/users/me/role` échoue tant qu'elles ne sont pas renseignées.
+
+Les identifiants **Cloudinary** (médias) seront ajoutés avec l'upload des photos. Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`, voir `.env.example`) et **ne doivent jamais être commités**.
 
 ### Problèmes fréquents
 
 - **Erreur Docker au démarrage du backend ou des tests** (`docker compose` ou Testcontainers ne trouve pas Docker) : Docker Desktop n'est pas lancé, ou pas encore prêt.
+- **Erreur de redirection sur la page Zitadel** (« redirect_uri invalide ») : le frontend ne tourne pas sur le port 5173.
 - **`Port 8080 was already in use`** : un autre programme utilise ce port. Arrêtez-le, ou lancez le backend sur un autre port avec `./gradlew bootRun --args=--server.port=8081`. Le proxy `/api` du frontend vise toutefois le port 8080.
 
 ## Workflow Git (GitHub Flow)

@@ -6,7 +6,8 @@
 CREATE TABLE IF NOT EXISTS users (
     id            BIGSERIAL    PRIMARY KEY,
     email         VARCHAR(255) NOT NULL UNIQUE,
-    password_hash VARCHAR(255) NOT NULL,
+    -- Identifiant du compte chez Zitadel (claim sub du token) : aucun mot de passe n'est stocké
+    sub           VARCHAR(255) NOT NULL UNIQUE,
     role          VARCHAR(20)  NOT NULL CHECK (role IN ('CLIENT', 'CREATOR', 'ADMIN')),
     suspended     BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
