@@ -50,8 +50,29 @@ const MOCK_CREATORS = [
   { userId: 25, displayName: 'Yasmine Dubois',     photoUrl: null,                               city: 'Arlon',      country: 'Belgique' },
 ]
 
+// Pannes simulées à partir de la page 2, via l'URL :
+//   ?mockErreur=reseau            → échec à la première tentative de chaque page, puis succès
+//   ?mockErreur=reseau-permanent  → échec à chaque tentative
+function mockErreur() {
+  return new URLSearchParams(window.location.search).get('mockErreur')
+}
+
+const mockPagesDejaEchouees = new Set()
+
+function mockPanneReseau(page) {
+  if (page < 1) return false
+  const mode = mockErreur()
+  if (mode === 'reseau-permanent') return true
+  if (mode === 'reseau' && !mockPagesDejaEchouees.has(page)) {
+    mockPagesDejaEchouees.add(page)
+    return true
+  }
+  return false
+}
+
 async function mockGetCreators({ page, size }) {
   await delay(MOCK_DELAY_MS)
+  if (mockPanneReseau(page)) throw new TypeError('Failed to fetch')
   if (page < 0) throw { status: 400, message: 'page doit être >= 0' }
   if (size < 1 || size > 50) throw { status: 400, message: 'size doit être compris entre 1 et 50' }
   const start = page * size

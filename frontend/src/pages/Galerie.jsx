@@ -5,45 +5,59 @@ import styles from './Galerie.module.css'
 const PAGE_SIZE = 12
 
 export default function Galerie() {
-  const [page, setPage] = useState(0)
+  // Un nouvel objet à chaque demande : relancer la même page redéclenche le chargement
+  const [request, setRequest] = useState({ page: 0 })
+  // Dernière page chargée avec succès : reste affichée sous l'erreur
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    getCreators({ page, size: PAGE_SIZE })
-      .then(setData)
-      .catch(() => setError('Impossible de charger la galerie.'))
-      .finally(() => setLoading(false))
-  }, [page])
+    let ignore = false
+    getCreators({ page: request.page, size: PAGE_SIZE })
+      .then((result) => {
+        if (!ignore) setData(result)
+      })
+      .catch(() => {
+        if (!ignore) setError('Impossible de charger la galerie.')
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [request])
 
-  function goToPrev() {
+  function load(page) {
     setLoading(true)
     setError(null)
-    setPage((p) => p - 1)
+    setRequest({ page })
   }
 
-  function goToNext() {
-    setLoading(true)
-    setError(null)
-    setPage((p) => p + 1)
-  }
-
+  const shownPage = data ? data.page : 0
   const totalPages = data ? Math.ceil(data.totalElements / PAGE_SIZE) : 0
 
   return (
     <main className={styles.container}>
       <h1>Galerie des créateurs</h1>
 
-      {error && <p role="alert" className={styles.error}>{error}</p>}
+      {error && (
+        <div className={styles.errorBox}>
+          <p role="alert" className={styles.error}>{error}</p>
+          <button type="button" onClick={() => load(request.page)}>
+            Réessayer
+          </button>
+        </div>
+      )}
 
       {loading && <p>Chargement…</p>}
 
-      {!loading && !error && data && data.items.length === 0 && (
+      {!loading && data && data.items.length === 0 && (
         <p className={styles.empty}>Aucun créateur pour le moment.</p>
       )}
 
-      {!loading && !error && data && data.items.length > 0 && (
+      {!loading && data && data.items.length > 0 && (
         <>
           <ul className={styles.grid} aria-label="Liste des créateurs">
             {data.items.map((creator) => (
@@ -66,11 +80,11 @@ export default function Galerie() {
           </ul>
 
           <div className={styles.pagination}>
-            <button onClick={goToPrev} disabled={page === 0} aria-label="Page précédente">
+            <button onClick={() => load(shownPage - 1)} disabled={shownPage === 0} aria-label="Page précédente">
               Précédent
             </button>
-            <span>Page {page + 1} sur {totalPages}</span>
-            <button onClick={goToNext} disabled={page >= totalPages - 1} aria-label="Page suivante">
+            <span>Page {shownPage + 1} sur {totalPages}</span>
+            <button onClick={() => load(shownPage + 1)} disabled={shownPage >= totalPages - 1} aria-label="Page suivante">
               Suivant
             </button>
           </div>
