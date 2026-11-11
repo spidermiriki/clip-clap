@@ -110,7 +110,7 @@ Zoom sur la boîte **Clic & Clap**. Il n'y a **qu'une seule boîte backend** : c
 
 | Nom | Type IcePanel | Technologie | Description |
 |-----|---------------|-------------|-------------|
-| Static content | App | `App: Folder Website` (build Vite) | Fichiers HTML/JS/CSS du frontend après build |
+| Static content | App | `App: Folder Website` (build Vite) | Fichiers HTML/JS/CSS du frontend après build ; en production, embarqués dans le `.jar` et servis par le Backend (#60) |
 | UI | App | `App: React` | Interface web exécutée dans le navigateur |
 | Backend | App | `App: Spring Boot` | **Monolithe modulaire** (un seul `.jar`) : API REST, sécurité, tâches planifiées |
 | Database | Store | `Store: PostgreSQL` | Utilisateurs, profils, albums, prestations, créneaux, réservations, avis, signalements |
@@ -121,6 +121,7 @@ Zoom sur la boîte **Clic & Clap**. Il n'y a **qu'une seule boîte backend** : c
 |----|------|---------|
 | Acteurs | Static content | Charge l'interface utilisateur à partir de |
 | Static content | UI | Fournit |
+| Backend | Static content | Sert en production (fichiers statiques du `.jar`, `index.html` pour les routes du front) |
 | Acteurs | UI | Utilise |
 | UI | Backend | Envoie des requêtes REST (JSON / HTTPS) |
 | Backend | Database | Lit et écrit dans (JDBC — `JdbcClient`) |
@@ -145,6 +146,7 @@ C4Container
   System_Ext(cloudinary, "Stockage des photos", "Cloudinary")
   System_Ext(mail, "Service d'envoi d'e-mails", "Brevo (Future)")
   Rel(static, ui, "Fournit")
+  Rel(api, static, "Sert en production", "fichiers statiques du .jar")
   Rel(client, ui, "Utilise")
   Rel(createur, ui, "Utilise")
   Rel(admin, ui, "Utilise")
@@ -158,6 +160,8 @@ C4Container
 > Capture IcePanel — un seul `.jar` backend, la base PostgreSQL, le frontend React et les systèmes SaaS.
 >
 > ![Niveau 2 — Conteneurs](niveau2-conteneurs.png)
+>
+> ⚠️ Depuis #60, cette capture ne montre pas que le Backend sert le Static content en production. L'essai IcePanel étant terminé, elle ne peut plus être régénérée : le tableau et le bloc Mermaid ci-dessus font foi.
 
 ---
 
@@ -280,8 +284,7 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 
 | Group | Contient |
 |-------|----------|
-| Hébergeur frontend (à choisir) | Static content |
-| Hébergeur backend — conteneur Docker | Backend (un seul `.jar`) |
+| Un seul service — conteneur Docker (`backend/Dockerfile`, Render, cf. #5) | Backend (un seul `.jar`) et Static content (build React embarqué dans le `.jar`, #60) |
 | PostgreSQL managé ou conteneur Docker | Database |
 
 ---
@@ -290,6 +293,7 @@ Sur le modèle du diagramme « Developer laptop » de PubNotify. En local, la ba
 
 | Date | Version | Modification | Raison |
 |------|---------|--------------|--------|
+| 2026-11-11 | v1.7 | Static content servi par le Backend en production : build React embarqué dans le `.jar`, un seul conteneur Docker ; tableau, relations, Mermaid et environnement de production mis à jour (le PNG du niveau 2 ne peut plus être régénéré) | Render Service Previews ne crée qu'un aperçu par service : un seul service montre l'API et le frontend ensemble (issue #60) |
 | 2026-10-16 | v1.6 | Ajout du schéma physique de la base de données ([schema-bd.md](schema-bd.md)) | Exigé par la consigne (section 7), issue #26 |
 | 2026-10-12 | v1.5 | Package racine `be.heh.clipclap` et classe `ClipclapApplication`, Java 17, image `postgres:17-alpine` | Alignement sur le code réel après la décision du binôme (issue #24) |
 | 2026-10-12 | v1.4 | Ajout des 7 captures PNG IcePanel dans `docs/architecture/` ; niveau 3 découpé en 4 vues (Modules, Réservation, Consultation-réputation, Administration-modération) ; chemins d'images corrigés | L'essai IcePanel se termine ; les PNG font référence permanente |

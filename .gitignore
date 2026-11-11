@@ -18,6 +18,7 @@ spring-shell.log
 node_modules/
 frontend/dist/
 frontend/.vite/
+backend/src/main/resources/static/
 
 # ── IDE ───────────────────────────────────────────────────────────────────────
 .idea/

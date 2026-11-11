@@ -23,15 +23,20 @@ services:
   backend:
     profiles: [app]
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: ${VITE_ZITADEL_ISSUER:-}
+        VITE_ZITADEL_CLIENT_ID: ${VITE_ZITADEL_CLIENT_ID:-}
+        VITE_ZITADEL_PROJECT_ID: ${VITE_ZITADEL_PROJECT_ID:-}
     ports:
       - "8080:8080"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/clicclap
       SPRING_DATASOURCE_USERNAME: clicclap
       SPRING_DATASOURCE_PASSWORD: clicclap
-      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${ZITADEL_ISSUER}
+      # Valeur par défaut = celle d'application.properties : sans .env, une variable vide l'écraserait
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI: ${ZITADEL_ISSUER:-https://clic-clap-jiufbb.eu1.zitadel.cloud}
       ZITADEL_SERVICE_TOKEN: ${ZITADEL_SERVICE_TOKEN}
       ZITADEL_ORG_ID: ${ZITADEL_ORG_ID}
       CLOUDINARY_CLOUD_NAME: ${CLOUDINARY_CLOUD_NAME}
