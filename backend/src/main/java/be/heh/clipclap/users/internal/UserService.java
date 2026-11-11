@@ -46,7 +46,7 @@ class UserService {
 		}
 
 		if (roleDuToken == null) {
-			return new UserAccount(null, null, null);
+			return new UserAccount(null, null, null, false);
 		}
 
 		String email = userInfoClient.fetchEmail(jwt.getTokenValue());

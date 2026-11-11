@@ -1,6 +1,7 @@
 package be.heh.clipclap.users.internal;
 
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.stereotype.Service;
 
@@ -18,6 +19,11 @@ class UserApiImpl implements UserApi {
 	@Override
 	public Optional<Long> findIdBySub(String sub) {
 		return repository.findIdBySub(sub);
+	}
+
+	@Override
+	public Set<Long> findSuspendedIds(Set<Long> userIds) {
+		return repository.findSuspendedIds(userIds);
 	}
 
 }
