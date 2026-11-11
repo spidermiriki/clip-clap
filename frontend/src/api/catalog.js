@@ -1,6 +1,8 @@
 // Module API — galerie publique des créateurs
 // Retirer USE_MOCK et le bloc mock quand le backend sera accessible sans proxy (#13).
 
+import { readProblemMessage } from './problemDetail'
+
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -10,11 +12,10 @@ function delay(ms) {
 }
 
 async function handleResponse(res) {
-  if (res.status === 400) {
-    const body = await res.text().catch(() => '')
-    throw { status: 400, message: body || 'Paramètres invalides.' }
+  if (!res.ok) {
+    const fallback = res.status === 400 ? 'Paramètres invalides.' : `Erreur serveur (${res.status}).`
+    throw { status: res.status, message: await readProblemMessage(res, fallback) }
   }
-  if (!res.ok) throw { status: res.status, message: `Erreur serveur (${res.status}).` }
   return res.json()
 }
 
@@ -53,6 +54,7 @@ const MOCK_CREATORS = [
 // Pannes simulées à partir de la page 2, via l'URL :
 //   ?mockErreur=reseau            → échec à la première tentative de chaque page, puis succès
 //   ?mockErreur=reseau-permanent  → échec à chaque tentative
+//   ?mockErreur=400               → 400 ProblemDetail, lu comme une vraie réponse du backend
 function mockErreur() {
   return new URLSearchParams(window.location.search).get('mockErreur')
 }
@@ -73,6 +75,19 @@ function mockPanneReseau(page) {
 async function mockGetCreators({ page, size }) {
   await delay(MOCK_DELAY_MS)
   if (mockPanneReseau(page)) throw new TypeError('Failed to fetch')
+  if (page >= 1 && mockErreur() === '400') {
+    const problem = {
+      type: 'about:blank',
+      title: 'Bad Request',
+      status: 400,
+      detail: 'size doit être compris entre 1 et 50',
+      instance: '/api/catalog/creators',
+    }
+    return handleResponse(new Response(JSON.stringify(problem), {
+      status: 400,
+      headers: { 'Content-Type': 'application/problem+json' },
+    }))
+  }
   if (page < 0) throw { status: 400, message: 'page doit être >= 0' }
   if (size < 1 || size > 50) throw { status: 400, message: 'size doit être compris entre 1 et 50' }
   const start = page * size

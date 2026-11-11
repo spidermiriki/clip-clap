@@ -18,8 +18,9 @@ export default function Galerie() {
       .then((result) => {
         if (!ignore) setData(result)
       })
-      .catch(() => {
-        if (!ignore) setError('Impossible de charger la galerie.')
+      .catch((err) => {
+        // Erreur HTTP : message du backend ; panne réseau (TypeError) : message générique
+        if (!ignore) setError(err?.status ? err.message : 'Impossible de charger la galerie.')
       })
       .finally(() => {
         if (!ignore) setLoading(false)
