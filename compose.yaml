@@ -23,8 +23,12 @@ services:
   backend:
     profiles: [app]
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: backend/Dockerfile
+      args:
+        VITE_ZITADEL_ISSUER: ${VITE_ZITADEL_ISSUER:-}
+        VITE_ZITADEL_CLIENT_ID: ${VITE_ZITADEL_CLIENT_ID:-}
+        VITE_ZITADEL_PROJECT_ID: ${VITE_ZITADEL_PROJECT_ID:-}
     ports:
       - "8080:8080"
     environment:

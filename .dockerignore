@@ -1,0 +1,13 @@
+.git
+.github
+docs
+
+# Secrets et configuration locale : Vite lirait frontend/.env.local pendant le build
+**/.env
+**/.env.*
+
+**/node_modules
+frontend/dist
+backend/build
+backend/.gradle
+backend/src/main/resources/static
