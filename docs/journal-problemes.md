@@ -20,6 +20,7 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 9 | Dépôt dans OneDrive : fichiers verrouillés | Environnement | Octobre 2026 |
 | 10 | Ports 8080 et 5173 déjà occupés en local | Environnement | 2026-10-16 |
 | 11 | Endpoint Zitadel d'attribution de rôle déprécié | Sécurité | 2026-10-29 |
+| 12 | Rôle et e-mail absents du profil OIDC côté React | Sécurité | 2026-11-09 |
 
 ---
 
@@ -158,6 +159,18 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 ---
 
+## 12. Rôle et e-mail absents du profil OIDC côté React
+
+**Description.** En testant la protection des routes (issue #16), un compte de test ayant pourtant le rôle `CREATOR` était systématiquement traité comme n'ayant aucun rôle : `ProtectedRoute` renvoyait toujours vers la galerie, même avec le bon compte. L'e-mail affiché dans la navigation était lui aussi absent.
+
+**Cause.** `react-oidc-context` (via `oidc-client-ts`) ne décode par défaut que les claims minimales présentes dans l'ID token (`iss`, `sub`, `aud`, `exp`, `iat`, `sid`). Les claims étendues demandées par les scopes `profile`, `email` et `urn:zitadel:iam:org:projects:roles` ne sont disponibles qu'auprès de l'endpoint `userinfo` de Zitadel, que la librairie n'interroge que si l'option `loadUserInfo` est activée — elle vaut `false` par défaut et n'avait jamais été configurée.
+
+**Solution.** Ajout de `loadUserInfo: true` dans `frontend/src/auth/oidcConfig.js` (issue #16) : après la connexion, `oidc-client-ts` appelle l'endpoint `userinfo` et fusionne le résultat dans `user.profile`, qui contient alors bien l'e-mail et le claim de rôles.
+
+**Règle retenue.** Un scope accordé (visible dans `user.scope`) ne garantit pas que ses claims soient lisibles dans `user.profile` : avec `oidc-client-ts`, vérifier aussi `loadUserInfo`. Écrire le test du scénario « rôle correct » avant le premier essai manuel dans le navigateur aurait révélé le problème plus tôt.
+
+---
+
 ## Mises à jour du journal
 
 | Date | Modification | Auteur |
@@ -165,3 +178,4 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 2026-10-12 | Création : problèmes 1, 3, 6 et 7 (première version) | Derouck Arredondo Francisco Homero |
 | 2026-10-19 | Ajout des problèmes 2, 4, 5, 8, 9 et 10 ; corrections des problèmes 6 et 7 ; plan commun pour chaque entrée | Dassi Kouam Gedeon |
 | 2026-10-29 | Ajout du problème 11 (endpoint Zitadel déprécié, issue #11) | Dassi Kouam Gedeon |
+| 2026-11-09 | Ajout du problème 12 (`loadUserInfo`, issue #16) | Dassi Kouam Gedeon |

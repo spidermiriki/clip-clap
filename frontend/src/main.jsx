@@ -9,6 +9,7 @@ import Galerie from './pages/Galerie.jsx'
 import Inscription from './pages/Inscription.jsx'
 import MonProfilCreateur from './pages/MonProfilCreateur.jsx'
 import { oidcConfig } from './auth/oidcConfig.js'
+import ProtectedRoute from './auth/ProtectedRoute.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -17,7 +18,14 @@ createRoot(document.getElementById('root')).render(
         <Routes>
           <Route element={<App />}>
             <Route index element={<Galerie />} />
-            <Route path="mon-profil" element={<MonProfilCreateur />} />
+            <Route
+              path="mon-profil"
+              element={(
+                <ProtectedRoute roles={['CREATOR']}>
+                  <MonProfilCreateur />
+                </ProtectedRoute>
+              )}
+            />
             <Route path="inscription" element={<Inscription />} />
           </Route>
           {/* Hors de la mise en page commune : pas de nav pendant le traitement du retour Zitadel */}
