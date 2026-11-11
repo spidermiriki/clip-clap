@@ -22,7 +22,7 @@
 - [ ] Ajouter l'enseignant comme collaborateur
 - [ ] Rédiger la documentation initiale (fonctionnalités, plan de release, wireframes, tests)
 - [ ] Mettre en place la convention de branches et les règles de travail en binôme
-- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render + Neon + Render Static Sites) (cf. #60)
+- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render + Neon, avec un seul service Render qui sert l'API et le frontend) (cf. #60)
 - [ ] Ajouter `Dockerfile`, `compose.yaml`, `.env.example` et `.gitignore` sur la branche `chore/deploiement-initial`
 - [ ] Déployer un backend Spring Boot vide (répondant à `GET /actuator/health → 200`)
 - [ ] Compléter la section Installation et lancement du README
@@ -169,3 +169,4 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 | 2026-10-12 | Toutes | Passage de la convention `main` / `develop` / `feature/*` au workflow **GitHub Flow** (branches courtes liées aux issues, PR vers `main`, tag par release) et suivi des tâches dans **GitHub Projects** | Workflow imposé par les consignes du cours ; la branche `develop` a été supprimée |
 | 2026-10-19 | Toutes | **Milestones remplacés par des labels `release:<version>`** sur toutes les issues et PRs ; ajout du workflow `pr-labels.yml` (vérifie la présence du label sur chaque PR) | Demande du professeur |
 | 2026-10-19 | Cadrage S1 | Hébergement du frontend : **Cloudflare Pages remplacé par Render** (Static Sites) — cf. [architecture-c4.md](architecture/architecture-c4.md) et issue #60 en cours | Cohérence avec la décision d'infrastructure ; #60 tranche si le frontend est finalement servi par Spring Boot |
+| 2026-11-11 | Cadrage S1 | Frontend servi par Spring Boot : build React embarqué dans le `.jar`, **un seul service Render** au lieu d'un Static Site séparé (#60) | Render Service Previews ne crée qu'un aperçu par service : un seul service montre l'API et le frontend ensemble |
