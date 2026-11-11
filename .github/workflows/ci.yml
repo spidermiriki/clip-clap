@@ -46,3 +46,20 @@ jobs:
       - name: Build
         working-directory: frontend
         run: npm run build
+
+  build-image:
+    name: Build Docker image
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -f backend/Dockerfile -t clip-clap:ci .
+
+      - name: Vérifier que le build React est présent dans le jar
+        run: |
+          id=$(docker create clip-clap:ci)
+          docker cp "$id:/app/app.jar" app.jar
+          docker rm "$id" > /dev/null
+          unzip -l app.jar | grep "BOOT-INF/classes/static/index.html"
