@@ -1,6 +1,7 @@
 package be.heh.clipclap.users;
 
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * API publique du module users, utilisable par les autres modules.
@@ -14,5 +15,14 @@ public interface UserApi {
 	 * @return l'id de la table {@code users}, ou vide si aucun compte ne correspond
 	 */
 	Optional<Long> findIdBySub(String sub);
+
+	/**
+	 * Parmi ces identifiants d'utilisateurs, ceux dont le compte est suspendu (#75) : un
+	 * créateur suspendu ne doit pas apparaître dans la galerie publique (module {@code catalog}).
+	 *
+	 * @param userIds identifiants à vérifier (table {@code users})
+	 * @return le sous-ensemble de {@code userIds} correspondant à des comptes suspendus
+	 */
+	Set<Long> findSuspendedIds(Set<Long> userIds);
 
 }

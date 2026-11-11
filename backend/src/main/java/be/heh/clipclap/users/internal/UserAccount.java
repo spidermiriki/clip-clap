@@ -6,5 +6,5 @@ package be.heh.clipclap.users.internal;
  * valent {@code null} : le compte n'est pas encore inséré en base, la colonne {@code role}
  * étant {@code NOT NULL}.
  */
-record UserAccount(Long id, String email, String role) {
+record UserAccount(Long id, String email, String role, boolean suspended) {
 }

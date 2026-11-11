@@ -1,6 +1,8 @@
 package be.heh.clipclap.users.internal;
 
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
@@ -22,10 +24,21 @@ class UserRepository {
 	}
 
 	Optional<UserAccount> findBySub(String sub) {
-		return jdbc.sql("SELECT id, email, role FROM users WHERE sub = :sub")
+		return jdbc.sql("SELECT id, email, role, suspended FROM users WHERE sub = :sub")
 			.param("sub", sub)
 			.query(UserAccount.class)
 			.optional();
+	}
+
+	/** Parmi ces identifiants, ceux dont le compte est suspendu (#75). */
+	Set<Long> findSuspendedIds(Set<Long> userIds) {
+		if (userIds.isEmpty()) {
+			return Set.of();
+		}
+		return new HashSet<>(jdbc.sql("SELECT id FROM users WHERE id IN (:ids) AND suspended = true")
+			.param("ids", userIds)
+			.query(Long.class)
+			.list());
 	}
 
 	/**
