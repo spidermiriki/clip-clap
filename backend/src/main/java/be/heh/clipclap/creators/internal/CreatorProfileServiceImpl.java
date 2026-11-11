@@ -4,6 +4,7 @@ import be.heh.clipclap.creators.CreateProfileCommand;
 import be.heh.clipclap.creators.CreatorProfile;
 import be.heh.clipclap.creators.CreatorProfileAlreadyExistsException;
 import be.heh.clipclap.creators.CreatorProfileNotFoundException;
+import be.heh.clipclap.creators.CreatorProfilePage;
 import be.heh.clipclap.creators.CreatorProfileService;
 import org.springframework.stereotype.Service;
 
@@ -43,5 +44,12 @@ class CreatorProfileServiceImpl implements CreatorProfileService {
     @Override
     public Optional<CreatorProfile> findByUserId(Long userId) {
         return repository.findByUserId(userId);
+    }
+
+    @Override
+    public CreatorProfilePage findAllValidated(int page, int size) {
+        if (page < 0) throw new IllegalArgumentException("page doit être >= 0");
+        if (size < 1 || size > 50) throw new IllegalArgumentException("size doit être compris entre 1 et 50");
+        return repository.findAllValidated(page, size);
     }
 }

@@ -9,4 +9,6 @@ public interface CreatorProfileService {
     CreatorProfile update(Long userId, CreateProfileCommand command);
 
     Optional<CreatorProfile> findByUserId(Long userId);
+
+    CreatorProfilePage findAllValidated(int page, int size);
 }

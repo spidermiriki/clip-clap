@@ -4,12 +4,14 @@ import be.heh.clipclap.creators.CreateProfileCommand;
 import be.heh.clipclap.creators.CreatorProfile;
 import be.heh.clipclap.creators.CreatorProfileAlreadyExistsException;
 import be.heh.clipclap.creators.CreatorProfileNotFoundException;
+import be.heh.clipclap.creators.CreatorProfilePage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -102,6 +104,38 @@ class CreatorProfileServiceImplTest {
         var cmd = new CreateProfileCommand("", "bio", "city", "BE", "areas");
 
         assertThatThrownBy(() -> service.update(USER_ID, cmd))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(repository);
+    }
+
+    // --- findAllValidated ---
+
+    @Test
+    void findAllValidated_delegatesToRepository() {
+        var expected = new CreatorProfilePage(List.of(PROFILE), 0, 10, 1L);
+        when(repository.findAllValidated(0, 10)).thenReturn(expected);
+
+        assertThat(service.findAllValidated(0, 10)).isEqualTo(expected);
+        verify(repository).findAllValidated(0, 10);
+    }
+
+    @Test
+    void findAllValidated_withNegativePage_throwsAndNeverCallsRepository() {
+        assertThatThrownBy(() -> service.findAllValidated(-1, 10))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void findAllValidated_withZeroSize_throwsAndNeverCallsRepository() {
+        assertThatThrownBy(() -> service.findAllValidated(0, 0))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void findAllValidated_withSizeAbove50_throwsAndNeverCallsRepository() {
+        assertThatThrownBy(() -> service.findAllValidated(0, 51))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }

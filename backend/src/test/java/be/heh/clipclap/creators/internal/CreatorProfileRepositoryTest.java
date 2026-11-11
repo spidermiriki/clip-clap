@@ -2,6 +2,7 @@ package be.heh.clipclap.creators.internal;
 
 import be.heh.clipclap.TestcontainersConfiguration;
 import be.heh.clipclap.creators.CreateProfileCommand;
+import be.heh.clipclap.creators.CreatorProfile;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -53,6 +54,39 @@ class CreatorProfileRepositoryTest {
     void findByUserId_whenAbsent_returnsEmpty() {
         assertThat(repository.findByUserId(99999L)).isEmpty();
     }
+
+    @Test
+    void findAllValidated_excludesNonValidated() {
+        long alice = insertTestUser("alice2@example.com");
+        long bob   = insertTestUser("bob2@example.com");
+        repository.save(alice, new CreateProfileCommand("Alice", null, null, null, null));
+        repository.save(bob,   new CreateProfileCommand("Bob",   null, null, null, null));
+        jdbcClient.sql("UPDATE creator_profiles SET validation_status = 'PENDING' WHERE user_id = :id")
+                  .param("id", bob).update();
+
+        var result = repository.findAllValidated(0, 10);
+
+        assertThat(result.totalElements()).isEqualTo(1);
+        assertThat(result.items())
+                .extracting(CreatorProfile::displayName)
+                .containsExactly("Alice");
+    }
+
+    @Test
+    void findAllValidated_paginates() {
+        for (int i = 1; i <= 3; i++) {
+            long userId = insertTestUser("pagcreator" + i + "@example.com");
+            repository.save(userId, new CreateProfileCommand("Creator " + i, null, null, null, null));
+        }
+
+        var page0 = repository.findAllValidated(0, 2);
+        var page1 = repository.findAllValidated(1, 2);
+
+        assertThat(page0.totalElements()).isEqualTo(3);
+        assertThat(page0.items()).hasSize(2);
+        assertThat(page1.items()).hasSize(1);
+    }
+
 
     private long insertTestUser(String email) {
         return jdbcClient.sql("""

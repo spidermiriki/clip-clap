@@ -2,6 +2,7 @@ package be.heh.clipclap.users.internal;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -28,6 +29,7 @@ class SecurityConfig {
 			.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 			.authorizeHttpRequests(auth -> auth
 				.requestMatchers("/api/admin/**").hasRole("ADMIN")
+				.requestMatchers(HttpMethod.GET, "/api/catalog/**").permitAll()
 				.requestMatchers("/api/**").authenticated()
 				.anyRequest().permitAll())
 			.oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(new ZitadelRoleConverter())));
