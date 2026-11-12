@@ -63,6 +63,18 @@ describe('Galerie — filtres (#14)', () => {
     expect(screen.getByTestId('url')).toHaveTextContent('?pays=Belgique&categorie=1')
   })
 
+  it('chaque carte mène au profil public du créateur (#17)', async () => {
+    vi.mocked(getCreators).mockResolvedValue({
+      items: [{ userId: 3, displayName: 'Clara Lecomte', photoUrl: null, city: 'Mons', country: 'Belgique' }],
+      page: 0,
+      size: 12,
+      totalElements: 1,
+    })
+    renderGalerie('/')
+
+    expect(await screen.findByRole('link', { name: /Clara Lecomte/ })).toHaveAttribute('href', '/createurs/3')
+  })
+
   it('Précédent du navigateur : les champs reprennent les filtres de l\'URL et la page 1 est rechargée', async () => {
     renderGalerie('/?ville=Namur&categorie=1', ['/?ville=Mons', '/?ville=Namur&categorie=1'])
     await screen.findByRole('option', { name: 'Mariage' })

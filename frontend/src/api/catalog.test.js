@@ -39,6 +39,15 @@ describe('mock de catalog.js — filtres (#14)', () => {
     expect(aucun.totalElements).toBe(0)
   })
 
+  it('renvoie un profil public, et un 404 pour un créateur inconnu (#17)', async () => {
+    const profil = await catalog.getCreatorProfile('3')
+
+    expect(profil.displayName).toBe('Clara Lecomte')
+    expect(profil.bio).toBeTruthy()
+    expect(profil.serviceAreas).toBeTruthy()
+    await expect(catalog.getCreatorProfile('999')).rejects.toMatchObject({ status: 404 })
+  })
+
   it('propose les mêmes types de prestation que data.sql', async () => {
     const categories = await catalog.getCategories()
 
