@@ -1,5 +1,7 @@
+import { useEffect, useRef, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { Link, Outlet } from 'react-router-dom'
+import { getJson } from './api'
 import './App.css'
 import { roleFromProfile } from './auth/role'
 
@@ -7,6 +9,26 @@ import { roleFromProfile } from './auth/role'
 // écrans et la protection des routes par rôle arrivent avec #16.
 function App() {
   const auth = useAuth()
+
+  // Compte local (#97) : GET /api/users/me crée la ligne `users` si le token porte déjà un rôle.
+  // Un seul appel par utilisateur connecté (clé : le sub), même si le token est renouvelé.
+  const sub = auth.user?.profile?.sub
+  const token = auth.user?.access_token
+  const aSynchroniser = auth.isAuthenticated && Boolean(sub) && Boolean(token)
+  const subDemande = useRef(null)
+  const [subSynchronise, setSubSynchronise] = useState(null)
+
+  useEffect(() => {
+    if (!aSynchroniser || subDemande.current === sub) return
+    subDemande.current = sub
+    getJson('/api/users/me', token)
+      .catch((err) => console.error('Création du compte local impossible (GET /api/users/me) :', err))
+      .finally(() => setSubSynchronise(sub))
+  }, [aSynchroniser, sub, token])
+
+  // Les pages attendent la fin de l'appel (réussi ou non) : sinon « Mon profil » pourrait
+  // interroger le backend avant la création du compte local et recevoir un 404
+  const compteEnCours = aSynchroniser && subSynchronise !== sub
 
   if (auth.isLoading) {
     return <main className="auth-page"><p>Chargement…</p></main>
@@ -48,7 +70,7 @@ function App() {
           </>
         )}
       </nav>
-      <Outlet />
+      {compteEnCours ? <main className="auth-page"><p>Chargement…</p></main> : <Outlet />}
     </>
   )
 }
