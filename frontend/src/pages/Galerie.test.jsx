@@ -1,5 +1,5 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { creatorsQuery, getCategories, getCreators } from '../api/catalog'
 import Galerie from './Galerie'
@@ -14,11 +14,17 @@ function UrlCourante() {
   return <p data-testid="url">{useLocation().search}</p>
 }
 
-function renderGalerie(url) {
+// Simule le bouton Précédent du navigateur
+function BoutonPrecedent() {
+  const navigate = useNavigate()
+  return <button type="button" onClick={() => navigate(-1)}>Précédent du navigateur</button>
+}
+
+function renderGalerie(url, historique = [url]) {
   return render(
-    <MemoryRouter initialEntries={[url]}>
+    <MemoryRouter initialEntries={historique} initialIndex={historique.length - 1}>
       <Routes>
-        <Route path="/" element={<><Galerie /><UrlCourante /></>} />
+        <Route path="/" element={<><Galerie /><UrlCourante /><BoutonPrecedent /></>} />
       </Routes>
     </MemoryRouter>,
   )
@@ -67,6 +73,22 @@ describe('Galerie — filtres (#14)', () => {
     renderGalerie('/')
 
     expect(await screen.findByRole('link', { name: /Clara Lecomte/ })).toHaveAttribute('href', '/createurs/3')
+  })
+
+  it('Précédent du navigateur : les champs reprennent les filtres de l\'URL et la page 1 est rechargée', async () => {
+    renderGalerie('/?ville=Namur&categorie=1', ['/?ville=Mons', '/?ville=Namur&categorie=1'])
+    await screen.findByRole('option', { name: 'Mariage' })
+    expect(screen.getByLabelText('Ville')).toHaveValue('Namur')
+    expect(screen.getByLabelText('Type de prestation')).toHaveValue('1')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Précédent du navigateur' }))
+
+    await waitFor(() => expect(screen.getByLabelText('Ville')).toHaveValue('Mons'))
+    expect(screen.getByLabelText('Type de prestation')).toHaveValue('')
+    expect(screen.getByTestId('url')).toHaveTextContent('?ville=Mons')
+    await waitFor(() => expect(getCreators).toHaveBeenLastCalledWith(
+      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '' },
+    ))
   })
 
   it('annonce l\'absence de résultat quand des filtres sont actifs', async () => {
