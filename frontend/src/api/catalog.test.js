@@ -39,6 +39,15 @@ describe('mock de catalog.js — filtres (#14)', () => {
     expect(aucun.totalElements).toBe(0)
   })
 
+  it('filtre par type de média : aucune vidéo avant la v0.2 (#15)', async () => {
+    const photos = await catalog.getCreators({ page: 0, size: 50, mediaType: 'PHOTO' })
+    const videos = await catalog.getCreators({ page: 0, size: 50, mediaType: 'VIDEO' })
+
+    // 25 créateurs fictifs, dont un sur quatre (4, 8, 12, 16, 20, 24) sans photo
+    expect(photos.totalElements).toBe(19)
+    expect(videos.totalElements).toBe(0)
+  })
+
   it('renvoie un profil public, et un 404 pour un créateur inconnu (#17)', async () => {
     const profil = await catalog.getCreatorProfile('3')
 

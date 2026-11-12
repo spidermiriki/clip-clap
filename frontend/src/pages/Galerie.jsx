@@ -5,19 +5,20 @@ import styles from './Galerie.module.css'
 
 const PAGE_SIZE = 12
 
-// Les filtres vivent dans l'URL (?ville=&pays=&categorie=) : un rechargement ou un lien partagé les garde
+// Les filtres vivent dans l'URL (?ville=&pays=&categorie=&media=) : un rechargement ou un lien partagé les garde
 function filtresDepuisUrl(searchParams) {
   return {
     city: searchParams.get('ville') ?? '',
     country: searchParams.get('pays') ?? '',
     categoryId: searchParams.get('categorie') ?? '',
+    mediaType: searchParams.get('media') ?? '',
   }
 }
 
 export default function Galerie() {
   const [searchParams, setSearchParams] = useSearchParams()
-  const { city, country, categoryId } = filtresDepuisUrl(searchParams)
-  const filtresActifs = Boolean(city || country || categoryId)
+  const { city, country, categoryId, mediaType } = filtresDepuisUrl(searchParams)
+  const filtresActifs = Boolean(city || country || categoryId || mediaType)
 
   const [form, setForm] = useState(() => filtresDepuisUrl(searchParams))
   const [categories, setCategories] = useState([])
@@ -50,7 +51,7 @@ export default function Galerie() {
 
   useEffect(() => {
     let ignore = false
-    getCreators({ page: request.page, size: PAGE_SIZE, city, country, categoryId })
+    getCreators({ page: request.page, size: PAGE_SIZE, city, country, categoryId, mediaType })
       .then((result) => {
         if (!ignore) setData(result)
       })
@@ -64,7 +65,7 @@ export default function Galerie() {
     return () => {
       ignore = true
     }
-  }, [request, city, country, categoryId])
+  }, [request, city, country, categoryId, mediaType])
 
   function load(page) {
     setLoading(true)
@@ -82,6 +83,7 @@ export default function Galerie() {
     if (form.city.trim()) next.set('ville', form.city.trim())
     if (form.country.trim()) next.set('pays', form.country.trim())
     if (form.categoryId) next.set('categorie', form.categoryId)
+    if (form.mediaType) next.set('media', form.mediaType)
     setSearchParams(next)
     // Un nouveau filtre repart de la première page
     load(0)
@@ -112,6 +114,14 @@ export default function Galerie() {
         <label>
           Pays
           <input name="country" type="text" value={form.country} onChange={handleChange} />
+        </label>
+        <label>
+          Type de média
+          <select name="mediaType" value={form.mediaType} onChange={handleChange}>
+            <option value="">Photo ou vidéo</option>
+            <option value="PHOTO">Photo</option>
+            <option value="VIDEO">Vidéo</option>
+          </select>
         </label>
         <button type="submit">Filtrer</button>
       </form>

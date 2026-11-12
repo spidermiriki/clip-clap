@@ -118,8 +118,8 @@ class CreatorProfileRepositoryTest {
         repository.save(liege, new CreateProfileCommand("Liège", null, "Liège", "Belgique", null));
         repository.save(paris, new CreateProfileCommand("Paris", null, "Paris", "France", null));
 
-        var parVille = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(" mons ", null, null));
-        var parPays = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, "BELGIQUE", null));
+        var parVille = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(" mons ", null, null, null));
+        var parPays = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, "BELGIQUE", null, null));
 
         assertThat(parVille.items()).extracting(CreatorProfile::displayName).containsExactly("Mons");
         assertThat(parVille.totalElements()).isEqualTo(1);
@@ -137,7 +137,7 @@ class CreatorProfileRepositoryTest {
         linkCategory(mariage, categorieMariage);
         linkCategory(sport, categoryId("Sport"));
 
-        var result = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, null, categorieMariage));
+        var result = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, null, categorieMariage, null));
 
         assertThat(result.items()).extracting(CreatorProfile::displayName).containsExactly("Photographe mariage");
         assertThat(result.totalElements()).isEqualTo(1);
@@ -157,10 +157,31 @@ class CreatorProfileRepositoryTest {
         }
 
         var result = repository.findAllValidated(0, 10, Set.of(exclu),
-                new CreatorSearchCriteria("Mons", "Belgique", categorieMariage));
+                new CreatorSearchCriteria("Mons", "Belgique", categorieMariage, null));
 
         assertThat(result.items()).extracting(CreatorProfile::userId).containsExactly(ok);
         assertThat(result.totalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void findAllValidated_filtreParTypeDeMedia() {
+        long avecPhoto = insertTestUser("m-photo@example.com");
+        long albumVide = insertTestUser("m-vide@example.com");
+        long sansAlbum = insertTestUser("m-sans@example.com");
+        repository.save(avecPhoto, new CreateProfileCommand("Avec photo", null, null, null, null));
+        repository.save(albumVide, new CreateProfileCommand("Album vide", null, null, null, null));
+        repository.save(sansAlbum, new CreateProfileCommand("Sans album", null, null, null, null));
+        long album = insertAlbum(avecPhoto);
+        insertAlbum(albumVide);
+        jdbcClient.sql("INSERT INTO media (album_id, url, cloudinary_public_id) VALUES (:album, 'https://exemple.test/p.jpg', 'p')")
+                  .param("album", album).update();
+
+        var photos = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, null, null, "PHOTO"));
+        var videos = repository.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, null, null, "VIDEO"));
+
+        assertThat(photos.items()).extracting(CreatorProfile::displayName).containsExactly("Avec photo");
+        assertThat(photos.totalElements()).isEqualTo(1);
+        assertThat(videos.totalElements()).isZero();
     }
 
     @Test
@@ -181,6 +202,13 @@ class CreatorProfileRepositoryTest {
         return jdbcClient.sql("SELECT id FROM categories WHERE name = :name")
                 .param("name", name)
                 .query(Integer.class)
+                .single();
+    }
+
+    private long insertAlbum(long creatorId) {
+        return jdbcClient.sql("INSERT INTO albums (creator_id, name) VALUES (:creatorId, 'Album') RETURNING id")
+                .param("creatorId", creatorId)
+                .query(Long.class)
                 .single();
     }
 

@@ -1,0 +1,181 @@
+import { useEffect, useState } from 'react'
+import { useAuth } from 'react-oidc-context'
+import { Link } from 'react-router-dom'
+import { createAlbum, FORMATS_ACCEPTES, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
+import styles from './MesAlbums.module.css'
+
+// Gestion des albums du créateur connecté (wireframe 10, #15)
+export default function MesAlbums() {
+  const { user } = useAuth()
+  const token = user?.access_token ?? null
+
+  const [albums, setAlbums] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [sansProfil, setSansProfil] = useState(false)
+  const [error, setError] = useState(null)
+  const [nouveauNom, setNouveauNom] = useState('')
+  const [renommage, setRenommage] = useState(null)
+  const [envoi, setEnvoi] = useState(null)
+
+  useEffect(() => {
+    listMyAlbums(token)
+      .then((result) => {
+        setAlbums(result)
+        setSelectedId(result[0]?.id ?? null)
+      })
+      .catch((err) => {
+        if (err?.status === 404) setSansProfil(true)
+        else setError(err?.message ?? 'Impossible de charger vos albums.')
+      })
+      .finally(() => setLoading(false))
+  }, [token])
+
+  const album = albums.find((a) => a.id === selectedId) ?? null
+
+  function majAlbum(albumId, changer) {
+    setAlbums((prev) => prev.map((a) => (a.id === albumId ? changer(a) : a)))
+  }
+
+  async function handleCreer(e) {
+    e.preventDefault()
+    setError(null)
+    try {
+      const cree = await createAlbum(nouveauNom, token)
+      setAlbums((prev) => [...prev, cree])
+      setSelectedId(cree.id)
+      setNouveauNom('')
+    } catch (err) {
+      setError(err?.message ?? "Impossible de créer l'album.")
+    }
+  }
+
+  async function handleRenommer(e) {
+    e.preventDefault()
+    setError(null)
+    try {
+      await renameAlbum(album.id, renommage, token)
+      majAlbum(album.id, (a) => ({ ...a, name: renommage.trim() }))
+      setRenommage(null)
+    } catch (err) {
+      setError(err?.message ?? "Impossible de renommer l'album.")
+    }
+  }
+
+  async function envoyer(fichiers) {
+    const liste = Array.from(fichiers)
+    if (!album || liste.length === 0) return
+    setError(null)
+    const albumId = album.id
+    try {
+      for (const [index, fichier] of liste.entries()) {
+        setEnvoi(`Envoi de la photo ${index + 1} sur ${liste.length}…`)
+        const photo = await uploadPhoto(albumId, fichier, token)
+        majAlbum(albumId, (a) => ({ ...a, photos: [...a.photos, photo] }))
+      }
+    } catch (err) {
+      setError(err?.message ?? "L'envoi de la photo a échoué.")
+    } finally {
+      setEnvoi(null)
+    }
+  }
+
+  function handleDrop(e) {
+    e.preventDefault()
+    if (!envoi) envoyer(e.dataTransfer.files)
+  }
+
+  if (loading) return <main className={styles.container}><p>Chargement…</p></main>
+
+  if (sansProfil) {
+    return (
+      <main className={styles.container}>
+        <h1>Mes albums</h1>
+        <p>Créez d&apos;abord votre profil créateur pour pouvoir ajouter des albums.</p>
+        <Link to="/mon-profil">Créer mon profil</Link>
+      </main>
+    )
+  }
+
+  return (
+    <main className={styles.container}>
+      <h1>Mes albums</h1>
+      {error && <p role="alert" className={styles.error}>{error}</p>}
+
+      <div className={styles.layout}>
+        <aside className={styles.liste}>
+          {albums.length === 0 ? (
+            <p className={styles.vide}>Aucun album pour le moment.</p>
+          ) : (
+            <ul aria-label="Mes albums">
+              {albums.map((a) => (
+                <li key={a.id}>
+                  <button
+                    type="button"
+                    aria-current={a.id === selectedId ? 'true' : undefined}
+                    onClick={() => { setSelectedId(a.id); setRenommage(null) }}
+                  >
+                    {a.name} <span className={styles.compte}>({a.photos.length})</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <form onSubmit={handleCreer} className={styles.nouvel}>
+            <label>
+              Nom du nouvel album
+              <input value={nouveauNom} onChange={(e) => setNouveauNom(e.target.value)} maxLength={100} />
+            </label>
+            <button type="submit">+ Nouvel album</button>
+          </form>
+        </aside>
+
+        {album && (
+          <section className={styles.detail} aria-label={`Album ${album.name}`}>
+            <div className={styles.entete}>
+              {renommage === null ? (
+                <>
+                  <h2>{album.name}</h2>
+                  <button type="button" onClick={() => setRenommage(album.name)}>Renommer</button>
+                </>
+              ) : (
+                <form onSubmit={handleRenommer} className={styles.renommer}>
+                  <label>
+                    Nouveau nom
+                    <input value={renommage} onChange={(e) => setRenommage(e.target.value)} maxLength={100} autoFocus />
+                  </label>
+                  <button type="submit">Enregistrer</button>
+                  <button type="button" onClick={() => setRenommage(null)}>Annuler</button>
+                </form>
+              )}
+            </div>
+
+            <label className={styles.depot} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
+              <span>{envoi ?? 'Déposez vos photos ici ou cliquez pour les choisir (JPEG, PNG ou WebP, 10 Mo max.)'}</span>
+              <input
+                type="file"
+                accept={FORMATS_ACCEPTES.join(',')}
+                multiple
+                disabled={Boolean(envoi)}
+                onChange={(e) => { envoyer(e.target.files); e.target.value = '' }}
+              />
+            </label>
+
+            {album.photos.length === 0 ? (
+              <p className={styles.vide}>Cet album ne contient pas encore de photo.</p>
+            ) : (
+              <ul className={styles.photos} aria-label={`Photos de ${album.name}`}>
+                {album.photos.map((photo, index) => (
+                  <li key={photo.id}>
+                    <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        )}
+      </div>
+    </main>
+  )
+}

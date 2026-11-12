@@ -46,6 +46,17 @@ describe('ProfilPublic (#17)', () => {
     expect(screen.getByText('Hainaut, Bruxelles')).toBeInTheDocument()
   })
 
+  it('affiche les albums et leurs photos (#15)', async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue({
+      ...PROFIL,
+      albums: [{ id: 1, name: 'Mariages', photos: [{ id: 10, url: 'https://exemple.test/1.jpg' }, { id: 11, url: 'https://exemple.test/2.jpg' }] }],
+    })
+    renderProfil('/createurs/3')
+
+    expect(await screen.findByRole('heading', { level: 3, name: 'Mariages' })).toBeInTheDocument()
+    expect(screen.getByAltText('Mariages, photo 2')).toHaveAttribute('src', 'https://exemple.test/2.jpg')
+  })
+
   it('annonce un créateur introuvable (404) sans proposer de réessayer', async () => {
     vi.mocked(getCreatorProfile).mockRejectedValue({ status: 404, message: 'Aucun créateur public' })
     renderProfil('/createurs/999')

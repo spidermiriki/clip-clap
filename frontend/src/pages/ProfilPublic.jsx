@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { getCreatorProfile } from '../api/catalog'
 import styles from './ProfilPublic.module.css'
 
-// Profil public d'un créateur (wireframe 04, #17). Albums (#15) et prestations (#27) viendront ensuite.
+// Profil public d'un créateur (wireframe 04, #17) et ses albums (#15). Les prestations arrivent en v0.2 (#27).
 export default function ProfilPublic() {
   const { userId } = useParams()
   // Un nouvel objet à chaque demande : « Réessayer » relance le chargement
@@ -88,6 +88,30 @@ export default function ProfilPublic() {
       <section aria-labelledby="titre-zones">
         <h2 id="titre-zones">Zones d&apos;intervention</h2>
         <p>{profile.serviceAreas || 'Non précisées.'}</p>
+      </section>
+
+      <section aria-labelledby="titre-albums">
+        <h2 id="titre-albums">Albums</h2>
+        {profile.albums?.length ? (
+          profile.albums.map((album) => (
+            <div key={album.id} className={styles.album}>
+              <h3>{album.name}</h3>
+              {album.photos.length ? (
+                <ul className={styles.photos} aria-label={`Photos de l'album ${album.name}`}>
+                  {album.photos.map((photo, index) => (
+                    <li key={photo.id}>
+                      <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>Cet album ne contient pas encore de photo.</p>
+              )}
+            </div>
+          ))
+        ) : (
+          <p>Aucun album pour le moment.</p>
+        )}
       </section>
     </main>
   )

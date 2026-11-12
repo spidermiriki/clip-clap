@@ -40,12 +40,13 @@ describe('Galerie — filtres (#14)', () => {
   afterEach(cleanup)
 
   it('applique les filtres présents dans l\'URL au premier chargement', async () => {
-    renderGalerie('/?ville=Mons&categorie=1')
+    renderGalerie('/?ville=Mons&categorie=1&media=PHOTO')
 
     await waitFor(() => expect(getCreators).toHaveBeenCalledWith(
-      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '1' },
+      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '1', mediaType: 'PHOTO' },
     ))
     expect(screen.getByLabelText('Ville')).toHaveValue('Mons')
+    expect(screen.getByLabelText('Type de média')).toHaveValue('PHOTO')
   })
 
   it('Filtrer met les filtres dans l\'URL et repart de la première page', async () => {
@@ -55,12 +56,13 @@ describe('Galerie — filtres (#14)', () => {
 
     fireEvent.change(screen.getByLabelText('Pays'), { target: { value: ' Belgique ' } })
     fireEvent.change(screen.getByLabelText('Type de prestation'), { target: { value: '1' } })
+    fireEvent.change(screen.getByLabelText('Type de média'), { target: { value: 'PHOTO' } })
     fireEvent.click(screen.getByRole('button', { name: 'Filtrer' }))
 
     await waitFor(() => expect(getCreators).toHaveBeenLastCalledWith(
-      { page: 0, size: 12, city: '', country: 'Belgique', categoryId: '1' },
+      { page: 0, size: 12, city: '', country: 'Belgique', categoryId: '1', mediaType: 'PHOTO' },
     ))
-    expect(screen.getByTestId('url')).toHaveTextContent('?pays=Belgique&categorie=1')
+    expect(screen.getByTestId('url')).toHaveTextContent('?pays=Belgique&categorie=1&media=PHOTO')
   })
 
   it('chaque carte mène au profil public du créateur (#17)', async () => {
@@ -76,18 +78,20 @@ describe('Galerie — filtres (#14)', () => {
   })
 
   it('Précédent du navigateur : les champs reprennent les filtres de l\'URL et la page 1 est rechargée', async () => {
-    renderGalerie('/?ville=Namur&categorie=1', ['/?ville=Mons', '/?ville=Namur&categorie=1'])
+    renderGalerie('/?ville=Namur&categorie=1&media=PHOTO', ['/?ville=Mons', '/?ville=Namur&categorie=1&media=PHOTO'])
     await screen.findByRole('option', { name: 'Mariage' })
     expect(screen.getByLabelText('Ville')).toHaveValue('Namur')
     expect(screen.getByLabelText('Type de prestation')).toHaveValue('1')
+    expect(screen.getByLabelText('Type de média')).toHaveValue('PHOTO')
 
     fireEvent.click(screen.getByRole('button', { name: 'Précédent du navigateur' }))
 
     await waitFor(() => expect(screen.getByLabelText('Ville')).toHaveValue('Mons'))
     expect(screen.getByLabelText('Type de prestation')).toHaveValue('')
+    expect(screen.getByLabelText('Type de média')).toHaveValue('')
     expect(screen.getByTestId('url')).toHaveTextContent('?ville=Mons')
     await waitFor(() => expect(getCreators).toHaveBeenLastCalledWith(
-      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '' },
+      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '', mediaType: '' },
     ))
   })
 
@@ -104,5 +108,7 @@ describe('creatorsQuery', () => {
       .toBe('page=0&size=12&city=Mons')
     expect(creatorsQuery({ page: 1, size: 12, city: '', country: 'Belgique', categoryId: '3' }))
       .toBe('page=1&size=12&country=Belgique&categoryId=3')
+    expect(creatorsQuery({ page: 0, size: 12, city: '', country: '', categoryId: '', mediaType: 'PHOTO' }))
+      .toBe('page=0&size=12&mediaType=PHOTO')
   })
 })

@@ -30,6 +30,8 @@ dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 	implementation 'org.springframework.modulith:spring-modulith-starter-core'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1'
+	// Signature des uploads et vérification des réponses Cloudinary (calcul local, sans appel réseau)
+	implementation 'com.cloudinary:cloudinary-core:2.6.0'
 	testAndDevelopmentOnly 'org.springframework.boot:spring-boot-docker-compose'
 	runtimeOnly 'org.postgresql:postgresql'
 	testImplementation 'org.springframework.boot:spring-boot-starter-jdbc-test'
