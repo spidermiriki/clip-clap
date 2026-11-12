@@ -34,8 +34,9 @@ class GalleryController {
 			@RequestParam(defaultValue = "20") int size,
 			@RequestParam(required = false) String city,
 			@RequestParam(required = false) String country,
-			@RequestParam(required = false) Integer categoryId) {
-		return galleryService.findCreators(page, size, new CreatorSearchCriteria(city, country, categoryId));
+			@RequestParam(required = false) Integer categoryId,
+			@RequestParam(required = false) String mediaType) {
+		return galleryService.findCreators(page, size, new CreatorSearchCriteria(city, country, categoryId, mediaType));
 	}
 
 	@GetMapping("/creators/{userId}")

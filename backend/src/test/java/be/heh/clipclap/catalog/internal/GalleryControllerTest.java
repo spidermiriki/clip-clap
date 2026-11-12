@@ -80,6 +80,31 @@ class GalleryControllerTest {
 	}
 
 	@Test
+	void getCreators_filtreParTypeDeMedia() {
+		long avecPhoto = insertValidatedCreator("photo@gallery.test", "Avec photo", false);
+		insertValidatedCreator("sanspho@gallery.test", "Sans photo", false);
+		long album = jdbcClient.sql("INSERT INTO albums (creator_id, name) VALUES (:id, 'Album') RETURNING id")
+				.param("id", avecPhoto).query(Long.class).single();
+		jdbcClient.sql("INSERT INTO media (album_id, url, cloudinary_public_id) VALUES (:album, 'https://exemple.test/p.jpg', 'p')")
+				.param("album", album).update();
+
+		restTestClient.get().uri("/api/catalog/creators?mediaType=photo")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.totalElements").isEqualTo(1)
+				.jsonPath("$.items[0].displayName").isEqualTo("Avec photo");
+	}
+
+	@Test
+	void getCreators_typeDeMediaInconnu_renvoie400ProblemDetail() {
+		restTestClient.get().uri("/api/catalog/creators?mediaType=AUDIO")
+				.exchange()
+				.expectStatus().isBadRequest()
+				.expectBody().jsonPath("$.detail").isEqualTo("mediaType doit valoir PHOTO ou VIDEO");
+	}
+
+	@Test
 	void getCategories_sansToken_renvoieLesTypesDePrestation() {
 		restTestClient.get().uri("/api/catalog/categories")
 				.exchange()

@@ -91,6 +91,13 @@ class CreatorProfileRepository {
                             WHERE cc.creator_id = creator_profiles.user_id AND cc.category_id = :categoryId)""");
             params.put("categoryId", criteria.categoryId());
         }
+        // Type de média déjà validé (PHOTO ou VIDEO) par CreatorProfileServiceImpl
+        if (StringUtils.hasText(criteria.mediaType())) {
+            conditions.add("""
+                    EXISTS (SELECT 1 FROM albums a JOIN media m ON m.album_id = a.id
+                            WHERE a.creator_id = creator_profiles.user_id AND m.media_type = :mediaType)""");
+            params.put("mediaType", criteria.mediaType());
+        }
         String where = " WHERE " + String.join(" AND ", conditions);
 
         long total = jdbc.sql("SELECT COUNT(*) FROM creator_profiles" + where)

@@ -115,11 +115,30 @@ class CreatorProfileServiceImplTest {
     @Test
     void findAllValidated_delegatesToRepository_withExcludedIds() {
         var expected = new CreatorProfilePage(List.of(PROFILE), 0, 10, 1L);
-        var criteria = new CreatorSearchCriteria("Mons", "Belgique", 1);
+        var criteria = new CreatorSearchCriteria("Mons", "Belgique", 1, null);
         when(repository.findAllValidated(0, 10, Set.of(7L), criteria)).thenReturn(expected);
 
         assertThat(service.findAllValidated(0, 10, Set.of(7L), criteria)).isEqualTo(expected);
         verify(repository).findAllValidated(0, 10, Set.of(7L), criteria);
+    }
+
+    @Test
+    void findAllValidated_normaliseLeTypeDeMedia() {
+        var expected = new CreatorProfilePage(List.of(), 0, 10, 0L);
+        var normalise = new CreatorSearchCriteria(null, null, null, "PHOTO");
+        when(repository.findAllValidated(0, 10, Set.of(), normalise)).thenReturn(expected);
+
+        assertThat(service.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, null, null, " photo ")))
+                .isEqualTo(expected);
+        verify(repository).findAllValidated(0, 10, Set.of(), normalise);
+    }
+
+    @Test
+    void findAllValidated_typeDeMediaInconnu_throwsAndNeverCallsRepository() {
+        assertThatThrownBy(() -> service.findAllValidated(0, 10, Set.of(), new CreatorSearchCriteria(null, null, null, "AUDIO")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("mediaType doit valoir PHOTO ou VIDEO");
+        verifyNoInteractions(repository);
     }
 
     @Test
