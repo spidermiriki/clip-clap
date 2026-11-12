@@ -5,6 +5,7 @@ import be.heh.clipclap.creators.CreatorProfile;
 import be.heh.clipclap.creators.CreatorProfileAlreadyExistsException;
 import be.heh.clipclap.creators.CreatorProfileNotFoundException;
 import be.heh.clipclap.creators.CreatorProfilePage;
+import be.heh.clipclap.creators.CreatorSearchCriteria;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -114,10 +115,11 @@ class CreatorProfileServiceImplTest {
     @Test
     void findAllValidated_delegatesToRepository_withExcludedIds() {
         var expected = new CreatorProfilePage(List.of(PROFILE), 0, 10, 1L);
-        when(repository.findAllValidated(0, 10, Set.of(7L))).thenReturn(expected);
+        var criteria = new CreatorSearchCriteria("Mons", "Belgique", 1);
+        when(repository.findAllValidated(0, 10, Set.of(7L), criteria)).thenReturn(expected);
 
-        assertThat(service.findAllValidated(0, 10, Set.of(7L))).isEqualTo(expected);
-        verify(repository).findAllValidated(0, 10, Set.of(7L));
+        assertThat(service.findAllValidated(0, 10, Set.of(7L), criteria)).isEqualTo(expected);
+        verify(repository).findAllValidated(0, 10, Set.of(7L), criteria);
     }
 
     @Test
@@ -129,21 +131,21 @@ class CreatorProfileServiceImplTest {
 
     @Test
     void findAllValidated_withNegativePage_throwsAndNeverCallsRepository() {
-        assertThatThrownBy(() -> service.findAllValidated(-1, 10, Set.of()))
+        assertThatThrownBy(() -> service.findAllValidated(-1, 10, Set.of(), CreatorSearchCriteria.AUCUN))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }
 
     @Test
     void findAllValidated_withZeroSize_throwsAndNeverCallsRepository() {
-        assertThatThrownBy(() -> service.findAllValidated(0, 0, Set.of()))
+        assertThatThrownBy(() -> service.findAllValidated(0, 0, Set.of(), CreatorSearchCriteria.AUCUN))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }
 
     @Test
     void findAllValidated_withSizeAbove50_throwsAndNeverCallsRepository() {
-        assertThatThrownBy(() -> service.findAllValidated(0, 51, Set.of()))
+        assertThatThrownBy(() -> service.findAllValidated(0, 51, Set.of(), CreatorSearchCriteria.AUCUN))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }

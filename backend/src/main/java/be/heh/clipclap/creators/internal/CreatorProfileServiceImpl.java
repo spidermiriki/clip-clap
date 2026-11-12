@@ -6,6 +6,7 @@ import be.heh.clipclap.creators.CreatorProfileAlreadyExistsException;
 import be.heh.clipclap.creators.CreatorProfileNotFoundException;
 import be.heh.clipclap.creators.CreatorProfilePage;
 import be.heh.clipclap.creators.CreatorProfileService;
+import be.heh.clipclap.creators.CreatorSearchCriteria;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -53,9 +54,10 @@ class CreatorProfileServiceImpl implements CreatorProfileService {
     }
 
     @Override
-    public CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds) {
+    public CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds,
+                                               CreatorSearchCriteria criteria) {
         if (page < 0) throw new IllegalArgumentException("page doit être >= 0");
         if (size < 1 || size > 50) throw new IllegalArgumentException("size doit être compris entre 1 et 50");
-        return repository.findAllValidated(page, size, excludedUserIds);
+        return repository.findAllValidated(page, size, excludedUserIds, criteria);
     }
 }

@@ -15,8 +15,9 @@ public interface CreatorProfileService {
     Set<Long> findAllValidatedUserIds();
 
     /**
-     * Page de profils validés, sans ceux de {@code excludedUserIds} : l'exclusion est faite
-     * avant la pagination, donc {@code totalElements} ne compte pas les profils exclus.
+     * Page de profils validés correspondant à {@code criteria}, sans ceux de
+     * {@code excludedUserIds} : exclusion et filtres sont appliqués avant la pagination,
+     * donc {@code totalElements} ne compte que les profils retenus.
      */
-    CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds);
+    CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds, CreatorSearchCriteria criteria);
 }
