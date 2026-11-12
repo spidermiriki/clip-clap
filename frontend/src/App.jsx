@@ -28,7 +28,12 @@ function App() {
         <Link to="/">Galerie</Link>
         {auth.isAuthenticated ? (
           <>
-            {roleFromProfile(auth.user?.profile) === 'CREATOR' && <Link to="/mes-albums">Mes albums</Link>}
+            {roleFromProfile(auth.user?.profile) === 'CREATOR' && (
+              <>
+                <Link to="/mon-profil">Mon profil</Link>
+                <Link to="/mes-albums">Mes albums</Link>
+              </>
+            )}
             <span>{auth.user?.profile.email}</span>
             <button type="button" className="link" onClick={() => auth.signoutRedirect()}>
               Se déconnecter
