@@ -78,18 +78,20 @@ describe('Galerie — filtres (#14)', () => {
   })
 
   it('Précédent du navigateur : les champs reprennent les filtres de l\'URL et la page 1 est rechargée', async () => {
-    renderGalerie('/?ville=Namur&categorie=1', ['/?ville=Mons', '/?ville=Namur&categorie=1'])
+    renderGalerie('/?ville=Namur&categorie=1&media=PHOTO', ['/?ville=Mons', '/?ville=Namur&categorie=1&media=PHOTO'])
     await screen.findByRole('option', { name: 'Mariage' })
     expect(screen.getByLabelText('Ville')).toHaveValue('Namur')
     expect(screen.getByLabelText('Type de prestation')).toHaveValue('1')
+    expect(screen.getByLabelText('Type de média')).toHaveValue('PHOTO')
 
     fireEvent.click(screen.getByRole('button', { name: 'Précédent du navigateur' }))
 
     await waitFor(() => expect(screen.getByLabelText('Ville')).toHaveValue('Mons'))
     expect(screen.getByLabelText('Type de prestation')).toHaveValue('')
+    expect(screen.getByLabelText('Type de média')).toHaveValue('')
     expect(screen.getByTestId('url')).toHaveTextContent('?ville=Mons')
     await waitFor(() => expect(getCreators).toHaveBeenLastCalledWith(
-      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '' },
+      { page: 0, size: 12, city: 'Mons', country: '', categoryId: '', mediaType: '' },
     ))
   })
 
