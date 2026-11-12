@@ -8,8 +8,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = CreatorController.class)
+@RestControllerAdvice(assignableTypes = {CreatorController.class, AlbumController.class})
 class CreatorExceptionHandler {
+
+    @ExceptionHandler(AlbumNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleAlbumNotFound(AlbumNotFoundException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Album introuvable");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(InvalidUploadException.class)
+    ResponseEntity<ProblemDetail> handleInvalidUpload(InvalidUploadException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Upload refusé");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+    }
+
+    @ExceptionHandler(UploadNotConfiguredException.class)
+    ResponseEntity<ProblemDetail> handleUploadNotConfigured(UploadNotConfiguredException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.SERVICE_UNAVAILABLE, ex.getMessage());
+        pd.setTitle("Upload indisponible");
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(pd);
+    }
 
     @ExceptionHandler(UnauthenticatedException.class)
     ResponseEntity<ProblemDetail> handleUnauthenticated(UnauthenticatedException ex) {
