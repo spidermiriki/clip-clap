@@ -29,6 +29,19 @@ export default function Galerie() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  // L'URL peut changer sans passer par le formulaire (bouton Précédent ou Suivant du navigateur) :
+  // on réaligne alors les champs sur les filtres réellement appliqués et on repart de la page 1,
+  // pendant le rendu plutôt que dans un effet, pour éviter un rendu intermédiaire incohérent.
+  const urlCourante = searchParams.toString()
+  const [urlDuFormulaire, setUrlDuFormulaire] = useState(urlCourante)
+  if (urlDuFormulaire !== urlCourante) {
+    setUrlDuFormulaire(urlCourante)
+    setForm(filtresDepuisUrl(searchParams))
+    setLoading(true)
+    setError(null)
+    setRequest({ page: 0 })
+  }
+
   useEffect(() => {
     getCategories()
       .then(setCategories)
