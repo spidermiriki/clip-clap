@@ -71,15 +71,51 @@ class DemoDataIT {
 	}
 
 	@Test
+	void filtreParTypeDeMedia_trouveLesQuatreCreateursQuiOntDesPhotos() {
+		client.get().uri("/api/catalog/creators?mediaType=PHOTO&size=50")
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody()
+			.jsonPath("$.totalElements").isEqualTo(4)
+			.jsonPath("$.items[*].displayName").value(noms -> assertThat(noms.toString())
+				.contains("Alice Martin", "Bruno Lambert", "Chloé Dubois", "Inès Moreau"));
+		client.get().uri("/api/catalog/creators?mediaType=VIDEO")
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody().jsonPath("$.totalElements").isEqualTo(0);
+	}
+
+	@Test
+	void profilPublic_afficheLAlbumDeDepartEtSesPhotosCloudinary() {
+		long alice = idDe("alice.martin@clicclap.test");
+
+		client.get().uri("/api/catalog/creators/{id}", alice)
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody()
+			.jsonPath("$.albums.length()").isEqualTo(1)
+			.jsonPath("$.albums[0].name").isEqualTo("Mariages 2026")
+			.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
+			.jsonPath("$.albums[0].photos[0].url")
+			.isEqualTo("https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg");
+	}
+
+	@Test
 	void script_rejoue_sansErreurNiDoublon() {
 		long comptesAvant = compter("SELECT COUNT(*) FROM users WHERE email LIKE '%@clicclap.test'");
 		long liensAvant = compter("SELECT COUNT(*) FROM creator_categories");
+		long albumsAvant = compter("SELECT COUNT(*) FROM albums");
+		long mediasAvant = compter("SELECT COUNT(*) FROM media");
 
 		new ResourceDatabasePopulator(new ClassPathResource("demo-data.sql")).execute(dataSource);
 
 		assertThat(comptesAvant).isEqualTo(12);
+		assertThat(albumsAvant).isEqualTo(4);
+		assertThat(mediasAvant).isEqualTo(8);
 		assertThat(compter("SELECT COUNT(*) FROM users WHERE email LIKE '%@clicclap.test'")).isEqualTo(comptesAvant);
 		assertThat(compter("SELECT COUNT(*) FROM creator_categories")).isEqualTo(liensAvant);
+		assertThat(compter("SELECT COUNT(*) FROM albums")).isEqualTo(albumsAvant);
+		assertThat(compter("SELECT COUNT(*) FROM media")).isEqualTo(mediasAvant);
 	}
 
 	private long idDe(String email) {

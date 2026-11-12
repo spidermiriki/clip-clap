@@ -114,7 +114,7 @@ cd backend
 - Avec la stack Docker (`docker compose --profile app up`), le profil `demo` est **actif par défaut** ; `SPRING_PROFILES_ACTIVE=default` dans `.env` le désactive.
 - Ces comptes (`...@clicclap.test`) n'existent pas dans Zitadel : on ne peut pas s'y connecter.
 - Les tests ne chargent jamais ces données, sauf `DemoDataIT`, qui les vérifie sur sa propre base.
-- Les albums et photos de départ arriveront avec l'upload Cloudinary (#15).
+- Quatre créateurs ont un album de départ de deux photos, servies par la médiathèque Cloudinary du projet (aucun identifiant n'est nécessaire pour les afficher).
 
 ### Exécuter les tests
 
