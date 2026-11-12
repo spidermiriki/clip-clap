@@ -1,6 +1,8 @@
 package be.heh.clipclap.catalog.internal;
 
+import be.heh.clipclap.catalog.Category;
 import be.heh.clipclap.catalog.CreatorSummaryPage;
+import be.heh.clipclap.creators.CreatorSearchCriteria;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
@@ -10,21 +12,33 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/catalog")
 class GalleryController {
 
 	private final GalleryService galleryService;
+	private final CategoryRepository categoryRepository;
 
-	GalleryController(GalleryService galleryService) {
+	GalleryController(GalleryService galleryService, CategoryRepository categoryRepository) {
 		this.galleryService = galleryService;
+		this.categoryRepository = categoryRepository;
 	}
 
 	@GetMapping("/creators")
 	CreatorSummaryPage getCreators(
 			@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int size) {
-		return galleryService.findCreators(page, size);
+			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(required = false) String city,
+			@RequestParam(required = false) String country,
+			@RequestParam(required = false) Integer categoryId) {
+		return galleryService.findCreators(page, size, new CreatorSearchCriteria(city, country, categoryId));
+	}
+
+	@GetMapping("/categories")
+	List<Category> getCategories() {
+		return categoryRepository.findAll();
 	}
 
 	@ExceptionHandler(IllegalArgumentException.class)
