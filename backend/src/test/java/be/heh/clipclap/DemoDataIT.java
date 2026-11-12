@@ -77,8 +77,10 @@ class DemoDataIT {
 			.expectStatus().isOk()
 			.expectBody()
 			.jsonPath("$.totalElements").isEqualTo(4)
-			.jsonPath("$.items[*].displayName").value(noms -> assertThat(noms.toString())
-				.contains("Alice Martin", "Bruno Lambert", "Chloé Dubois", "Inès Moreau"));
+			.jsonPath("$.items[?(@.displayName == 'Alice Martin')]").exists()
+			.jsonPath("$.items[?(@.displayName == 'Bruno Lambert')]").exists()
+			.jsonPath("$.items[?(@.displayName == 'Chloé Dubois')]").exists()
+			.jsonPath("$.items[?(@.displayName == 'Inès Moreau')]").exists();
 		client.get().uri("/api/catalog/creators?mediaType=VIDEO")
 			.exchange()
 			.expectStatus().isOk()
@@ -96,9 +98,8 @@ class DemoDataIT {
 			.jsonPath("$.albums.length()").isEqualTo(1)
 			.jsonPath("$.albums[0].name").isEqualTo("Mariages 2026")
 			.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
-			.jsonPath("$.albums[0].photos[*].url").value(urls -> assertThat(urls.toString()).contains(
-				"https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg",
-				"https://res.cloudinary.com/mcnayzr8/image/upload/v1794471945/samples/smile.jpg"));
+			.jsonPath("$.albums[0].photos[?(@.url == 'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg')]").exists()
+			.jsonPath("$.albums[0].photos[?(@.url == 'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471945/samples/smile.jpg')]").exists();
 	}
 
 	@Test
