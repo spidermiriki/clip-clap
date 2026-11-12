@@ -1,5 +1,6 @@
 package be.heh.clipclap.catalog.internal;
 
+import be.heh.clipclap.catalog.CreatorPublicProfile;
 import be.heh.clipclap.catalog.CreatorSummary;
 import be.heh.clipclap.catalog.CreatorSummaryPage;
 import be.heh.clipclap.creators.CreatorProfileService;
@@ -30,5 +31,15 @@ class GalleryService {
 				.map(p -> new CreatorSummary(p.userId(), p.displayName(), p.photoUrl(), p.city(), p.country()))
 				.toList();
 		return new CreatorSummaryPage(summaries, profilePage.page(), profilePage.size(), profilePage.totalElements());
+	}
+
+	/** Profil public (#17) : mêmes règles de visibilité que la galerie (validé, non suspendu). */
+	CreatorPublicProfile findPublicProfile(long userId) {
+		return creatorProfileService.findByUserId(userId)
+				.filter(p -> "VALIDATED".equals(p.validationStatus()))
+				.filter(p -> userApi.findSuspendedIds(Set.of(userId)).isEmpty())
+				.map(p -> new CreatorPublicProfile(p.userId(), p.displayName(), p.photoUrl(), p.bio(),
+						p.city(), p.country(), p.serviceAreas()))
+				.orElseThrow(() -> new CreatorNotPublicException(userId));
 	}
 }

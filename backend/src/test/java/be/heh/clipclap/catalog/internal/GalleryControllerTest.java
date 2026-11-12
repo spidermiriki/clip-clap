@@ -97,6 +97,62 @@ class GalleryControllerTest {
 	}
 
 	@Test
+	void getCreatorProfile_sansToken_renvoieLeProfilPublicSansStatutDeValidation() {
+		long userId = insertValidatedCreator("profil@gallery.test", "Profil Public", false);
+		jdbcClient.sql("""
+				UPDATE creator_profiles
+				SET bio = 'Photographe de mariage', city = 'Mons', country = 'Belgique', service_areas = 'Hainaut'
+				WHERE user_id = :userId
+				""")
+				.param("userId", userId)
+				.update();
+
+		restTestClient.get().uri("/api/catalog/creators/{userId}", userId)
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+				.expectBody()
+				.jsonPath("$.userId").isEqualTo(userId)
+				.jsonPath("$.displayName").isEqualTo("Profil Public")
+				.jsonPath("$.bio").isEqualTo("Photographe de mariage")
+				.jsonPath("$.city").isEqualTo("Mons")
+				.jsonPath("$.country").isEqualTo("Belgique")
+				.jsonPath("$.serviceAreas").isEqualTo("Hainaut")
+				.jsonPath("$.validationStatus").doesNotExist()
+				.jsonPath("$.rejectionReason").doesNotExist();
+	}
+
+	@Test
+	void getCreatorProfile_inconnu_renvoie404ProblemDetail() {
+		restTestClient.get().uri("/api/catalog/creators/{userId}", 999999)
+				.exchange()
+				.expectStatus().isNotFound()
+				.expectBody()
+				.jsonPath("$.title").isEqualTo("Créateur introuvable");
+	}
+
+	@Test
+	void getCreatorProfile_nonValide_renvoie404() {
+		long userId = insertValidatedCreator("attente@gallery.test", "En attente", false);
+		jdbcClient.sql("UPDATE creator_profiles SET validation_status = 'PENDING' WHERE user_id = :userId")
+				.param("userId", userId)
+				.update();
+
+		restTestClient.get().uri("/api/catalog/creators/{userId}", userId)
+				.exchange()
+				.expectStatus().isNotFound();
+	}
+
+	@Test
+	void getCreatorProfile_suspendu_renvoie404() {
+		long userId = insertValidatedCreator("suspendu-profil@gallery.test", "Suspendu", true);
+
+		restTestClient.get().uri("/api/catalog/creators/{userId}", userId)
+				.exchange()
+				.expectStatus().isNotFound();
+	}
+
+	@Test
 	void getCreators_returnsEmptyPageWhenNoCreators() {
 		restTestClient.get().uri("/api/catalog/creators")
 				.exchange()
@@ -142,7 +198,7 @@ class GalleryControllerTest {
 				.update();
 	}
 
-	private void insertValidatedCreator(String email, String displayName, boolean suspended) {
+	private long insertValidatedCreator(String email, String displayName, boolean suspended) {
 		long userId = jdbcClient.sql("""
 				INSERT INTO users (email, sub, role, suspended)
 				VALUES (:email, :sub, 'CREATOR', :suspended)
@@ -160,5 +216,6 @@ class GalleryControllerTest {
 				.param("userId", userId)
 				.param("displayName", displayName)
 				.update();
+		return userId;
 	}
 }
