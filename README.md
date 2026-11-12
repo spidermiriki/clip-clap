@@ -155,7 +155,14 @@ Pour se connecter en local, utiliser un compte de test de l'instance Zitadel (cr
 
 Sans ces deux variables, l'application démarre normalement ; seul `POST /api/users/me/role` échoue tant qu'elles ne sont pas renseignées.
 
-Les identifiants **Cloudinary** (médias) seront ajoutés avec l'upload des photos. Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`, voir `.env.example`) et **ne doivent jamais être commités**.
+Les identifiants **Cloudinary** (upload des photos, #15) sont lus depuis `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` et `CLOUDINARY_API_SECRET` (console Cloudinary > Dashboard). Sans eux, l'application démarre normalement ; seul l'envoi de photos répond 503.
+
+- Avec la stack Docker (`docker compose --profile app up`), ils sont lus dans le fichier `.env` à la racine.
+- Avec `./gradlew bootRun`, Spring ne lit pas `.env` : exportez les trois variables dans le terminal avant de lancer le backend.
+- Le secret ne quitte jamais le backend : le navigateur ne reçoit qu'une signature, valable pour le dossier de l'album.
+- Les tests n'appellent jamais Cloudinary (identifiants factices, signature calculée localement).
+
+Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`, voir `.env.example`) et **ne doivent jamais être commités**.
 
 ### Problèmes fréquents
 
