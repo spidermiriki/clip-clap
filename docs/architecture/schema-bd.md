@@ -108,8 +108,8 @@ Le profil d'un utilisateur au rôle `CREATOR`. La clé primaire est aussi la cl�
 | `display_name` | `VARCHAR(100)` | `NOT NULL` |
 | `photo_url` | `VARCHAR(500)` | — |
 | `bio` | `TEXT` | — |
-| `city` | `VARCHAR(100)` | index `idx_creator_profiles_city` |
-| `country` | `VARCHAR(100)` | index `idx_creator_profiles_country` |
+| `city` | `VARCHAR(100)` | index `idx_creator_profiles_city`, et index d'expression `idx_creator_profiles_city_normalisee` sur `lower(trim(city))` (filtre de la galerie) |
+| `country` | `VARCHAR(100)` | index `idx_creator_profiles_country`, et index d'expression `idx_creator_profiles_country_normalisee` sur `lower(trim(country))` (filtre de la galerie) |
 | `service_areas` | `VARCHAR(500)` | — |
 | `validation_status` | `VARCHAR(20)` | `NOT NULL`, défaut `'VALIDATED'`, `CHECK (validation_status IN ('PENDING', 'VALIDATED', 'REJECTED'))` |
 | `rejection_reason` | `VARCHAR(500)` | — |
