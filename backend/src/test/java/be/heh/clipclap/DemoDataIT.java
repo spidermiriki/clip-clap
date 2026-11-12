@@ -96,8 +96,9 @@ class DemoDataIT {
 			.jsonPath("$.albums.length()").isEqualTo(1)
 			.jsonPath("$.albums[0].name").isEqualTo("Mariages 2026")
 			.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
-			.jsonPath("$.albums[0].photos[0].url")
-			.isEqualTo("https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg");
+			.jsonPath("$.albums[0].photos[*].url").value(urls -> assertThat(urls.toString()).contains(
+				"https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg",
+				"https://res.cloudinary.com/mcnayzr8/image/upload/v1794471945/samples/smile.jpg"));
 	}
 
 	@Test
