@@ -36,6 +36,9 @@ CREATE TABLE IF NOT EXISTS creator_profiles (
 
 CREATE INDEX IF NOT EXISTS idx_creator_profiles_city    ON creator_profiles (city);
 CREATE INDEX IF NOT EXISTS idx_creator_profiles_country ON creator_profiles (country);
+-- Filtres de la galerie (#14) : même expression que la requête, sans quoi ces index ne servent pas
+CREATE INDEX IF NOT EXISTS idx_creator_profiles_city_normalisee    ON creator_profiles (lower(trim(city)));
+CREATE INDEX IF NOT EXISTS idx_creator_profiles_country_normalisee ON creator_profiles (lower(trim(country)));
 
 CREATE TABLE IF NOT EXISTS creator_categories (
     creator_id  BIGINT  NOT NULL REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
