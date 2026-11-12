@@ -3,6 +3,7 @@ import { useAuth } from 'react-oidc-context'
 import { Link, Outlet } from 'react-router-dom'
 import { getJson } from './api'
 import './App.css'
+import { roleFromProfile } from './auth/role'
 
 // Mise en page commune : navigation et connexion/déconnexion (#11). Le design complet des
 // écrans et la protection des routes par rôle arrivent avec #16.
@@ -49,6 +50,12 @@ function App() {
         <Link to="/">Galerie</Link>
         {auth.isAuthenticated ? (
           <>
+            {roleFromProfile(auth.user?.profile) === 'CREATOR' && (
+              <>
+                <Link to="/mon-profil">Mon profil</Link>
+                <Link to="/mes-albums">Mes albums</Link>
+              </>
+            )}
             <span>{auth.user?.profile.email}</span>
             <button type="button" className="link" onClick={() => auth.signoutRedirect()}>
               Se déconnecter

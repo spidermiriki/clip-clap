@@ -102,6 +102,20 @@ npm run dev
 - L'application s'ouvre sur http://localhost:5173. **Ce port est obligatoire pour la connexion** : c'est la seule adresse de retour autorisée dans Zitadel. Si Vite annonce un autre port, libérez le 5173 ou lancez `npm run dev -- --port 5173 --strictPort`.
 - Les appels à `/api` sont redirigés vers le backend sur le port 8080 (`frontend/vite.config.js`).
 
+### Données de démonstration
+
+Le profil Spring `demo` ajoute des créateurs fictifs (`backend/src/main/resources/demo-data.sql`) : 10 créateurs visibles en Belgique et en France, avec leurs types de prestation, plus un compte suspendu et un profil en attente qui n'apparaissent pas dans la galerie. Le script est rejouable à chaque démarrage.
+
+```bash
+cd backend
+./gradlew bootRun --args='--spring.profiles.active=demo'   # PowerShell : .\gradlew.bat bootRun --args='--spring.profiles.active=demo'
+```
+
+- Avec la stack Docker (`docker compose --profile app up`), le profil `demo` est **actif par défaut** ; `SPRING_PROFILES_ACTIVE=default` dans `.env` le désactive.
+- Ces comptes (`...@clicclap.test`) n'existent pas dans Zitadel : on ne peut pas s'y connecter.
+- Les tests ne chargent jamais ces données, sauf `DemoDataIT`, qui les vérifie sur sa propre base.
+- Quatre créateurs ont un album de départ de deux photos, servies par la médiathèque Cloudinary du projet (aucun identifiant n'est nécessaire pour les afficher).
+
 ### Exécuter les tests
 
 ```bash
@@ -141,7 +155,14 @@ Pour se connecter en local, utiliser un compte de test de l'instance Zitadel (cr
 
 Sans ces deux variables, l'application démarre normalement ; seul `POST /api/users/me/role` échoue tant qu'elles ne sont pas renseignées.
 
-Les identifiants **Cloudinary** (médias) seront ajoutés avec l'upload des photos. Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`, voir `.env.example`) et **ne doivent jamais être commités**.
+Les identifiants **Cloudinary** (upload des photos, #15) sont lus depuis `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` et `CLOUDINARY_API_SECRET` (console Cloudinary > Dashboard). Sans eux, l'application démarre normalement ; seul l'envoi de photos répond 503.
+
+- Avec la stack Docker (`docker compose --profile app up`), ils sont lus dans le fichier `.env` à la racine.
+- Avec `./gradlew bootRun`, Spring ne lit pas `.env` : exportez les trois variables dans le terminal avant de lancer le backend.
+- Le secret ne quitte jamais le backend : le navigateur ne reçoit qu'une signature, valable pour le dossier de l'album.
+- Les tests n'appellent jamais Cloudinary (identifiants factices, signature calculée localement).
+
+Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`, voir `.env.example`) et **ne doivent jamais être commités**.
 
 ### Problèmes fréquents
 

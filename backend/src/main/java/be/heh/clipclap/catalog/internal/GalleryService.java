@@ -1,8 +1,11 @@
 package be.heh.clipclap.catalog.internal;
 
+import be.heh.clipclap.catalog.CreatorPublicProfile;
 import be.heh.clipclap.catalog.CreatorSummary;
 import be.heh.clipclap.catalog.CreatorSummaryPage;
+import be.heh.clipclap.creators.AlbumService;
 import be.heh.clipclap.creators.CreatorProfileService;
+import be.heh.clipclap.creators.CreatorSearchCriteria;
 import be.heh.clipclap.users.UserApi;
 import org.springframework.stereotype.Service;
 
@@ -12,22 +15,34 @@ import java.util.Set;
 class GalleryService {
 
 	private final CreatorProfileService creatorProfileService;
+	private final AlbumService albumService;
 	private final UserApi userApi;
 
-	GalleryService(CreatorProfileService creatorProfileService, UserApi userApi) {
+	GalleryService(CreatorProfileService creatorProfileService, AlbumService albumService, UserApi userApi) {
 		this.creatorProfileService = creatorProfileService;
+		this.albumService = albumService;
 		this.userApi = userApi;
 	}
 
-	/** Créateurs visibles publiquement : profil validé et compte non suspendu (#75). */
-	CreatorSummaryPage findCreators(int page, int size) {
+	/** Créateurs visibles publiquement (profil validé, compte non suspendu, #75) et correspondant aux filtres (#14). */
+	CreatorSummaryPage findCreators(int page, int size, CreatorSearchCriteria criteria) {
 		// Les suspendus sont exclus dans la requête paginée de creators, pas après coup,
 		// pour que totalElements et le contenu des pages restent justes
 		Set<Long> suspendus = userApi.findSuspendedIds(creatorProfileService.findAllValidatedUserIds());
-		var profilePage = creatorProfileService.findAllValidated(page, size, suspendus);
+		var profilePage = creatorProfileService.findAllValidated(page, size, suspendus, criteria);
 		var summaries = profilePage.items().stream()
 				.map(p -> new CreatorSummary(p.userId(), p.displayName(), p.photoUrl(), p.city(), p.country()))
 				.toList();
 		return new CreatorSummaryPage(summaries, profilePage.page(), profilePage.size(), profilePage.totalElements());
+	}
+
+	/** Profil public (#17) et albums (#15) : mêmes règles de visibilité que la galerie (validé, non suspendu). */
+	CreatorPublicProfile findPublicProfile(long userId) {
+		return creatorProfileService.findByUserId(userId)
+				.filter(p -> "VALIDATED".equals(p.validationStatus()))
+				.filter(p -> userApi.findSuspendedIds(Set.of(userId)).isEmpty())
+				.map(p -> new CreatorPublicProfile(p.userId(), p.displayName(), p.photoUrl(), p.bio(),
+						p.city(), p.country(), p.serviceAreas(), albumService.findAlbumsOf(userId)))
+				.orElseThrow(() -> new CreatorNotPublicException(userId));
 	}
 }
