@@ -232,11 +232,11 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 **Description.** En testant l'inscription, l'e-mail de vérification envoyé par Zitadel n'arrivait jamais (boîte de réception, spams et promotions vérifiés). Aucun nouveau compte ne pouvait être finalisé : les scénarios 1 et 2 du plan de tests étaient bloqués (#96).
 
-**Cause.** En cours d'analyse (#96) : configuration de l'envoi d'e-mails de l'instance Zitadel, journal de l'instance et paramètres de vérification de l'organisation à vérifier.
+**Cause.** Envoi des e-mails de l'instance Zitadel : correction faite par l'administrateur de l'instance, détail à compléter par Gedeon (#96). Effet secondaire : le premier essai d'inscription a laissé un compte non vérifié, qui bloque encore son adresse (« Impossible de créer l'utilisateur » à l'étape du mot de passe).
 
-**Solution.** Provisoire : comptes de test créés et vérifiés depuis la console Zitadel par l'administrateur de l'instance. Correction définitive suivie dans #96.
+**Solution.** En attendant la correction, comptes de test créés et vérifiés depuis la console Zitadel par l'administrateur. Test du 12/11 après la correction : avec une adresse neuve, le compte est créé et la vérification par e-mail fonctionne ; le compte non vérifié du premier essai reste à supprimer dans la console. Les scénarios 1 et 2 seront validés sur la version déployée.
 
-**Règle retenue.** Tester le parcours d'inscription complet, jusqu'à la boîte mail, dès que l'authentification est branchée, et pas seulement la connexion avec des comptes existants.
+**Règle retenue.** Tester le parcours d'inscription complet, jusqu'à la boîte mail, dès que l'authentification est branchée, et pas seulement la connexion avec des comptes existants. Un essai d'inscription raté peut laisser un compte non vérifié qui bloque l'adresse : le supprimer avant de retester avec la même adresse.
 
 ---
 
@@ -246,7 +246,7 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 **Cause.** Régression entre #73 et #74 : seul `GET /api/users/me` crée la ligne `users` d'un compte dont le token porte déjà un rôle. Le front l'appelait après la connexion (#73), mais cet appel a été remplacé par le seul `POST /api/users/me/role`, qui n'est utilisé qu'à l'inscription (#74).
 
-**Solution.** `App.jsx` appelle `GET /api/users/me` une fois par utilisateur connecté, et les pages attendent la fin de l'appel pour ne pas interroger `creators` avant la création du compte (PR #99, en attente de merge au 12/11 ; tests Vitest). Vérifié à la main sur une base locale vidée de ce compte.
+**Solution.** `App.jsx` appelle `GET /api/users/me` une fois par utilisateur connecté, et les pages attendent la fin de l'appel pour ne pas interroger `creators` avant la création du compte (PR #99, mergée le 12/11 ; tests Vitest). Vérifié à la main sur une base locale vidée de ce compte.
 
 **Règle retenue.** Avant de remplacer un appel, vérifier quels effets de bord en dépendaient ; tester aussi le cas « compte existant chez le fournisseur d'identité, base locale vide ».
 
