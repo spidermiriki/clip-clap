@@ -9,6 +9,42 @@
   margin: 0.25rem 0 0;
 }
 
+/* Filtres (wireframe 01) --------------------------------------------------- */
+
+.filtres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem 1rem;
+  align-items: end;
+  margin-top: 1.25rem;
+}
+
+.filtres label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.filtres input,
+.filtres select {
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+}
+
+.filtres button {
+  padding: 0.5rem 1.1rem;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font: inherit;
+  cursor: pointer;
+}
+
 .empty {
   color: var(--text);
   margin-top: 2rem;
