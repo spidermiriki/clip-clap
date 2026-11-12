@@ -13,6 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -111,31 +112,38 @@ class CreatorProfileServiceImplTest {
     // --- findAllValidated ---
 
     @Test
-    void findAllValidated_delegatesToRepository() {
+    void findAllValidated_delegatesToRepository_withExcludedIds() {
         var expected = new CreatorProfilePage(List.of(PROFILE), 0, 10, 1L);
-        when(repository.findAllValidated(0, 10)).thenReturn(expected);
+        when(repository.findAllValidated(0, 10, Set.of(7L))).thenReturn(expected);
 
-        assertThat(service.findAllValidated(0, 10)).isEqualTo(expected);
-        verify(repository).findAllValidated(0, 10);
+        assertThat(service.findAllValidated(0, 10, Set.of(7L))).isEqualTo(expected);
+        verify(repository).findAllValidated(0, 10, Set.of(7L));
+    }
+
+    @Test
+    void findAllValidatedUserIds_delegatesToRepository() {
+        when(repository.findAllValidatedUserIds()).thenReturn(Set.of(USER_ID));
+
+        assertThat(service.findAllValidatedUserIds()).containsExactly(USER_ID);
     }
 
     @Test
     void findAllValidated_withNegativePage_throwsAndNeverCallsRepository() {
-        assertThatThrownBy(() -> service.findAllValidated(-1, 10))
+        assertThatThrownBy(() -> service.findAllValidated(-1, 10, Set.of()))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }
 
     @Test
     void findAllValidated_withZeroSize_throwsAndNeverCallsRepository() {
-        assertThatThrownBy(() -> service.findAllValidated(0, 0))
+        assertThatThrownBy(() -> service.findAllValidated(0, 0, Set.of()))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }
 
     @Test
     void findAllValidated_withSizeAbove50_throwsAndNeverCallsRepository() {
-        assertThatThrownBy(() -> service.findAllValidated(0, 51))
+        assertThatThrownBy(() -> service.findAllValidated(0, 51, Set.of()))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }
