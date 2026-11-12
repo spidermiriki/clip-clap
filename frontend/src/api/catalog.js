@@ -86,15 +86,21 @@ function mockCategoryIdOf(creator) {
   return ((creator.userId - 1) % MOCK_CATEGORIES.length) + 1
 }
 
+// Un créateur fictif sur quatre n'a pas encore de photo ; aucune vidéo avant la v0.2 (#94)
+function mockMediaTypesOf(creator) {
+  return creator.userId % 4 === 0 ? [] : ['PHOTO']
+}
+
 function normaliser(texte) {
   return (texte ?? '').trim().toLowerCase()
 }
 
 // Même règle que le backend : filtres combinés, ville et pays sans casse ni espaces autour
-function mockCorrespond(creator, { city, country, categoryId }) {
+function mockCorrespond(creator, { city, country, categoryId, mediaType }) {
   if (normaliser(city) && normaliser(creator.city) !== normaliser(city)) return false
   if (normaliser(country) && normaliser(creator.country) !== normaliser(country)) return false
   if (categoryId && mockCategoryIdOf(creator) !== Number(categoryId)) return false
+  if (mediaType && !mockMediaTypesOf(creator).includes(mediaType.toUpperCase())) return false
   return true
 }
 
@@ -142,11 +148,12 @@ async function mockGetCategories() {
 // ── API réelle ────────────────────────────────────────────────────────────────
 
 /** Paramètres de GET /api/catalog/creators ; les filtres vides ne sont pas envoyés. */
-export function creatorsQuery({ page, size, city, country, categoryId }) {
+export function creatorsQuery({ page, size, city, country, categoryId, mediaType }) {
   const params = new URLSearchParams({ page: String(page), size: String(size) })
   if (city?.trim()) params.set('city', city.trim())
   if (country?.trim()) params.set('country', country.trim())
   if (categoryId) params.set('categoryId', String(categoryId))
+  if (mediaType) params.set('mediaType', mediaType)
   return params.toString()
 }
 
@@ -169,7 +176,7 @@ async function fetchGetCategories() {
 
 /**
  * Renvoie une page de créateurs validés ({ items, page, size, totalElements }),
- * filtrée par ville, pays et type de prestation (categoryId) s'ils sont renseignés.
+ * filtrée par ville, pays, type de prestation (categoryId) et type de média (PHOTO ou VIDEO) s'ils sont renseignés.
  */
 export function getCreators(criteres) {
   return USE_MOCK ? mockGetCreators(criteres) : fetchGetCreators(criteres)
