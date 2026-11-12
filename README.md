@@ -102,6 +102,20 @@ npm run dev
 - L'application s'ouvre sur http://localhost:5173. **Ce port est obligatoire pour la connexion** : c'est la seule adresse de retour autorisée dans Zitadel. Si Vite annonce un autre port, libérez le 5173 ou lancez `npm run dev -- --port 5173 --strictPort`.
 - Les appels à `/api` sont redirigés vers le backend sur le port 8080 (`frontend/vite.config.js`).
 
+### Données de démonstration
+
+Le profil Spring `demo` ajoute des créateurs fictifs (`backend/src/main/resources/demo-data.sql`) : 10 créateurs visibles en Belgique et en France, avec leurs types de prestation, plus un compte suspendu et un profil en attente qui n'apparaissent pas dans la galerie. Le script est rejouable à chaque démarrage.
+
+```bash
+cd backend
+./gradlew bootRun --args='--spring.profiles.active=demo'   # PowerShell : .\gradlew.bat bootRun --args='--spring.profiles.active=demo'
+```
+
+- Avec la stack Docker (`docker compose --profile app up`), le profil `demo` est **actif par défaut** ; `SPRING_PROFILES_ACTIVE=default` dans `.env` le désactive.
+- Ces comptes (`...@clicclap.test`) n'existent pas dans Zitadel : on ne peut pas s'y connecter.
+- Les tests ne chargent jamais ces données, sauf `DemoDataIT`, qui les vérifie sur sa propre base.
+- Les albums et photos de départ arriveront avec l'upload Cloudinary (#15).
+
 ### Exécuter les tests
 
 ```bash
