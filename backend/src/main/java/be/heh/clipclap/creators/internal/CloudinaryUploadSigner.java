@@ -1,33 +1,32 @@
 package be.heh.clipclap.creators.internal;
 
-import com.cloudinary.Cloudinary;
+import com.cloudinary.Configuration;
+import com.cloudinary.Util;
+import com.cloudinary.api.signing.ApiResponseSignatureVerifier;
 
 import java.time.Clock;
 import java.util.Map;
 
-/** {@link UploadSigner} adossé à la bibliothèque officielle cloudinary-core : calculs locaux, aucun appel réseau. */
+/**
+ * {@link UploadSigner} adossé aux classes de signature de cloudinary-core : calculs locaux,
+ * aucun appel réseau. On n'instancie pas {@code com.cloudinary.Cloudinary}, qui exige un
+ * client HTTP (cloudinary-http5) dont le backend n'a pas besoin pour signer.
+ */
 class CloudinaryUploadSigner implements UploadSigner {
 
     static final String ALLOWED_FORMATS = "jpg,png,webp";
 
     private final CloudinaryProperties properties;
     private final Clock clock;
-    private final Cloudinary cloudinary;
 
     CloudinaryUploadSigner(CloudinaryProperties properties, Clock clock) {
         this.properties = properties;
         this.clock = clock;
-        this.cloudinary = properties.isConfigured()
-                ? new Cloudinary(Map.of(
-                        "cloud_name", properties.cloudName(),
-                        "api_key", properties.apiKey(),
-                        "api_secret", properties.apiSecret()))
-                : null;
     }
 
     @Override
     public boolean isConfigured() {
-        return cloudinary != null;
+        return properties.isConfigured();
     }
 
     @Override
@@ -44,18 +43,18 @@ class CloudinaryUploadSigner implements UploadSigner {
                 "folder", folder,
                 "timestamp", timestamp,
                 "allowed_formats", ALLOWED_FORMATS);
-        String signature = cloudinary.apiSignRequest(params, properties.apiSecret(), cloudinary.config.signatureVersion);
+        String signature = Util.produceSignature(params, properties.apiSecret(), Configuration.DEFAULT_SIGNATURE_VERSION);
         return new UploadSignature(properties.cloudName(), properties.apiKey(), timestamp, signature, folder, ALLOWED_FORMATS);
     }
 
     @Override
     public boolean isAuthentic(String publicId, String version, String signature) {
         requireConfigured();
-        return cloudinary.verifyApiResponseSignature(publicId, version, signature);
+        return new ApiResponseSignatureVerifier(properties.apiSecret()).verifySignature(publicId, version, signature);
     }
 
     private void requireConfigured() {
-        if (cloudinary == null) {
+        if (!properties.isConfigured()) {
             throw new UploadNotConfiguredException();
         }
     }
