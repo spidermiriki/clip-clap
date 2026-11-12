@@ -1,7 +1,8 @@
 # Contexte de build : la racine du dépôt (voir compose.yaml), pour voir frontend/ et backend/.
 
 # ── Stage 1 : build du frontend ──────────────────────────────────────────────
-FROM node:20-alpine AS frontend
+# Même version de Node que la CI (.github/workflows/ci.yml) : tests et bundle de production identiques
+FROM node:24-alpine AS frontend
 WORKDIR /app/frontend
 
 COPY frontend/package.json frontend/package-lock.json ./
