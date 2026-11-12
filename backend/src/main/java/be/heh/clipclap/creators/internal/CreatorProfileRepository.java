@@ -3,13 +3,18 @@ package be.heh.clipclap.creators.internal;
 import be.heh.clipclap.creators.CreateProfileCommand;
 import be.heh.clipclap.creators.CreatorProfile;
 import be.heh.clipclap.creators.CreatorProfilePage;
+import be.heh.clipclap.creators.CreatorSearchCriteria;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -62,23 +67,43 @@ class CreatorProfileRepository {
                 .list());
     }
 
-    CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds) {
+    CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds,
+                                        CreatorSearchCriteria criteria) {
+        // Seules les conditions sont assemblées ; les valeurs passent toutes par des paramètres nommés
+        List<String> conditions = new ArrayList<>(List.of("validation_status = 'VALIDATED'"));
+        Map<String, Object> params = new HashMap<>();
         // NOT IN () est invalide en SQL : la clause n'est ajoutée que s'il y a des ids à exclure
-        boolean exclusion = !excludedUserIds.isEmpty();
-        String where = "WHERE validation_status = 'VALIDATED'" + (exclusion ? " AND user_id NOT IN (:excluded)" : "");
-
-        var count = jdbc.sql("SELECT COUNT(*) FROM creator_profiles " + where);
-        var select = jdbc.sql("SELECT * FROM creator_profiles " + where
-                        + " ORDER BY display_name, user_id LIMIT :size OFFSET :offset")
-                .param("size", size)
-                .param("offset", (long) page * size);
-        if (exclusion) {
-            count = count.param("excluded", excludedUserIds);
-            select = select.param("excluded", excludedUserIds);
+        if (!excludedUserIds.isEmpty()) {
+            conditions.add("user_id NOT IN (:excluded)");
+            params.put("excluded", excludedUserIds);
         }
+        if (StringUtils.hasText(criteria.city())) {
+            conditions.add("lower(trim(city)) = lower(trim(:city))");
+            params.put("city", criteria.city());
+        }
+        if (StringUtils.hasText(criteria.country())) {
+            conditions.add("lower(trim(country)) = lower(trim(:country))");
+            params.put("country", criteria.country());
+        }
+        if (criteria.categoryId() != null) {
+            conditions.add("""
+                    EXISTS (SELECT 1 FROM creator_categories cc
+                            WHERE cc.creator_id = creator_profiles.user_id AND cc.category_id = :categoryId)""");
+            params.put("categoryId", criteria.categoryId());
+        }
+        String where = " WHERE " + String.join(" AND ", conditions);
 
-        long total = count.query(Long.class).single();
-        List<CreatorProfile> items = select.query(CreatorProfileRepository::mapRow).list();
+        long total = jdbc.sql("SELECT COUNT(*) FROM creator_profiles" + where)
+                .params(params)
+                .query(Long.class)
+                .single();
+        List<CreatorProfile> items = jdbc.sql("SELECT * FROM creator_profiles" + where
+                        + " ORDER BY display_name, user_id LIMIT :size OFFSET :offset")
+                .params(params)
+                .param("size", size)
+                .param("offset", (long) page * size)
+                .query(CreatorProfileRepository::mapRow)
+                .list();
         return new CreatorProfilePage(items, page, size, total);
     }
 

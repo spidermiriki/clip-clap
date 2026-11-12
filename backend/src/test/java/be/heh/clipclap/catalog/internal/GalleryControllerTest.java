@@ -63,6 +63,40 @@ class GalleryControllerTest {
 	}
 
 	@Test
+	void getCreators_filtresVilleEtPaysCombines() {
+		insertValidatedCreator("mons@gallery.test", "À Mons");
+		insertValidatedCreator("namur@gallery.test", "À Namur");
+		insertValidatedCreator("lille@gallery.test", "À Lille");
+		setLocation("mons@gallery.test", "Mons", "Belgique");
+		setLocation("namur@gallery.test", "Namur", "Belgique");
+		setLocation("lille@gallery.test", "Mons", "France");
+
+		restTestClient.get().uri("/api/catalog/creators?city=mons&country=Belgique")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.totalElements").isEqualTo(1)
+				.jsonPath("$.items[0].displayName").isEqualTo("À Mons");
+	}
+
+	@Test
+	void getCategories_sansToken_renvoieLesTypesDePrestation() {
+		restTestClient.get().uri("/api/catalog/categories")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+				.expectBody()
+				.jsonPath("$[?(@.name == 'Mariage')].id").exists();
+	}
+
+	@Test
+	void getCreators_categoryIdNonNumerique_renvoie400() {
+		restTestClient.get().uri("/api/catalog/creators?categoryId=abc")
+				.exchange()
+				.expectStatus().isBadRequest();
+	}
+
+	@Test
 	void getCreators_returnsEmptyPageWhenNoCreators() {
 		restTestClient.get().uri("/api/catalog/creators")
 				.exchange()
@@ -95,6 +129,17 @@ class GalleryControllerTest {
 
 	private void insertValidatedCreator(String email, String displayName) {
 		insertValidatedCreator(email, displayName, false);
+	}
+
+	private void setLocation(String email, String city, String country) {
+		jdbcClient.sql("""
+				UPDATE creator_profiles SET city = :city, country = :country
+				WHERE user_id = (SELECT id FROM users WHERE email = :email)
+				""")
+				.param("city", city)
+				.param("country", country)
+				.param("email", email)
+				.update();
 	}
 
 	private void insertValidatedCreator(String email, String displayName, boolean suspended) {
