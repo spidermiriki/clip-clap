@@ -109,7 +109,9 @@ class DemoDataIT {
 		long albumsAvant = compter("SELECT COUNT(*) FROM albums");
 		long mediasAvant = compter("SELECT COUNT(*) FROM media");
 
-		new ResourceDatabasePopulator(new ClassPathResource("demo-data.sql")).execute(dataSource);
+		ResourceDatabasePopulator populator = new ResourceDatabasePopulator(new ClassPathResource("demo-data.sql"));
+		populator.setSqlScriptEncoding("UTF-8");
+		populator.execute(dataSource);
 
 		assertThat(comptesAvant).isEqualTo(12);
 		assertThat(albumsAvant).isEqualTo(4);
