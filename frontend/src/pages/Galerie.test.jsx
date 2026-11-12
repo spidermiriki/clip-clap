@@ -57,6 +57,18 @@ describe('Galerie — filtres (#14)', () => {
     expect(screen.getByTestId('url')).toHaveTextContent('?pays=Belgique&categorie=1')
   })
 
+  it('chaque carte mène au profil public du créateur (#17)', async () => {
+    vi.mocked(getCreators).mockResolvedValue({
+      items: [{ userId: 3, displayName: 'Clara Lecomte', photoUrl: null, city: 'Mons', country: 'Belgique' }],
+      page: 0,
+      size: 12,
+      totalElements: 1,
+    })
+    renderGalerie('/')
+
+    expect(await screen.findByRole('link', { name: /Clara Lecomte/ })).toHaveAttribute('href', '/createurs/3')
+  })
+
   it('annonce l\'absence de résultat quand des filtres sont actifs', async () => {
     renderGalerie('/?pays=Islande')
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { getCategories, getCreators } from '../api/catalog'
 import styles from './Galerie.module.css'
 
@@ -124,20 +124,22 @@ export default function Galerie() {
         <>
           <ul className={styles.grid} aria-label="Liste des créateurs">
             {data.items.map((creator) => (
-              <li key={creator.userId} className={styles.card}>
-                <div className={styles.avatar}>
-                  {creator.photoUrl ? (
-                    <img src={creator.photoUrl} alt={`Photo de ${creator.displayName}`} />
-                  ) : (
-                    <span aria-hidden="true">{creator.displayName.charAt(0).toUpperCase()}</span>
+              <li key={creator.userId}>
+                <Link to={`/createurs/${creator.userId}`} className={styles.card}>
+                  <div className={styles.avatar}>
+                    {creator.photoUrl ? (
+                      <img src={creator.photoUrl} alt={`Photo de ${creator.displayName}`} />
+                    ) : (
+                      <span aria-hidden="true">{creator.displayName.charAt(0).toUpperCase()}</span>
+                    )}
+                  </div>
+                  <p className={styles.name}>{creator.displayName}</p>
+                  {(creator.city || creator.country) && (
+                    <p className={styles.location}>
+                      {[creator.city, creator.country].filter(Boolean).join(', ')}
+                    </p>
                   )}
-                </div>
-                <p className={styles.name}>{creator.displayName}</p>
-                {(creator.city || creator.country) && (
-                  <p className={styles.location}>
-                    {[creator.city, creator.country].filter(Boolean).join(', ')}
-                  </p>
-                )}
+                </Link>
               </li>
             ))}
           </ul>

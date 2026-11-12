@@ -95,6 +95,15 @@
   border-radius: 10px;
   background: var(--bg);
   text-align: center;
+  height: 100%;
+  box-sizing: border-box;
+  color: inherit;
+  text-decoration: none;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--accent);
 }
 
 /* Avatar ------------------------------------------------------------------- */

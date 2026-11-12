@@ -122,6 +122,18 @@ async function mockGetCreators({ page, size, ...filtres }) {
   return { items, page, size, totalElements: retenus.length }
 }
 
+async function mockGetCreatorProfile(userId) {
+  await delay(MOCK_DELAY_MS)
+  const creator = MOCK_CREATORS.find((c) => c.userId === Number(userId))
+  // Même réponse que le backend pour un créateur inconnu, non validé ou suspendu
+  if (!creator) throw { status: 404, message: `Aucun créateur public avec l'identifiant ${userId}` }
+  return {
+    ...creator,
+    bio: `${creator.displayName} photographie mariages, événements et portraits.`,
+    serviceAreas: `${creator.city} et environs`,
+  }
+}
+
 async function mockGetCategories() {
   await delay(MOCK_DELAY_MS)
   return MOCK_CATEGORIES
@@ -143,6 +155,11 @@ async function fetchGetCreators(criteres) {
   return handleResponse(res)
 }
 
+async function fetchGetCreatorProfile(userId) {
+  const res = await fetch(`/api/catalog/creators/${encodeURIComponent(userId)}`)
+  return handleResponse(res)
+}
+
 async function fetchGetCategories() {
   const res = await fetch('/api/catalog/categories')
   return handleResponse(res)
@@ -156,6 +173,14 @@ async function fetchGetCategories() {
  */
 export function getCreators(criteres) {
   return USE_MOCK ? mockGetCreators(criteres) : fetchGetCreators(criteres)
+}
+
+/**
+ * Renvoie le profil public d'un créateur (userId, displayName, photoUrl, bio, city, country, serviceAreas).
+ * Lève { status: 404 } s'il est inconnu, non validé ou suspendu.
+ */
+export function getCreatorProfile(userId) {
+  return USE_MOCK ? mockGetCreatorProfile(userId) : fetchGetCreatorProfile(userId)
 }
 
 /** Renvoie les types de prestation ([{ id, name }]) proposés comme filtre. */
