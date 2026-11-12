@@ -3,6 +3,7 @@ package be.heh.clipclap.catalog.internal;
 import be.heh.clipclap.catalog.CreatorPublicProfile;
 import be.heh.clipclap.catalog.CreatorSummary;
 import be.heh.clipclap.catalog.CreatorSummaryPage;
+import be.heh.clipclap.creators.AlbumService;
 import be.heh.clipclap.creators.CreatorProfileService;
 import be.heh.clipclap.creators.CreatorSearchCriteria;
 import be.heh.clipclap.users.UserApi;
@@ -14,10 +15,12 @@ import java.util.Set;
 class GalleryService {
 
 	private final CreatorProfileService creatorProfileService;
+	private final AlbumService albumService;
 	private final UserApi userApi;
 
-	GalleryService(CreatorProfileService creatorProfileService, UserApi userApi) {
+	GalleryService(CreatorProfileService creatorProfileService, AlbumService albumService, UserApi userApi) {
 		this.creatorProfileService = creatorProfileService;
+		this.albumService = albumService;
 		this.userApi = userApi;
 	}
 
@@ -33,13 +36,13 @@ class GalleryService {
 		return new CreatorSummaryPage(summaries, profilePage.page(), profilePage.size(), profilePage.totalElements());
 	}
 
-	/** Profil public (#17) : mêmes règles de visibilité que la galerie (validé, non suspendu). */
+	/** Profil public (#17) et albums (#15) : mêmes règles de visibilité que la galerie (validé, non suspendu). */
 	CreatorPublicProfile findPublicProfile(long userId) {
 		return creatorProfileService.findByUserId(userId)
 				.filter(p -> "VALIDATED".equals(p.validationStatus()))
 				.filter(p -> userApi.findSuspendedIds(Set.of(userId)).isEmpty())
 				.map(p -> new CreatorPublicProfile(p.userId(), p.displayName(), p.photoUrl(), p.bio(),
-						p.city(), p.country(), p.serviceAreas()))
+						p.city(), p.country(), p.serviceAreas(), albumService.findAlbumsOf(userId)))
 				.orElseThrow(() -> new CreatorNotPublicException(userId));
 	}
 }

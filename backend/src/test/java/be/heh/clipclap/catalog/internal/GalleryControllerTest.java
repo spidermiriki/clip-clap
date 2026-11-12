@@ -123,6 +123,32 @@ class GalleryControllerTest {
 	}
 
 	@Test
+	void getCreatorProfile_afficheSesAlbumsEtLeursPhotos() {
+		long userId = insertValidatedCreator("albums@gallery.test", "Avec albums", false);
+		long albumId = jdbcClient.sql("INSERT INTO albums (creator_id, name) VALUES (:userId, 'Mariages') RETURNING id")
+				.param("userId", userId).query(Long.class).single();
+		for (String photo : new String[] {"photo-1", "photo-2"}) {
+			jdbcClient.sql("""
+					INSERT INTO media (album_id, url, cloudinary_public_id)
+					VALUES (:albumId, :url, :publicId)
+					""")
+					.param("albumId", albumId)
+					.param("url", "https://res.cloudinary.com/cloud-test/image/upload/v1/" + photo + ".jpg")
+					.param("publicId", photo)
+					.update();
+		}
+
+		restTestClient.get().uri("/api/catalog/creators/{userId}", userId)
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.albums.length()").isEqualTo(1)
+				.jsonPath("$.albums[0].name").isEqualTo("Mariages")
+				.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
+				.jsonPath("$.albums[0].photos[0].url").isEqualTo("https://res.cloudinary.com/cloud-test/image/upload/v1/photo-1.jpg");
+	}
+
+	@Test
 	void getCreatorProfile_inconnu_renvoie404ProblemDetail() {
 		restTestClient.get().uri("/api/catalog/creators/{userId}", 999999)
 				.exchange()
