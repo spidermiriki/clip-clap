@@ -42,6 +42,7 @@ export default function Galerie() {
   return (
     <main className={styles.container}>
       <h1>Galerie des créateurs</h1>
+      <p className={styles.accroche}>Trouvez un photographe ou un vidéaste pour votre projet.</p>
 
       {error && (
         <div className={styles.errorBox}>

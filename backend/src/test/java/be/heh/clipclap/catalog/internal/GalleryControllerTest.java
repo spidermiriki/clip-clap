@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.modulith.test.ApplicationModuleTest.BootstrapMode;
@@ -14,8 +15,8 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-// extraIncludes = "users" : catalog → creators → users (transitive, non chargé par DIRECT_DEPENDENCIES)
-@ApplicationModuleTest(mode = BootstrapMode.DIRECT_DEPENDENCIES, extraIncludes = "users")
+// catalog dépend directement de creators et de users (#75) : DIRECT_DEPENDENCIES charge les deux
+@ApplicationModuleTest(mode = BootstrapMode.DIRECT_DEPENDENCIES)
 @Import(TestcontainersConfiguration.class)
 @Transactional
 class GalleryControllerTest {
@@ -33,6 +34,32 @@ class GalleryControllerTest {
 		restTestClient = RestTestClient.bindToApplicationContext(context)
 				.configureServer(mockMvc -> mockMvc.apply(springSecurity()))
 				.build();
+	}
+
+	@Test
+	void getCreators_sansToken_renvoie200Json() {
+		insertValidatedCreator("public@gallery.test", "Visible sans connexion");
+
+		restTestClient.get().uri("/api/catalog/creators")
+				.exchange()
+				.expectStatus().isOk()
+				.expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+				.expectBody()
+				.jsonPath("$.items[0].displayName").isEqualTo("Visible sans connexion");
+	}
+
+	@Test
+	void getCreators_createurSuspendu_absentDesItemsEtDuTotal() {
+		insertValidatedCreator("actif@gallery.test", "Actif", false);
+		insertValidatedCreator("suspendu@gallery.test", "Suspendu", true);
+
+		restTestClient.get().uri("/api/catalog/creators?page=0&size=10")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.totalElements").isEqualTo(1)
+				.jsonPath("$.items.length()").isEqualTo(1)
+				.jsonPath("$.items[0].displayName").isEqualTo("Actif");
 	}
 
 	@Test
@@ -67,13 +94,18 @@ class GalleryControllerTest {
 	}
 
 	private void insertValidatedCreator(String email, String displayName) {
+		insertValidatedCreator(email, displayName, false);
+	}
+
+	private void insertValidatedCreator(String email, String displayName, boolean suspended) {
 		long userId = jdbcClient.sql("""
-				INSERT INTO users (email, sub, role)
-				VALUES (:email, :sub, 'CREATOR')
+				INSERT INTO users (email, sub, role, suspended)
+				VALUES (:email, :sub, 'CREATOR', :suspended)
 				RETURNING id
 				""")
 				.param("email", email)
 				.param("sub", "sub-" + email)
+				.param("suspended", suspended)
 				.query(Long.class)
 				.single();
 		jdbcClient.sql("""

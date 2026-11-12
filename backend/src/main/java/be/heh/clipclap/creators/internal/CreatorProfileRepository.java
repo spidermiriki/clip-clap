@@ -8,8 +8,10 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Repository
 class CreatorProfileRepository {
@@ -54,25 +56,29 @@ class CreatorProfileRepository {
                 .single();
     }
 
-    CreatorProfilePage findAllValidated(int page, int size) {
-        long total = jdbc.sql("""
-                SELECT COUNT(*) FROM creator_profiles
-                WHERE validation_status = 'VALIDATED'
-                """)
+    Set<Long> findAllValidatedUserIds() {
+        return new HashSet<>(jdbc.sql("SELECT user_id FROM creator_profiles WHERE validation_status = 'VALIDATED'")
                 .query(Long.class)
-                .single();
+                .list());
+    }
 
-        List<CreatorProfile> items = jdbc.sql("""
-                SELECT * FROM creator_profiles
-                WHERE validation_status = 'VALIDATED'
-                ORDER BY display_name, user_id
-                LIMIT :size OFFSET :offset
-                """)
+    CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds) {
+        // NOT IN () est invalide en SQL : la clause n'est ajoutée que s'il y a des ids à exclure
+        boolean exclusion = !excludedUserIds.isEmpty();
+        String where = "WHERE validation_status = 'VALIDATED'" + (exclusion ? " AND user_id NOT IN (:excluded)" : "");
+
+        var count = jdbc.sql("SELECT COUNT(*) FROM creator_profiles " + where);
+        var select = jdbc.sql("SELECT * FROM creator_profiles " + where
+                        + " ORDER BY display_name, user_id LIMIT :size OFFSET :offset")
                 .param("size", size)
-                .param("offset", (long) page * size)
-                .query(CreatorProfileRepository::mapRow)
-                .list();
+                .param("offset", (long) page * size);
+        if (exclusion) {
+            count = count.param("excluded", excludedUserIds);
+            select = select.param("excluded", excludedUserIds);
+        }
 
+        long total = count.query(Long.class).single();
+        List<CreatorProfile> items = select.query(CreatorProfileRepository::mapRow).list();
         return new CreatorProfilePage(items, page, size, total);
     }
 

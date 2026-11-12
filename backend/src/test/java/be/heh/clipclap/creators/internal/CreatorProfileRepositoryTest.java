@@ -10,6 +10,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
@@ -64,7 +66,7 @@ class CreatorProfileRepositoryTest {
         jdbcClient.sql("UPDATE creator_profiles SET validation_status = 'PENDING' WHERE user_id = :id")
                   .param("id", bob).update();
 
-        var result = repository.findAllValidated(0, 10);
+        var result = repository.findAllValidated(0, 10, Set.of());
 
         assertThat(result.totalElements()).isEqualTo(1);
         assertThat(result.items())
@@ -79,12 +81,41 @@ class CreatorProfileRepositoryTest {
             repository.save(userId, new CreateProfileCommand("Creator " + i, null, null, null, null));
         }
 
-        var page0 = repository.findAllValidated(0, 2);
-        var page1 = repository.findAllValidated(1, 2);
+        var page0 = repository.findAllValidated(0, 2, Set.of());
+        var page1 = repository.findAllValidated(1, 2, Set.of());
 
         assertThat(page0.totalElements()).isEqualTo(3);
         assertThat(page0.items()).hasSize(2);
         assertThat(page1.items()).hasSize(1);
+    }
+
+    @Test
+    void findAllValidated_excludesGivenUserIds_beforePagination() {
+        long a = insertTestUser("excl-a@example.com");
+        long b = insertTestUser("excl-b@example.com");
+        long c = insertTestUser("excl-c@example.com");
+        repository.save(a, new CreateProfileCommand("Anna", null, null, null, null));
+        repository.save(b, new CreateProfileCommand("Bruno", null, null, null, null));
+        repository.save(c, new CreateProfileCommand("Chloé", null, null, null, null));
+
+        var page0 = repository.findAllValidated(0, 2, Set.of(b));
+        var page1 = repository.findAllValidated(1, 2, Set.of(b));
+
+        assertThat(page0.totalElements()).isEqualTo(2);
+        assertThat(page0.items()).extracting(CreatorProfile::displayName).containsExactly("Anna", "Chloé");
+        assertThat(page1.items()).isEmpty();
+    }
+
+    @Test
+    void findAllValidatedUserIds_returnsOnlyValidatedProfiles() {
+        long validated = insertTestUser("ids-ok@example.com");
+        long pending = insertTestUser("ids-pending@example.com");
+        repository.save(validated, new CreateProfileCommand("Valide", null, null, null, null));
+        repository.save(pending, new CreateProfileCommand("En attente", null, null, null, null));
+        jdbcClient.sql("UPDATE creator_profiles SET validation_status = 'PENDING' WHERE user_id = :id")
+                  .param("id", pending).update();
+
+        assertThat(repository.findAllValidatedUserIds()).contains(validated).doesNotContain(pending);
     }
 
 

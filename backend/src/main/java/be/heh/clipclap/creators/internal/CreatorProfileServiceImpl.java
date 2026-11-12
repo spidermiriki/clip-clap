@@ -9,6 +9,7 @@ import be.heh.clipclap.creators.CreatorProfileService;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 class CreatorProfileServiceImpl implements CreatorProfileService {
@@ -47,9 +48,14 @@ class CreatorProfileServiceImpl implements CreatorProfileService {
     }
 
     @Override
-    public CreatorProfilePage findAllValidated(int page, int size) {
+    public Set<Long> findAllValidatedUserIds() {
+        return repository.findAllValidatedUserIds();
+    }
+
+    @Override
+    public CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds) {
         if (page < 0) throw new IllegalArgumentException("page doit être >= 0");
         if (size < 1 || size > 50) throw new IllegalArgumentException("size doit être compris entre 1 et 50");
-        return repository.findAllValidated(page, size);
+        return repository.findAllValidated(page, size, excludedUserIds);
     }
 }
