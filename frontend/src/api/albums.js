@@ -8,6 +8,7 @@ const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 export const FORMATS_ACCEPTES = ['image/jpeg', 'image/png', 'image/webp']
 export const TAILLE_MAX_OCTETS = 10 * 1024 * 1024
+export const MESSAGE_ECHEC_ENVOI = "L'envoi de la photo a échoué. Réessayez."
 
 /** Message d'erreur si le fichier ne peut pas être envoyé, sinon null. */
 export function verifierFichier(file) {
@@ -67,16 +68,21 @@ async function fetchUploadPhoto(albumId, file, token) {
   form.append('signature', signature.signature)
   form.append('folder', signature.folder)
   form.append('allowed_formats', signature.allowedFormats)
-  const cloudinaryRes = await fetch(
-    `https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/image/upload`,
-    { method: 'POST', body: form },
-  )
+  // Le détail technique de Cloudinary (ex. « Invalid Signature … String to sign … ») reste dans la console
+  let cloudinaryRes
+  try {
+    cloudinaryRes = await fetch(
+      `https://api.cloudinary.com/v1_1/${encodeURIComponent(signature.cloudName)}/image/upload`,
+      { method: 'POST', body: form },
+    )
+  } catch (err) {
+    console.error('Envoi à Cloudinary impossible :', err)
+    throw { status: 0, message: MESSAGE_ECHEC_ENVOI }
+  }
   if (!cloudinaryRes.ok) {
     const body = await cloudinaryRes.json().catch(() => null)
-    throw {
-      status: cloudinaryRes.status,
-      message: body?.error?.message ? `Cloudinary a refusé la photo : ${body.error.message}` : 'Cloudinary a refusé la photo.',
-    }
+    console.error(`Cloudinary a refusé la photo (${cloudinaryRes.status}) :`, body?.error?.message ?? body)
+    throw { status: cloudinaryRes.status, message: MESSAGE_ECHEC_ENVOI }
   }
   const upload = await cloudinaryRes.json()
 

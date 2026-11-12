@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { uploadPhoto, verifierFichier } from './albums'
+import { MESSAGE_ECHEC_ENVOI, uploadPhoto, verifierFichier } from './albums'
 
 // fetch est simulé : aucun appel réel au backend ni à Cloudinary
 function reponse(status, body) {
@@ -75,14 +75,30 @@ describe('uploadPhoto (#15)', () => {
     expect(fetchMock).not.toHaveBeenCalled()
   })
 
-  it('remonte le message de Cloudinary et n\'enregistre rien si Cloudinary refuse', async () => {
+  it('si Cloudinary refuse : message simple pour l\'utilisateur, détail dans la console, rien n\'est enregistré', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
     fetchMock
       .mockResolvedValueOnce(reponse(200, SIGNATURE))
-      .mockResolvedValueOnce(reponse(400, { error: { message: 'Invalid Signature' } }))
+      .mockResolvedValueOnce(reponse(401, { error: { message: "Invalid Signature abc. String to sign - 'folder=…&timestamp=…'." } }))
 
-    await expect(uploadPhoto(7, photoJpeg(), 'jeton'))
-      .rejects.toMatchObject({ message: 'Cloudinary a refusé la photo : Invalid Signature' })
+    const erreur = await uploadPhoto(7, photoJpeg(), 'jeton').catch((e) => e)
+
+    expect(erreur.message).toBe(MESSAGE_ECHEC_ENVOI)
+    expect(erreur.message).not.toContain('Invalid Signature')
+    expect(consoleError).toHaveBeenCalledWith(expect.stringContaining('401'), expect.stringContaining('Invalid Signature'))
     expect(fetchMock).toHaveBeenCalledTimes(2)
+    consoleError.mockRestore()
+  })
+
+  it('si Cloudinary est injoignable : même message simple, détail dans la console', async () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {})
+    fetchMock
+      .mockResolvedValueOnce(reponse(200, SIGNATURE))
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+
+    await expect(uploadPhoto(7, photoJpeg(), 'jeton')).rejects.toMatchObject({ message: MESSAGE_ECHEC_ENVOI })
+    expect(consoleError).toHaveBeenCalled()
+    consoleError.mockRestore()
   })
 
   it('remonte le detail du backend si l\'enregistrement est refusé', async () => {
