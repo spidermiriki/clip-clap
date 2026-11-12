@@ -17,7 +17,7 @@ Ils couvrent les scénarios fonctionnels principaux décrits dans [fonctionnalit
 | 6 | Un visiteur consulte la galerie sans filtre | Tous les créateurs actifs sont affichés |
 | 7 | Un visiteur filtre par type de prestation « Mariage » | Seuls les créateurs proposant ce type apparaissent |
 | 8 | Un visiteur filtre par pays | Résultats limités au pays sélectionné |
-| 9 | Un visiteur consulte le profil public d'un créateur | Bio, pays, zones, albums et prestations sont affichés |
+| 9 | Un visiteur consulte le profil public d'un créateur | Bio, ville, pays, zones d'intervention et albums sont affichés (les prestations arrivent en v0.2 : scénario 10, #27) |
 
 ---
 
