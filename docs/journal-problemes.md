@@ -21,6 +21,13 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 10 | Ports 8080 et 5173 déjà occupés en local | Environnement | 2026-10-16 |
 | 11 | Endpoint Zitadel d'attribution de rôle déprécié | Sécurité | 2026-10-29 |
 | 12 | Rôle et e-mail absents du profil OIDC côté React | Sécurité | 2026-11-09 |
+| 13 | `package-lock.json` régénéré sous Windows : build Linux de la CI cassé | Build / CI | 2026-10-21 |
+| 14 | Disque saturé par Docker, Docker Desktop planté | Environnement | 2026-11-09 |
+| 15 | Travail cru perdu : branche jamais poussée, ancien dossier ouvert | Git | 2026-11-09 |
+| 16 | PR empilées : la CI ne tourne pas | CI / tests | 2026-11-12 |
+| 17 | E-mails de vérification Zitadel non reçus | Sécurité | 2026-11-12 |
+| 18 | Compte local non créé si le rôle existe déjà dans Zitadel | Sécurité | 2026-11-12 |
+| 19 | `npm ci` lancé pendant que le serveur de dev tournait | Environnement | 2026-11-12 |
 
 ---
 
@@ -143,6 +150,8 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 **Solution.** Vite prend automatiquement le port suivant (5174). Le backend peut être lancé sur un autre port avec `./gradlew bootRun --args=--server.port=8081`. Ces cas sont documentés dans la section « Problèmes fréquents » du README.
 
+**Complément (2026-11-11).** Le port 8080 a aussi été pris par un service Windows, « NI Application Web Server » (`ApplicationWebServer.exe`, installé avec un logiciel National Instruments). Son type de démarrage est **Automatique** : arrêté à la main, il reprend le port au redémarrage suivant. Pour s'en débarrasser durablement : `services.msc`, puis type de démarrage « Manuel ». Pour retrouver le processus qui occupe un port : `netstat -ano | findstr :8080`, puis le PID dans le Gestionnaire des tâches.
+
 **Règle retenue.** Lire l'adresse affichée au démarrage plutôt que de supposer le port, et documenter les problèmes d'environnement rencontrés.
 
 ---
@@ -171,6 +180,90 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 ---
 
+## 13. `package-lock.json` régénéré sous Windows : build Linux de la CI cassé
+
+**Description.** Sur la branche du profil créateur (#12), le job « Build frontend » de la CI échouait à `npm ci` : le binaire natif de `@rolldown` (moteur de build de Vite) pour Linux était introuvable, alors que tout fonctionnait sous Windows. Plus tard (11/11), un merge de `main` a retiré du lockfile, sans conflit signalé, les champs `"libc": ["glibc"]` / `["musl"]` des binaires Linux.
+
+**Cause.** Le lockfile avait été régénéré par un `npm install` local sous Windows : npm n'y avait gardé que les binaires optionnels de la plateforme de la machine. La seconde fois, le npm local (10.9) avait réécrit le lockfile sans les champs `libc`, et Git a conservé cette suppression au merge.
+
+**Solution.** Lockfile régénéré avec les binaires de toutes les plateformes (9e33168), puis, la seconde fois, lockfile repris tel quel de `main` (fe3b741) au lieu d'un `npm install`. Vérification systématique de la présence des binaires `@rolldown` Linux et Windows.
+
+**Règle retenue.** Ne pas committer un `package-lock.json` réécrit par un `npm install` local sans lire son diff. En cas de conflit sur le lockfile, reprendre celui de `main` ; utiliser `npm ci`, qui ne le modifie pas.
+
+---
+
+## 14. Disque saturé par Docker, Docker Desktop planté
+
+**Description.** Pendant la validation de l'image Docker (#60), le disque `C:` est tombé à 0 Mo libre : le build s'est arrêté et Docker Desktop a refusé de redémarrer. Les jours suivants, l'espace libre a encore fondu au fil des builds (jusqu'à environ 6,8 Go consommés par une construction sans cache), et une suite de tests est restée bloquée plus de dix minutes : Docker était arrêté et Testcontainers attendait sa base.
+
+**Cause.** Images, cache de build Docker, téléchargements de Gradle et de npm dans les conteneurs, images de Testcontainers : tout s'accumule dans le disque virtuel de Docker Desktop, qui ne rétrécit pas tout seul. Voir aussi le problème 2.
+
+**Solution.** Place libérée sur le disque, puis plus aucun build d'image en local : la CI construit et vérifie l'image (job « Build Docker image », #84). L'espace libre est contrôlé avant chaque build, avec un seuil d'alerte à 8 Go ; `docker system df` montre ce qui occupe la place.
+
+**Règle retenue.** Laisser la CI construire les images ; en local, vérifier l'espace libre avant un build Docker ou une suite Testcontainers, et vérifier que Docker tourne avant d'accuser les tests.
+
+---
+
+## 15. Travail cru perdu : branche jamais poussée, ancien dossier ouvert
+
+**Description.** Le travail de la galerie (#13) semblait avoir disparu : la branche `feat/13-catalog-galerie` était introuvable dans la session ouverte.
+
+**Cause.** Les commits n'existaient que dans un seul clone local, jamais poussés sur GitHub, et la session de travail avait été ouverte dans un ancien dossier du dépôt (voir le problème 9), où cette branche n'existait pas.
+
+**Solution.** Branche retrouvée dans `C:\dev\clip-clap` (commit 06b4fe5), puis poussée immédiatement.
+
+**Règle retenue.** Pousser dès le premier commit (`git push -u`) et ouvrir aussitôt la PR en draft ; travailler dans un seul clone, `C:\dev\clip-clap`.
+
+---
+
+## 16. PR empilées : la CI ne tourne pas
+
+**Description.** Pour avancer pendant les relectures, la PR des filtres (#88) a été créée vers la branche de la PR précédente (#86). Seul le contrôle des labels a tourné : ni tests backend ni build frontend.
+
+**Cause.** Le workflow CI ne se déclenche que pour les PR vers `main` (`pull_request: branches: [main]`). Par ailleurs, changer la branche cible d'une PR ne relance pas la CI.
+
+**Solution.** PR empilées dirigées vers `main`, avec en tête « À merger après #… » : tant que la PR parente n'est pas mergée, le diff contient aussi ses commits, puis il se réduit tout seul. Après un changement de cible, un nouveau push relance la CI. Les correctifs demandés en revue sont propagés vers le haut de la pile par des merges, sans rebase ni force push.
+
+**Règle retenue.** Une PR empilée vise `main` et annonce son ordre de merge ; on la propage par merges.
+
+---
+
+## 17. E-mails de vérification Zitadel non reçus
+
+**Description.** En testant l'inscription, l'e-mail de vérification envoyé par Zitadel n'arrivait jamais (boîte de réception, spams et promotions vérifiés). Aucun nouveau compte ne pouvait être finalisé : les scénarios 1 et 2 du plan de tests étaient bloqués (#96).
+
+**Cause.** En cours d'analyse (#96) : configuration de l'envoi d'e-mails de l'instance Zitadel, journal de l'instance et paramètres de vérification de l'organisation à vérifier.
+
+**Solution.** Provisoire : comptes de test créés et vérifiés depuis la console Zitadel par l'administrateur de l'instance. Correction définitive suivie dans #96.
+
+**Règle retenue.** Tester le parcours d'inscription complet, jusqu'à la boîte mail, dès que l'authentification est branchée, et pas seulement la connexion avec des comptes existants.
+
+---
+
+## 18. Compte local non créé si le rôle existe déjà dans Zitadel
+
+**Description.** Connecté avec un compte créateur créé depuis la console Zitadel, « Mon profil » répondait « Aucun compte utilisateur associé à ce token ». Le même problème toucherait tous les comptes à la mise en ligne, la base étant neuve (#97).
+
+**Cause.** Régression entre #73 et #74 : seul `GET /api/users/me` crée la ligne `users` d'un compte dont le token porte déjà un rôle. Le front l'appelait après la connexion (#73), mais cet appel a été remplacé par le seul `POST /api/users/me/role`, qui n'est utilisé qu'à l'inscription (#74).
+
+**Solution.** `App.jsx` appelle `GET /api/users/me` une fois par utilisateur connecté, et les pages attendent la fin de l'appel pour ne pas interroger `creators` avant la création du compte (PR #99, en attente de merge au 12/11 ; tests Vitest). Vérifié à la main sur une base locale vidée de ce compte.
+
+**Règle retenue.** Avant de remplacer un appel, vérifier quels effets de bord en dépendaient ; tester aussi le cas « compte existant chez le fournisseur d'identité, base locale vide ».
+
+---
+
+## 19. `npm ci` lancé pendant que le serveur de dev tournait
+
+**Description.** Un `npm ci` lancé dans `frontend` pendant que le serveur Vite tournait a échoué (`EPERM`) après avoir vidé presque tout `node_modules`. Le même jour, un changement de branche pendant que les serveurs tournaient a fait servir à Vite le front d'une autre branche que celle du backend en cours de test.
+
+**Cause.** Sous Windows, un fichier natif chargé par un processus (ici le binaire `@rolldown` utilisé par Vite) ne peut pas être supprimé ; `npm ci` commence par effacer `node_modules`. Les serveurs de dev relisent les fichiers du dossier de travail, quelle que soit la branche.
+
+**Solution.** Réinstallation avec `npm install`, qui garde les fichiers déjà en place, puis lockfile remis tel qu'il était (`npm install` l'avait réécrit, voir le problème 13).
+
+**Règle retenue.** Tant que les serveurs locaux tournent : ni `npm ci`, ni `npm install`, ni changement de branche dans le dossier du projet. Pour travailler sur une autre branche, utiliser un `git worktree` temporaire, ou arrêter d'abord les serveurs.
+
+---
+
 ## Mises à jour du journal
 
 | Date | Modification | Auteur |
@@ -179,3 +272,4 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 2026-10-19 | Ajout des problèmes 2, 4, 5, 8, 9 et 10 ; corrections des problèmes 6 et 7 ; plan commun pour chaque entrée | Dassi Kouam Gedeon |
 | 2026-10-29 | Ajout du problème 11 (endpoint Zitadel déprécié, issue #11) | Dassi Kouam Gedeon |
 | 2026-11-09 | Ajout du problème 12 (`loadUserInfo`, issue #16) | Dassi Kouam Gedeon |
+| 2026-11-12 | Ajout des problèmes 13 à 19 ; complément au problème 10 (service Windows sur le port 8080) | Derouck Arredondo Francisco Homero |

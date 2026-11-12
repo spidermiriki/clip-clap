@@ -35,19 +35,19 @@
 > En v0.1, les comptes créateurs sont activés automatiquement. La validation manuelle par l'admin est introduite en v0.2. Des données de départ (créateurs et albums) sont ajoutées en S4 pour les tests.
 
 #### Séance 2
-- [ ] **(Gedeon)** Inscription et connexion des utilisateurs
-- [ ] **(Gedeon)** Gestion des rôles client et créateur
-- [ ] **(Francisco)** Création et modification du profil créateur (bio, ville, pays, zones d'intervention)
+- [x] **(Gedeon)** Inscription et connexion des utilisateurs
+- [x] **(Gedeon)** Gestion des rôles client et créateur
+- [x] **(Francisco)** Création et modification du profil créateur (bio, ville, pays, zones d'intervention)
 
 #### Séance 3
-- [ ] **(Francisco)** Galerie publique avec liste des créateurs
-- [ ] **(Francisco)** Filtres : type de prestation, ville, pays, type de média
-- [ ] **(Francisco)** Création d'albums et upload de photos
-- [ ] **(Gedeon)** Protection des routes par rôle (API et frontend), gestion de la session côté React
+- [x] **(Francisco)** Galerie publique avec liste des créateurs
+- [x] **(Francisco)** Filtres : type de prestation, ville, pays, type de média
+- [x] **(Francisco)** Création d'albums et upload de photos (suppression et vidéos reportées en v0.2, #94)
+- [x] **(Gedeon)** Protection des routes par rôle (API et frontend), gestion de la session côté React
 
 #### Séance 4
-- [ ] **(Francisco)** Profil public d'un créateur (bio, albums, pays, zones, tarifs indicatifs)
-- [ ] **(Les deux)** Données de départ pour les tests (quelques créateurs et albums pré-remplis)
+- [x] **(Francisco)** Profil public d'un créateur (bio, ville, pays, zones, albums ; les tarifs indicatifs sont remplacés par les prestations à prix fixe en v0.2, #27)
+- [x] **(Les deux)** Données de départ pour les tests (quelques créateurs et albums pré-remplis)
 - [ ] **Déploiement v0.1 + tests**
 
 ---
@@ -56,8 +56,10 @@
 **Objectif :** Le flux de réservation complet avec agenda et anti-collision.
 
 #### Séance 5
-- [ ] **(Francisco)** Création de prestations à prix fixe par le créateur (nom, durée, prix, options payantes)
+- [ ] **(Francisco)** Création de prestations à prix fixe par le créateur (nom, durée, prix, options payantes), affichées sur le profil public à la place des tarifs indicatifs (#27)
 - [ ] **(Francisco)** Gestion des disponibilités : le créateur définit ses créneaux libres et son préavis minimum
+- [ ] **(Francisco)** Reporté de la v0.1 : suppression de photos et d'albums, ajout de vidéos (#94) ; choix des types de prestation dans « Mon profil » (#87)
+- [ ] **(Les deux)** Reporté de la v0.1 : exclusion des créateurs suspendus de la galerie sans charger tous les créateurs validés (#98 : méthode `UserApi` par Gedeon, puis `catalog` par Francisco)
 - [ ] **(Gedeon)** Interface de réservation : le client choisit une prestation et un créneau disponible
 - [ ] **(Gedeon)** Anti-collision : un créneau confirmé n'est plus réservable ; marge entre deux rendez-vous (s'appuie sur les disponibilités exposées par `offerings`)
 
@@ -89,6 +91,7 @@
 #### Séance 9
 - [ ] **(Gedeon)** Avis et notes (texte + note de 1 à 5, dans les 30 jours suivant le statut Terminée)
 - [ ] **(Gedeon)** Bouton « Signaler » sur les avis et les médias
+- [ ] **(Francisco)** Statistiques publiques de la page d'accueil : créateurs actifs, prestations terminées, note moyenne, délai de réponse (#76, reporté de la galerie v0.1 : dépend de `offerings` et de `reputation`)
 - [ ] **Déploiement v0.3 + tests**
 
 ---
@@ -170,3 +173,4 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 | 2026-10-19 | Toutes | **Milestones remplacés par des labels `release:<version>`** sur toutes les issues et PRs ; ajout du workflow `pr-labels.yml` (vérifie la présence du label sur chaque PR) | Demande du professeur |
 | 2026-10-19 | Cadrage S1 | Hébergement du frontend : **Cloudflare Pages remplacé par Render** (Static Sites) — cf. [architecture-c4.md](architecture/architecture-c4.md) et issue #60 en cours | Cohérence avec la décision d'infrastructure ; #60 tranche si le frontend est finalement servi par Spring Boot |
 | 2026-11-11 | Cadrage S1 | Frontend servi par Spring Boot : build React embarqué dans le `.jar`, **un seul service Render** au lieu d'un Static Site séparé (#60) | Render Service Previews ne crée qu'un aperçu par service : un seul service montre l'API et le frontend ensemble |
+| 2026-11-12 | v0.1 → v0.2 et v0.3 | Ajustements de périmètre de la v0.1 : suppression de photos et d'albums, et vidéos → v0.2 (#94) ; choix des types de prestation dans « Mon profil » → v0.2 (#87) ; tarifs indicatifs du profil public → v0.2, avec les prestations à prix fixe (#27) ; statistiques de l'accueil → v0.3 (#76) ; optimisation de l'exclusion des créateurs suspendus → v0.2 (#98) | Livrer à temps une v0.1 testée : ces points dépendent de fonctionnalités prévues plus tard (prestations, réputation) ou ne bloquent pas l'usage de la v0.1 |
