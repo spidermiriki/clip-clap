@@ -28,7 +28,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 class SecurityConfig {
 
 	// Patterns (pas d'origines exactes) : couvre à la fois le domaine de prod Vercel
-	// et ses previews par PR, dont le sous-domaine change à chaque fois (#105)
+	// et ses previews par PR, dont le sous-domaine change à chaque fois (#108)
 	@Value("${app.cors.allowed-origin-patterns}")
 	private List<String> corsAllowedOriginPatterns;
 
