@@ -1,6 +1,7 @@
 // Module API — galerie publique des créateurs
 // Retirer USE_MOCK et le bloc mock quand le backend sera accessible sans proxy (#13).
 
+import { apiUrl } from './baseUrl'
 import { readProblemMessage } from './problemDetail'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
@@ -158,17 +159,17 @@ export function creatorsQuery({ page, size, city, country, categoryId, mediaType
 }
 
 async function fetchGetCreators(criteres) {
-  const res = await fetch(`/api/catalog/creators?${creatorsQuery(criteres)}`)
+  const res = await fetch(apiUrl(`/api/catalog/creators?${creatorsQuery(criteres)}`))
   return handleResponse(res)
 }
 
 async function fetchGetCreatorProfile(userId) {
-  const res = await fetch(`/api/catalog/creators/${encodeURIComponent(userId)}`)
+  const res = await fetch(apiUrl(`/api/catalog/creators/${encodeURIComponent(userId)}`))
   return handleResponse(res)
 }
 
 async function fetchGetCategories() {
-  const res = await fetch('/api/catalog/categories')
+  const res = await fetch(apiUrl('/api/catalog/categories'))
   return handleResponse(res)
 }
 

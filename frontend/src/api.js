@@ -1,7 +1,9 @@
+import { apiUrl } from './api/baseUrl'
+
 // Client API centralisé : évite de dupliquer la construction du header Authorization
 // et le parsing JSON à chaque appel fetch (#11).
 async function request(path, { method = 'GET', token, body } = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(apiUrl(path), {
     method,
     headers: {
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
