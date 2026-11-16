@@ -1,6 +1,7 @@
 # Fichier compose unique — utilisé par Spring Boot Docker Compose (dev) ET par docker compose (stack complète).
 # Dev quotidien (bootRun) : Spring Boot démarre uniquement 'db' (pas de profil actif).
-# Stack complète  : docker compose --profile app up --build
+# Stack complète (backend seul, le frontend tourne via `npm run dev`, cf. README) :
+#   docker compose --profile app up --build
 
 services:
 
@@ -25,10 +26,6 @@ services:
     build:
       context: .
       dockerfile: backend/Dockerfile
-      args:
-        VITE_ZITADEL_ISSUER: ${VITE_ZITADEL_ISSUER:-}
-        VITE_ZITADEL_CLIENT_ID: ${VITE_ZITADEL_CLIENT_ID:-}
-        VITE_ZITADEL_PROJECT_ID: ${VITE_ZITADEL_PROJECT_ID:-}
     ports:
       - "8080:8080"
     environment:

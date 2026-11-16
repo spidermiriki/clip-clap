@@ -1,6 +1,8 @@
 // Module API — profil créateur
 // Retirer USE_MOCK et le bloc mock quand le contrôleur /api/creators/me sera disponible (#70).
 
+import { apiUrl } from '../api'
+
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -61,12 +63,12 @@ async function mockUpdate(data) {
 // ── API réelle ────────────────────────────────────────────────────────────────
 
 async function fetchGet(token) {
-  const res = await fetch('/api/creators/me', { headers: authHeaders(token) })
+  const res = await fetch(apiUrl('/api/creators/me'), { headers: authHeaders(token) })
   return handleResponse(res)
 }
 
 async function fetchCreate(data, token) {
-  const res = await fetch('/api/creators/me', {
+  const res = await fetch(apiUrl('/api/creators/me'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify(data),
@@ -75,7 +77,7 @@ async function fetchCreate(data, token) {
 }
 
 async function fetchUpdate(data, token) {
-  const res = await fetch('/api/creators/me', {
+  const res = await fetch(apiUrl('/api/creators/me'), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify(data),

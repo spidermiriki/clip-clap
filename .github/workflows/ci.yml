@@ -61,9 +61,9 @@ jobs:
       - name: Build image
         run: docker build -f backend/Dockerfile -t clip-clap:ci .
 
-      - name: Vérifier que le build React est présent dans le jar
+      - name: Vérifier que le jar est présent dans l'image
         run: |
           id=$(docker create clip-clap:ci)
           docker cp "$id:/app/app.jar" app.jar
           docker rm "$id" > /dev/null
-          unzip -l app.jar | grep "BOOT-INF/classes/static/index.html"
+          unzip -l app.jar | grep "BOOT-INF/classes/application.properties"
