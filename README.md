@@ -195,4 +195,13 @@ Chaque release livrée reçoit un **tag de version** sur `main` (`v0.1`, `v0.2`,
 
 L'application est déployée en continu dès la séance 1 afin d'anticiper les problèmes d'hébergement.
 
+Le frontend (Vercel) et le backend (Render + PostgreSQL managé) sont déployés séparément (#5) : chaque appel `/api/...` passe donc d'un domaine à l'autre (cross-origin).
+
+Variables d'environnement à définir en plus de celles listées plus haut :
+
+| Variable | Où | Valeur |
+|----------|----|--------|
+| `VITE_API_BASE_URL` | Vercel | URL du service Render (ex. `https://clip-clap-api.onrender.com`), vide en local |
+| `CORS_ALLOWED_ORIGIN_PATTERNS` | Render | Origines autorisées côté backend, séparées par des virgules (domaine de prod Vercel + pattern des previews, ex. `https://clip-clap.vercel.app,https://clip-clap-*.vercel.app`) |
+
 URL de production : *(à compléter après déploiement)*

@@ -22,7 +22,7 @@
 - [ ] Ajouter l'enseignant comme collaborateur
 - [ ] Rédiger la documentation initiale (fonctionnalités, plan de release, wireframes, tests)
 - [ ] Mettre en place la convention de branches et les règles de travail en binôme
-- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render + Neon, avec un seul service Render qui sert l'API et le frontend) (cf. #60)
+- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render pour le backend + Vercel pour le frontend, chacun avec ses previews par PR) (cf. #5)
 - [ ] Ajouter `Dockerfile`, `compose.yaml`, `.env.example` et `.gitignore` sur la branche `chore/deploiement-initial`
 - [ ] Déployer un backend Spring Boot vide (répondant à `GET /actuator/health → 200`)
 - [ ] Compléter la section Installation et lancement du README
@@ -174,3 +174,4 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 | 2026-10-19 | Cadrage S1 | Hébergement du frontend : **Cloudflare Pages remplacé par Render** (Static Sites) — cf. [architecture-c4.md](architecture/architecture-c4.md) et issue #60 en cours | Cohérence avec la décision d'infrastructure ; #60 tranche si le frontend est finalement servi par Spring Boot |
 | 2026-11-11 | Cadrage S1 | Frontend servi par Spring Boot : build React embarqué dans le `.jar`, **un seul service Render** au lieu d'un Static Site séparé (#60) | Render Service Previews ne crée qu'un aperçu par service : un seul service montre l'API et le frontend ensemble |
 | 2026-11-12 | v0.1 → v0.2 et v0.3 | Ajustements de périmètre de la v0.1 : suppression de photos et d'albums, et vidéos → v0.2 (#94) ; choix des types de prestation dans « Mon profil » → v0.2 (#87) ; tarifs indicatifs du profil public → v0.2, avec les prestations à prix fixe (#27) ; statistiques de l'accueil → v0.3 (#76) ; optimisation de l'exclusion des créateurs suspendus → v0.2 (#98) | Livrer à temps une v0.1 testée : ces points dépendent de fonctionnalités prévues plus tard (prestations, réputation) ou ne bloquent pas l'usage de la v0.1 |
+| 2026-11-16 | Cadrage S1 | Hébergement du frontend : **Render (Static Site) remplacé par Vercel**, le backend restant seul sur Render (#5) ; config Zitadel/CORS pour les domaines de prod et les previews par PR → nouvelle issue #105 | Vercel gère nativement une preview par PR ; le monolithe mis en place par #60 n'est plus nécessaire pour ça |

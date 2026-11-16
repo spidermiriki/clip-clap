@@ -2,6 +2,7 @@
 // Upload d'une photo en trois temps : signature demandée au backend → envoi direct à
 // Cloudinary → réponse de Cloudinary renvoyée au backend, qui vérifie sa signature.
 
+import { apiUrl } from '../api'
 import { readProblemMessage } from './problemDetail'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
@@ -31,12 +32,12 @@ async function handleResponse(res, fallback) {
 // ── API réelle ────────────────────────────────────────────────────────────────
 
 async function fetchListMyAlbums(token) {
-  const res = await fetch('/api/creators/me/albums', { headers: authHeaders(token) })
+  const res = await fetch(apiUrl('/api/creators/me/albums'), { headers: authHeaders(token) })
   return handleResponse(res, 'Impossible de charger vos albums.')
 }
 
 async function fetchCreateAlbum(name, token) {
-  const res = await fetch('/api/creators/me/albums', {
+  const res = await fetch(apiUrl('/api/creators/me/albums'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify({ name }),
@@ -45,7 +46,7 @@ async function fetchCreateAlbum(name, token) {
 }
 
 async function fetchRenameAlbum(albumId, name, token) {
-  const res = await fetch(`/api/creators/me/albums/${albumId}`, {
+  const res = await fetch(apiUrl(`/api/creators/me/albums/${albumId}`), {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify({ name }),
@@ -56,7 +57,7 @@ async function fetchRenameAlbum(albumId, name, token) {
 async function fetchUploadPhoto(albumId, file, token) {
   // 1. Signature : dossier et formats imposés par le backend, le secret ne quitte jamais le serveur
   const signature = await handleResponse(
-    await fetch(`/api/creators/me/albums/${albumId}/upload-signature`, { method: 'POST', headers: authHeaders(token) }),
+    await fetch(apiUrl(`/api/creators/me/albums/${albumId}/upload-signature`), { method: 'POST', headers: authHeaders(token) }),
     "Impossible de préparer l'envoi de la photo.",
   )
 
@@ -87,7 +88,7 @@ async function fetchUploadPhoto(albumId, file, token) {
   const upload = await cloudinaryRes.json()
 
   // 3. Enregistrement : le backend vérifie la signature de Cloudinary avant d'accepter la photo
-  const res = await fetch(`/api/creators/me/albums/${albumId}/photos`, {
+  const res = await fetch(apiUrl(`/api/creators/me/albums/${albumId}/photos`), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify({
