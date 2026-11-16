@@ -28,6 +28,7 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 17 | E-mails de vérification Zitadel non reçus | Sécurité | 2026-11-12 |
 | 18 | Compte local non créé si le rôle existe déjà dans Zitadel | Sécurité | 2026-11-12 |
 | 19 | `npm ci` lancé pendant que le serveur de dev tournait | Environnement | 2026-11-12 |
+| 20 | Accents corrompus dans les scripts SQL sous Windows | Build / tests | 2026-11-12 |
 
 ---
 
@@ -232,11 +233,11 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 **Description.** En testant l'inscription, l'e-mail de vérification envoyé par Zitadel n'arrivait jamais (boîte de réception, spams et promotions vérifiés). Aucun nouveau compte ne pouvait être finalisé : les scénarios 1 et 2 du plan de tests étaient bloqués (#96).
 
-**Cause.** En cours d'analyse (#96) : configuration de l'envoi d'e-mails de l'instance Zitadel, journal de l'instance et paramètres de vérification de l'organisation à vérifier.
+**Cause.** Envoi des e-mails de l'instance Zitadel : correction faite par l'administrateur de l'instance, détail à compléter par Gedeon (#96). Effet secondaire : le premier essai d'inscription a laissé un compte non vérifié, qui bloque encore son adresse (« Impossible de créer l'utilisateur » à l'étape du mot de passe).
 
-**Solution.** Provisoire : comptes de test créés et vérifiés depuis la console Zitadel par l'administrateur de l'instance. Correction définitive suivie dans #96.
+**Solution.** En attendant la correction, comptes de test créés et vérifiés depuis la console Zitadel par l'administrateur. Test du 12/11 après la correction : avec une adresse neuve, le compte est créé et la vérification par e-mail fonctionne ; le compte non vérifié du premier essai reste à supprimer dans la console. Les scénarios 1 et 2 seront validés sur la version déployée.
 
-**Règle retenue.** Tester le parcours d'inscription complet, jusqu'à la boîte mail, dès que l'authentification est branchée, et pas seulement la connexion avec des comptes existants.
+**Règle retenue.** Tester le parcours d'inscription complet, jusqu'à la boîte mail, dès que l'authentification est branchée, et pas seulement la connexion avec des comptes existants. Un essai d'inscription raté peut laisser un compte non vérifié qui bloque l'adresse : le supprimer avant de retester avec la même adresse.
 
 ---
 
@@ -246,7 +247,7 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 **Cause.** Régression entre #73 et #74 : seul `GET /api/users/me` crée la ligne `users` d'un compte dont le token porte déjà un rôle. Le front l'appelait après la connexion (#73), mais cet appel a été remplacé par le seul `POST /api/users/me/role`, qui n'est utilisé qu'à l'inscription (#74).
 
-**Solution.** `App.jsx` appelle `GET /api/users/me` une fois par utilisateur connecté, et les pages attendent la fin de l'appel pour ne pas interroger `creators` avant la création du compte (PR #99, en attente de merge au 12/11 ; tests Vitest). Vérifié à la main sur une base locale vidée de ce compte.
+**Solution.** `App.jsx` appelle `GET /api/users/me` une fois par utilisateur connecté, et les pages attendent la fin de l'appel pour ne pas interroger `creators` avant la création du compte (PR #99, mergée le 12/11 ; tests Vitest). Vérifié à la main sur une base locale vidée de ce compte.
 
 **Règle retenue.** Avant de remplacer un appel, vérifier quels effets de bord en dépendaient ; tester aussi le cas « compte existant chez le fournisseur d'identité, base locale vide ».
 
@@ -264,6 +265,18 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 ---
 
+## 20. Accents corrompus dans les scripts SQL sous Windows
+
+**Description.** En relançant les tests backend en local sous Windows, `DemoDataIT` échouait : « Chloé Dubois » était mal décodé à l'insertion, et le test de réexécution du script créait un doublon. En CI (Linux), les mêmes tests passaient (#102).
+
+**Cause.** `spring.sql.init.encoding` n'était pas défini : Spring Boot lisait `data.sql` et `demo-data.sql` (UTF-8, avec accents) avec l'encodage par défaut de la plateforme, `Cp1252` sous Windows avec Java 17, UTF-8 sous Linux. Le `ResourceDatabasePopulator` du test relisait lui aussi le script avec cet encodage. Le test avait été écrit et validé uniquement par la CI, sans être lancé en local sous Windows.
+
+**Solution.** PR #103 : `spring.sql.init.encoding=UTF-8` dans `application.properties`, et encodage UTF-8 explicite sur le `ResourceDatabasePopulator` de `DemoDataIT`. Une base locale déjà remplie avec des noms mal décodés le reste (`ON CONFLICT DO NOTHING`) : la vider avant de relancer.
+
+**Règle retenue.** Lancer aussi les tests en local sous Windows avant de pousser : la CI Linux ne voit pas les problèmes d'encodage. Toujours fixer explicitement l'encodage quand on lit un fichier texte.
+
+---
+
 ## Mises à jour du journal
 
 | Date | Modification | Auteur |
@@ -273,3 +286,4 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 2026-10-29 | Ajout du problème 11 (endpoint Zitadel déprécié, issue #11) | Dassi Kouam Gedeon |
 | 2026-11-09 | Ajout du problème 12 (`loadUserInfo`, issue #16) | Dassi Kouam Gedeon |
 | 2026-11-12 | Ajout des problèmes 13 à 19 ; complément au problème 10 (service Windows sur le port 8080) | Derouck Arredondo Francisco Homero |
+| 2026-11-16 | Problèmes 17 et 18 mis à jour (test d'inscription, merge de #99) ; ajout du problème 20 (encodage des scripts SQL, #102) | Derouck Arredondo Francisco Homero |
