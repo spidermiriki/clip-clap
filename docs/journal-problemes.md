@@ -28,6 +28,7 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 17 | E-mails de vérification Zitadel non reçus | Sécurité | 2026-11-12 |
 | 18 | Compte local non créé si le rôle existe déjà dans Zitadel | Sécurité | 2026-11-12 |
 | 19 | `npm ci` lancé pendant que le serveur de dev tournait | Environnement | 2026-11-12 |
+| 20 | Accents corrompus dans les scripts SQL sous Windows | Build / tests | 2026-11-12 |
 
 ---
 
@@ -264,6 +265,18 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 ---
 
+## 20. Accents corrompus dans les scripts SQL sous Windows
+
+**Description.** En relançant les tests backend en local sous Windows, `DemoDataIT` échouait : « Chloé Dubois » était mal décodé à l'insertion, et le test de réexécution du script créait un doublon. En CI (Linux), les mêmes tests passaient (#102).
+
+**Cause.** `spring.sql.init.encoding` n'était pas défini : Spring Boot lisait `data.sql` et `demo-data.sql` (UTF-8, avec accents) avec l'encodage par défaut de la plateforme, `Cp1252` sous Windows avec Java 17, UTF-8 sous Linux. Le `ResourceDatabasePopulator` du test relisait lui aussi le script avec cet encodage. Le test avait été écrit et validé uniquement par la CI, sans être lancé en local sous Windows.
+
+**Solution.** PR #103 : `spring.sql.init.encoding=UTF-8` dans `application.properties`, et encodage UTF-8 explicite sur le `ResourceDatabasePopulator` de `DemoDataIT`. Une base locale déjà remplie avec des noms mal décodés le reste (`ON CONFLICT DO NOTHING`) : la vider avant de relancer.
+
+**Règle retenue.** Lancer aussi les tests en local sous Windows avant de pousser : la CI Linux ne voit pas les problèmes d'encodage. Toujours fixer explicitement l'encodage quand on lit un fichier texte.
+
+---
+
 ## Mises à jour du journal
 
 | Date | Modification | Auteur |
@@ -273,3 +286,4 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 2026-10-29 | Ajout du problème 11 (endpoint Zitadel déprécié, issue #11) | Dassi Kouam Gedeon |
 | 2026-11-09 | Ajout du problème 12 (`loadUserInfo`, issue #16) | Dassi Kouam Gedeon |
 | 2026-11-12 | Ajout des problèmes 13 à 19 ; complément au problème 10 (service Windows sur le port 8080) | Derouck Arredondo Francisco Homero |
+| 2026-11-16 | Problèmes 17 et 18 mis à jour (test d'inscription, merge de #99) ; ajout du problème 20 (encodage des scripts SQL, #102) | Derouck Arredondo Francisco Homero |
