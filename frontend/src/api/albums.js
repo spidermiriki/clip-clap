@@ -2,7 +2,7 @@
 // Upload d'une photo en trois temps : signature demandée au backend → envoi direct à
 // Cloudinary → réponse de Cloudinary renvoyée au backend, qui vérifie sa signature.
 
-import { apiUrl } from '../api'
+import { apiUrl } from './baseUrl'
 import { readProblemMessage } from './problemDetail'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
