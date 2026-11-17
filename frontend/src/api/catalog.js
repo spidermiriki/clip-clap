@@ -1,7 +1,7 @@
 // Module API — galerie publique des créateurs
 // Retirer USE_MOCK et le bloc mock quand le backend sera accessible sans proxy (#13).
 
-import { apiUrl } from '../api'
+import { apiUrl } from './baseUrl'
 import { readProblemMessage } from './problemDetail'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'

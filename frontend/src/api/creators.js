@@ -1,7 +1,7 @@
 // Module API — profil créateur
 // Retirer USE_MOCK et le bloc mock quand le contrôleur /api/creators/me sera disponible (#70).
 
-import { apiUrl } from '../api'
+import { apiUrl } from './baseUrl'
 
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
