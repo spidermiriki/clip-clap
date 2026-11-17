@@ -111,7 +111,7 @@ cd backend
 ./gradlew bootRun --args='--spring.profiles.active=demo'   # PowerShell : .\gradlew.bat bootRun --args='--spring.profiles.active=demo'
 ```
 
-- Avec la stack Docker (`docker compose --profile app up`), le profil `demo` est **actif par défaut** ; `SPRING_PROFILES_ACTIVE=default` dans `.env` le désactive.
+- Avec la stack Docker locale (`docker compose --profile app up`, qui ne lance que l'API et la base ; le frontend se lance avec `npm run dev`), le profil `demo` est **actif par défaut** ; `SPRING_PROFILES_ACTIVE=default` dans `.env` le désactive.
 - Ces comptes (`...@clicclap.test`) n'existent pas dans Zitadel : on ne peut pas s'y connecter.
 - Les tests ne chargent jamais ces données, sauf `DemoDataIT`, qui les vérifie sur sa propre base.
 - Quatre créateurs ont un album de départ de deux photos, servies par la médiathèque Cloudinary du projet (aucun identifiant n'est nécessaire pour les afficher).
@@ -157,7 +157,7 @@ Sans ces deux variables, l'application démarre normalement ; seul `POST /api/us
 
 Les identifiants **Cloudinary** (upload des photos, #15) sont lus depuis `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` et `CLOUDINARY_API_SECRET` (console Cloudinary > Dashboard). Sans eux, l'application démarre normalement ; seul l'envoi de photos répond 503.
 
-- Avec la stack Docker (`docker compose --profile app up`), ils sont lus dans le fichier `.env` à la racine.
+- Avec la stack Docker locale (`docker compose --profile app up`, qui ne lance que l'API et la base ; le frontend se lance avec `npm run dev`), ils sont lus dans le fichier `.env` à la racine.
 - Avec `./gradlew bootRun`, Spring ne lit pas `.env` : exportez les trois variables dans le terminal avant de lancer le backend.
 - Le secret ne quitte jamais le backend : le navigateur ne reçoit qu'une signature, valable pour le dossier de l'album.
 - Les tests n'appellent jamais Cloudinary (identifiants factices, signature calculée localement).
@@ -169,6 +169,8 @@ Les vrais secrets sont lus depuis des variables d'environnement (fichier `.env`,
 - **Erreur Docker au démarrage du backend ou des tests** (`docker compose` ou Testcontainers ne trouve pas Docker) : Docker Desktop n'est pas lancé, ou pas encore prêt.
 - **Erreur de redirection sur la page Zitadel** (« redirect_uri invalide ») : le frontend ne tourne pas sur le port 5173.
 - **`Port 8080 was already in use`** : un autre programme utilise ce port. Arrêtez-le, ou lancez le backend sur un autre port avec `./gradlew bootRun --args=--server.port=8081`. Le proxy `/api` du frontend vise toutefois le port 8080.
+- **Erreur CORS dans la console** (« blocked by CORS policy ») : l'origine du site est absente de `CORS_ALLOWED_ORIGIN_PATTERNS` sur Render. Vérifier l'adresse exacte, en `https`, **sans slash final** (`https://clip-clap-gamma.vercel.app`, pas `https://clip-clap-gamma.vercel.app/`), puis redémarrer le service.
+- **La galerie ne charge pas en production** : dans l'onglet Réseau des outils de développement, vérifier que la requête part vers l'API Render (`clip-clap-l93o.onrender.com`) et pas vers Vercel. Sinon, vérifier sur Vercel que la variable s'appelle bien `VITE_API_BASE_URL`, puis **redéployer** le site : Vite fige les `VITE_*` au moment du build (voir le journal, problèmes 21 et 22).
 
 ## Workflow Git (GitHub Flow)
 
@@ -203,6 +205,7 @@ Variables d'environnement à définir en plus de celles listées plus haut :
 |----------|----|--------|
 | `VITE_API_BASE_URL` | Vercel | URL du service Render (`https://clip-clap-l93o.onrender.com`), vide en local |
 | `CORS_ALLOWED_ORIGIN_PATTERNS` | Render | Origines autorisées côté backend, séparées par des virgules (domaine de prod Vercel + pattern des previews **scopé à notre équipe**, ex. `https://clip-clap-gamma.vercel.app,https://clip-clap-*-homelos-projects.vercel.app`) — un motif non scopé laisserait n'importe quel projet Vercel nommé `clip-clap-xxx` passer le CORS |
+| `SPRING_PROFILES_ACTIVE` | Render | `demo` : charge les créateurs de démonstration (voir « Données de démonstration ») |
 
 URL de production :
 
