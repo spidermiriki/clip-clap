@@ -277,6 +277,30 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 
 ---
 
+## 21. Mauvaise URL du backend Render
+
+**Description.** Après la séparation du frontend (Vercel) et du backend (Render, #112), les appels à l'API échouaient : `/actuator/health` et `/api/catalog/creators` renvoyaient une page Whitelabel 404, comme si aucune route n'existait. Le jar construit depuis `main` répondait pourtant 200 sur ces deux routes en local.
+
+**Cause.** L'URL utilisée dans la configuration et la documentation, `clip-clap-api.onrender.com`, n'était pas celle de notre service : Render génère l'adresse à partir du nom du service, avec un suffixe (`clip-clap-l93o.onrender.com`). Les requêtes n'atteignaient donc pas notre backend.
+
+**Solution.** URL corrigée partout (`https://clip-clap-l93o.onrender.com`) : variable `VITE_API_BASE_URL` sur Vercel, puis redéploiement ; README (#116).
+
+**Règle retenue.** Copier l'URL d'un service depuis son tableau de bord (Render, Vercel), ne jamais la deviner à partir de son nom.
+
+---
+
+## 22. Variable Vercel nommée `VOTE_API_BASE_URL` au lieu de `VITE_API_BASE_URL`
+
+**Description.** Sur le site Vercel, la galerie ne se chargeait pas, alors que l'API Render répondait. Aucune erreur CORS dans la console.
+
+**Cause.** La variable avait été saisie sur Vercel sous le nom `VOTE_API_BASE_URL`. Vite n'expose au code que les variables préfixées par `VITE_` : elle était ignorée, `apiUrl` gardait des chemins relatifs, et le front appelait `/api/...` sur Vercel lui-même. La réécriture de `vercel.json` renvoyait alors `index.html` (réponse 200 en HTML au lieu du JSON attendu).
+
+**Solution.** Variable renommée en `VITE_API_BASE_URL` sur Vercel, puis redéploiement : Vite fige les `VITE_*` au moment du build.
+
+**Règle retenue.** Vérifier dans l'onglet Réseau des outils de développement vers quel hôte part la requête (Render et non Vercel). Après tout ajout ou changement d'une variable `VITE_*` sur Vercel, redéployer.
+
+---
+
 ## Mises à jour du journal
 
 | Date | Modification | Auteur |
@@ -287,3 +311,4 @@ Chaque entrée suit le même plan : **description**, **cause**, **solution**, **
 | 2026-11-09 | Ajout du problème 12 (`loadUserInfo`, issue #16) | Dassi Kouam Gedeon |
 | 2026-11-12 | Ajout des problèmes 13 à 19 ; complément au problème 10 (service Windows sur le port 8080) | Derouck Arredondo Francisco Homero |
 | 2026-11-16 | Problèmes 17 et 18 mis à jour (test d'inscription, merge de #99) ; ajout du problème 20 (encodage des scripts SQL, #102) | Derouck Arredondo Francisco Homero |
+| 2026-11-17 | Ajout des problèmes 21 (mauvaise URL du backend Render) et 22 (variable Vercel `VOTE_API_BASE_URL`), #116 | Derouck Arredondo Francisco Homero |

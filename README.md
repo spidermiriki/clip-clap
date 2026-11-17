@@ -201,7 +201,10 @@ Variables d'environnement à définir en plus de celles listées plus haut :
 
 | Variable | Où | Valeur |
 |----------|----|--------|
-| `VITE_API_BASE_URL` | Vercel | URL du service Render (ex. `https://clip-clap-api.onrender.com`), vide en local |
+| `VITE_API_BASE_URL` | Vercel | URL du service Render (`https://clip-clap-l93o.onrender.com`), vide en local |
 | `CORS_ALLOWED_ORIGIN_PATTERNS` | Render | Origines autorisées côté backend, séparées par des virgules (domaine de prod Vercel + pattern des previews **scopé à notre équipe**, ex. `https://clip-clap-gamma.vercel.app,https://clip-clap-*-homelos-projects.vercel.app`) — un motif non scopé laisserait n'importe quel projet Vercel nommé `clip-clap-xxx` passer le CORS |
 
-URL de production : *(à compléter après déploiement)*
+URL de production :
+
+- Site : https://clip-clap-gamma.vercel.app
+- API : https://clip-clap-l93o.onrender.com (santé : `/actuator/health`)

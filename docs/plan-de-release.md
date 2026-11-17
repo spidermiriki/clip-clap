@@ -22,7 +22,7 @@
 - [ ] Ajouter l'enseignant comme collaborateur
 - [ ] Rédiger la documentation initiale (fonctionnalités, plan de release, wireframes, tests)
 - [ ] Mettre en place la convention de branches et les règles de travail en binôme
-- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou stack Render pour le backend + Vercel pour le frontend, chacun avec ses previews par PR) (cf. #5)
+- [ ] Confirmer l'hébergement avec l'enseignant (VM école ou Render pour le backend et la base PostgreSQL, Vercel pour le frontend, reliés par CORS) (cf. #5)
 - [ ] Ajouter `Dockerfile`, `compose.yaml`, `.env.example` et `.gitignore` sur la branche `chore/deploiement-initial`
 - [ ] Déployer un backend Spring Boot vide (répondant à `GET /actuator/health → 200`)
 - [ ] Compléter la section Installation et lancement du README
