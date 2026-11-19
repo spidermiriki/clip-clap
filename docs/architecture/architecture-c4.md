@@ -122,7 +122,7 @@ Zoom sur la boîte **Clic & Clap**. Il n'y a **qu'une seule boîte backend** : c
 | Acteurs | Static content | Charge l'interface utilisateur à partir de |
 | Static content | UI | Fournit |
 | Acteurs | UI | Utilise |
-| UI | Backend | Envoie des requêtes REST (JSON / HTTPS) |
+| UI | Backend | Envoie des requêtes REST (JSON / HTTPS, CORS) |
 | Backend | Database | Lit et écrit dans (JDBC — `JdbcClient`) |
 | UI | Stockage des photos | Envoie les photos (upload direct signé) et les affiche |
 | Backend | Stockage des photos | Signe les uploads, supprime les médias |
@@ -148,7 +148,7 @@ C4Container
   Rel(client, ui, "Utilise")
   Rel(createur, ui, "Utilise")
   Rel(admin, ui, "Utilise")
-  Rel(ui, api, "Requêtes REST", "JSON/HTTPS")
+  Rel(ui, api, "Requêtes REST", "JSON/HTTPS, CORS")
   Rel(api, db, "Lit et écrit dans", "JDBC / JdbcClient")
   Rel(ui, cloudinary, "Upload direct signé, affichage")
   Rel(api, cloudinary, "Signe les uploads, supprime les médias")
