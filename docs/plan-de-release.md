@@ -48,7 +48,7 @@
 #### Séance 4
 - [x] **(Francisco)** Profil public d'un créateur (bio, ville, pays, zones, albums ; les tarifs indicatifs sont remplacés par les prestations à prix fixe en v0.2, #27)
 - [x] **(Les deux)** Données de départ pour les tests (quelques créateurs et albums pré-remplis)
-- [ ] **Déploiement v0.1 + tests**
+- [x] **Déploiement v0.1 + tests**
 
 ---
 
