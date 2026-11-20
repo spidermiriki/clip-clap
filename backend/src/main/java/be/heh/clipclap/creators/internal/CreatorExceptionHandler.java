@@ -18,6 +18,13 @@ class CreatorExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
 
+    @ExceptionHandler(UnknownCategoryException.class)
+    ResponseEntity<ProblemDetail> handleUnknownCategory(UnknownCategoryException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Catégorie inconnue");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+    }
+
     @ExceptionHandler(InvalidUploadException.class)
     ResponseEntity<ProblemDetail> handleInvalidUpload(InvalidUploadException ex) {
         var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());

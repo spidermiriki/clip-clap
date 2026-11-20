@@ -20,6 +20,10 @@ export default function MonProfilCreateur() {
   const [categories, setCategories] = useState([])
   const [categoriesIndisponibles, setCategoriesIndisponibles] = useState(false)
   const [choix, setChoix] = useState([])
+  // Vrai quand le choix affiché est le vrai (lu, ou profil nouveau) : sinon on ne l'enregistre pas
+  const [choixPret, setChoixPret] = useState(false)
+  // Profil existant illisible : pas de formulaire, pour ne jamais l'écraser avec des champs vides
+  const [profilIndisponible, setProfilIndisponible] = useState(false)
 
   useEffect(() => {
     getCategories()
@@ -29,9 +33,8 @@ export default function MonProfilCreateur() {
 
   useEffect(() => {
     getMyProfile(accessToken)
-      .then(async (profile) => {
+      .then((profile) => {
         if (profile) {
-          setChoix(await getMyCategories(accessToken))
           setForm({
             displayName: profile.displayName ?? '',
             bio: profile.bio ?? '',
@@ -40,11 +43,20 @@ export default function MonProfilCreateur() {
             serviceAreas: profile.serviceAreas ?? '',
           })
           setIsCreation(false)
+          // À part, après le formulaire : leur échec ne vide jamais le profil (revue de #122).
+          // Sans eux, l'enregistrement ne touche pas aux catégories (voir handleSubmit).
+          getMyCategories(accessToken)
+            .then((ids) => {
+              setChoix(ids)
+              setChoixPret(true)
+            })
+            .catch(() => setCategoriesIndisponibles(true))
         } else {
           setIsCreation(true)
+          setChoixPret(true)
         }
       })
-      .catch(() => setError('Impossible de charger le profil.'))
+      .catch(() => setProfilIndisponible(true))
       .finally(() => setLoading(false))
   }, [accessToken])
 
@@ -76,7 +88,7 @@ export default function MonProfilCreateur() {
         await updateMyProfile(form, accessToken)
       }
       // Après le profil : à la création, il doit exister avant ses catégories
-      if (!categoriesIndisponibles) setChoix(await updateMyCategories(choix, accessToken))
+      if (choixPret && !categoriesIndisponibles) setChoix(await updateMyCategories(choix, accessToken))
       setSuccess(true)
     } catch (err) {
       setError(err.message ?? 'Une erreur est survenue.')
@@ -86,6 +98,15 @@ export default function MonProfilCreateur() {
   }
 
   if (loading) return <p>Chargement…</p>
+
+  if (profilIndisponible) {
+    return (
+      <main className={styles.container}>
+        <h1>Mon profil créateur</h1>
+        <p role="alert" className={styles.error}>Impossible de charger le profil. Rechargez la page pour réessayer.</p>
+      </main>
+    )
+  }
 
   return (
     <main className={styles.container}>

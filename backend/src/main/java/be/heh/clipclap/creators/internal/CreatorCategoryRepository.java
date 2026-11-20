@@ -2,6 +2,7 @@ package be.heh.clipclap.creators.internal;
 
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collection;
 import java.util.List;
@@ -25,8 +26,10 @@ class CreatorCategoryRepository {
 
     /**
      * Remplace la sélection. Une catégorie inconnue viole la clé étrangère vers {@code categories} :
-     * creators ne lit pas la table du module catalog, c'est la base qui la refuse.
+     * creators ne lit pas la table du module catalog, c'est la base qui la refuse. Transactionnel
+     * par lui-même : la suppression et les insertions réussissent ou échouent ensemble.
      */
+    @Transactional
     void replace(long creatorId, Collection<Integer> categoryIds) {
         jdbc.sql("DELETE FROM creator_categories WHERE creator_id = :creatorId")
                 .param("creatorId", creatorId)

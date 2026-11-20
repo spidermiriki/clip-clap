@@ -5,6 +5,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
 import java.util.TreeSet;
@@ -12,6 +13,9 @@ import java.util.TreeSet;
 /** Choix des types de prestation du créateur connecté (#87), pris en compte par le filtre de la galerie. */
 @Service
 class CreatorCategoryService {
+
+    // Code SQLSTATE de PostgreSQL pour une clé étrangère violée
+    static final String FOREIGN_KEY_VIOLATION = "23503";
 
     private final CreatorCategoryRepository categories;
     private final CreatorProfileRepository profiles;
@@ -36,7 +40,12 @@ class CreatorCategoryService {
         try {
             categories.replace(userId, new TreeSet<>(categoryIds));
         } catch (DataIntegrityViolationException e) {
-            throw new UnknownCategoryException();
+            // Seule une clé étrangère violée (23503) signifie « catégorie inconnue » ; toute autre
+            // violation (ex. deux PUT simultanés) remonte telle quelle (revue de #122)
+            if (e.getMostSpecificCause() instanceof SQLException sql && FOREIGN_KEY_VIOLATION.equals(sql.getSQLState())) {
+                throw new UnknownCategoryException();
+            }
+            throw e;
         }
         return categories.findCategoryIds(userId);
     }

@@ -1,10 +1,6 @@
 package be.heh.clipclap.creators.internal;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ProblemDetail;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -39,12 +35,5 @@ class CreatorCategoryController {
     @PutMapping
     List<Integer> replace(Authentication auth, @RequestBody(required = false) CategorySelection body) {
         return service.replaceMine(currentUser.id(auth), body == null ? null : body.categoryIds());
-    }
-
-    @ExceptionHandler(UnknownCategoryException.class)
-    ResponseEntity<ProblemDetail> handleUnknownCategory(UnknownCategoryException ex) {
-        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
-        pd.setTitle("Catégorie inconnue");
-        return ResponseEntity.badRequest().body(pd);
     }
 }
