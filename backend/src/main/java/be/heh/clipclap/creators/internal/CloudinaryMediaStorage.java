@@ -33,6 +33,12 @@ class CloudinaryMediaStorage implements MediaStorage {
 
     @Override
     public void delete(String publicId, String mediaType) {
+        // Vérifié avant tout appel : un type inattendu ne doit jamais viser le mauvais endpoint (revue de #125)
+        String resourceType = switch (String.valueOf(mediaType)) {
+            case "PHOTO" -> "image";
+            case "VIDEO" -> "video";
+            default -> throw new IllegalArgumentException("Type de média inconnu : " + mediaType);
+        };
         if (!properties.isConfigured()) {
             throw new UploadNotConfiguredException();
         }
@@ -46,7 +52,6 @@ class CloudinaryMediaStorage implements MediaStorage {
         form.add("api_key", properties.apiKey());
         form.add("signature", signature);
 
-        String resourceType = "VIDEO".equals(mediaType) ? "video" : "image";
         Map<?, ?> reponse;
         try {
             reponse = restClient.post()

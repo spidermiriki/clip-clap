@@ -31,7 +31,8 @@ export default function MesAlbums() {
       .finally(() => setLoading(false))
   }, [token])
 
-  const album = albums.find((a) => a.id === selectedId) ?? null
+  // Sans sélection valide (ex. après la suppression de l'album affiché), le premier album est montré
+  const album = albums.find((a) => a.id === selectedId) ?? albums[0] ?? null
 
   function majAlbum(albumId, changer) {
     setAlbums((prev) => prev.map((a) => (a.id === albumId ? changer(a) : a)))
@@ -98,9 +99,9 @@ export default function MesAlbums() {
     const albumId = album.id
     try {
       await deleteAlbum(albumId, token)
-      const restants = albums.filter((a) => a.id !== albumId)
-      setAlbums(restants)
-      setSelectedId(restants[0]?.id ?? null)
+      // Forme fonctionnelle : l'état a pu changer pendant la requête (revue de #125)
+      setAlbums((prev) => prev.filter((a) => a.id !== albumId))
+      setSelectedId((id) => (id === albumId ? null : id))
       setRenommage(null)
     } catch (err) {
       setError(err?.message ?? "Impossible de supprimer l'album.")
@@ -139,7 +140,7 @@ export default function MesAlbums() {
                 <li key={a.id}>
                   <button
                     type="button"
-                    aria-current={a.id === selectedId ? 'true' : undefined}
+                    aria-current={a.id === album?.id ? 'true' : undefined}
                     onClick={() => { setSelectedId(a.id); setRenommage(null) }}
                   >
                     {a.name} <span className={styles.compte}>({a.photos.length})</span>

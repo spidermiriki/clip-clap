@@ -20,6 +20,7 @@ import org.springframework.web.context.WebApplicationContext;
 import static be.heh.clipclap.creators.internal.CloudinaryUploadSignerTest.sha1;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -269,6 +270,30 @@ class AlbumControllerTest {
                 .expectStatus().isEqualTo(502);
 
         assertThat(compterMedias()).isEqualTo(1);
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void albumInterrompu_dit502Partiel_etGardeLAlbumEtLeMediaRestant() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Mariage Dupont");
+        String dossier = "clicclap/creators/" + alice + "/albums/" + albumId;
+        insertMedia(albumId, dossier + "/photo-1");
+        insertMedia(albumId, dossier + "/photo-2");
+        doNothing().doThrow(new StorageUnavailableException("test")).when(mediaStorage).delete(any(), any());
+
+        client.delete().uri("/api/creators/me/albums/{albumId}", albumId)
+                .exchange()
+                .expectStatus().isEqualTo(502)
+                .expectBody()
+                .jsonPath("$.title").isEqualTo("Stockage indisponible")
+                .jsonPath("$.detail").value(detail -> assertThat(String.valueOf(detail))
+                        .contains("1 média(s) sur 2").contains("relancez la suppression"));
+
+        assertThat(compterMedias()).isEqualTo(1);
+        client.get().uri("/api/creators/me/albums")
+                .exchange()
+                .expectBody().jsonPath("$[0].name").isEqualTo("Mariage Dupont");
     }
 
     @Test

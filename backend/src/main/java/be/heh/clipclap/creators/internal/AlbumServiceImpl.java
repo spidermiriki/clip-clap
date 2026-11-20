@@ -100,9 +100,16 @@ class AlbumServiceImpl implements AlbumService {
 
     void deleteAlbum(long userId, long albumId) {
         requireOwned(userId, albumId);
-        for (var media : albums.findMedia(albumId)) {
-            removeFromStorage(userId, albumId, media);
+        var medias = albums.findMedia(albumId);
+        int supprimes = 0;
+        for (var media : medias) {
+            try {
+                removeFromStorage(userId, albumId, media);
+            } catch (StorageUnavailableException e) {
+                throw StorageUnavailableException.partielle(supprimes, medias.size(), e);
+            }
             albums.deleteMedia(media.id());
+            supprimes++;
         }
         albums.deleteAlbum(albumId);
     }

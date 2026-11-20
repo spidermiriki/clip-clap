@@ -76,6 +76,13 @@ class CloudinaryMediaStorageTest {
     }
 
     @Test
+    void typeInconnu_refuseAvantToutAppel() {
+        assertThatThrownBy(() -> storage.delete(PUBLIC_ID, "GIF")).isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> storage.delete(PUBLIC_ID, null)).isInstanceOf(IllegalArgumentException.class);
+        serveur.verify();
+    }
+
+    @Test
     void sansIdentifiants_leveUploadNotConfigured_sansRequete() {
         var nonConfigure = new CloudinaryMediaStorage(new CloudinaryProperties("", "", ""), RestClient.builder(), HORLOGE);
 
