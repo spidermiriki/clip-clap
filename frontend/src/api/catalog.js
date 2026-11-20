@@ -138,6 +138,7 @@ async function mockGetCreatorProfile(userId) {
     ...creator,
     bio: `${creator.displayName} photographie mariages, événements et portraits.`,
     serviceAreas: `${creator.city} et environs`,
+    offerings: [],
   }
 }
 
