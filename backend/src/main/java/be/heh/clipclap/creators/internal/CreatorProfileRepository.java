@@ -12,7 +12,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -59,12 +58,6 @@ class CreatorProfileRepository {
                 .param("serviceAreas", command.serviceAreas())
                 .query(CreatorProfileRepository::mapRow)
                 .single();
-    }
-
-    Set<Long> findAllValidatedUserIds() {
-        return new HashSet<>(jdbc.sql("SELECT user_id FROM creator_profiles WHERE validation_status = 'VALIDATED'")
-                .query(Long.class)
-                .list());
     }
 
     CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds,
