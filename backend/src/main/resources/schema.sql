@@ -67,3 +67,30 @@ CREATE TABLE IF NOT EXISTS media (
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_album ON media (album_id);
+
+-- Module bookings
+-- Statuts possibles : EN_ATTENTE, CONFIRMEE, REFUSEE, ANNULEE, EXPIREE, TERMINEE (#39)
+CREATE TABLE IF NOT EXISTS bookings (
+    id         BIGSERIAL   PRIMARY KEY,
+    client_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    creator_id BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    status     VARCHAR(20) NOT NULL DEFAULT 'EN_ATTENTE'
+               CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
+
+-- Journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée
+CREATE TABLE IF NOT EXISTS booking_status_history (
+    id              BIGSERIAL   PRIMARY KEY,
+    booking_id      BIGINT      NOT NULL REFERENCES bookings (id) ON DELETE CASCADE,
+    actor_id        BIGINT      NOT NULL REFERENCES users (id),
+    -- NULL pour la première entrée (création de la réservation)
+    previous_status VARCHAR(20) CHECK (previous_status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    new_status      VARCHAR(20) NOT NULL CHECK (new_status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    changed_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_booking_status_history_booking ON booking_status_history (booking_id);
