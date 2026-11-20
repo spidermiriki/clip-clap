@@ -4,6 +4,7 @@ import be.heh.clipclap.creators.CreateProfileCommand;
 import be.heh.clipclap.creators.CreatorProfile;
 import be.heh.clipclap.creators.CreatorProfileAlreadyExistsException;
 import be.heh.clipclap.creators.CreatorProfileNotFoundException;
+import be.heh.clipclap.creators.CreatorProfileNotPendingException;
 import be.heh.clipclap.creators.CreatorProfilePage;
 import be.heh.clipclap.creators.CreatorSearchCriteria;
 import org.junit.jupiter.api.Test;
@@ -37,18 +38,19 @@ class CreatorProfileServiceImplTest {
     private static final CreateProfileCommand COMMAND =
             new CreateProfileCommand("Alice Photo", "Bio", "Bruxelles", "BE", "Brabant wallon");
     private static final CreatorProfile PROFILE =
-            new CreatorProfile(USER_ID, "Alice Photo", null, "Bio", "Bruxelles", "BE", "Brabant wallon", "VALIDATED");
+            new CreatorProfile(USER_ID, "Alice Photo", null, "Bio", "Bruxelles", "BE", "Brabant wallon", "VALIDATED", null);
 
     // --- create ---
 
     @Test
-    void create_delegatesTo_repositorySave_andReturnsProfile() {
+    void create_savesThenPutsTheNewProfileInPending() {
+        var pending = new CreatorProfile(USER_ID, "Alice Photo", null, "Bio", "Bruxelles", "BE", "Brabant wallon", "PENDING", null);
         when(repository.findByUserId(USER_ID)).thenReturn(Optional.empty());
-        when(repository.save(USER_ID, COMMAND)).thenReturn(PROFILE);
+        when(repository.setStatus(USER_ID, "PENDING")).thenReturn(pending);
 
         var result = service.create(USER_ID, COMMAND);
 
-        assertThat(result).isEqualTo(PROFILE);
+        assertThat(result.validationStatus()).isEqualTo("PENDING");
         verify(repository).save(USER_ID, COMMAND);
     }
 
@@ -75,6 +77,39 @@ class CreatorProfileServiceImplTest {
         var cmd = new CreateProfileCommand(null, "bio", "city", "BE", "areas");
 
         assertThatThrownBy(() -> service.create(USER_ID, cmd))
+                .isInstanceOf(IllegalArgumentException.class);
+        verifyNoInteractions(repository);
+    }
+
+    // --- validation par l'administrateur (#33) ---
+
+    @Test
+    void reject_withBlankReason_throwsAndNeverCallsRepository() {
+        assertThatThrownBy(() -> service.reject(USER_ID, "  "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Le motif du refus est obligatoire");
+        verifyNoInteractions(repository);
+    }
+
+    @Test
+    void validate_profileNotPending_throwsNotPending() {
+        when(repository.decideIfPending(USER_ID, "VALIDATED", null)).thenReturn(Optional.empty());
+        when(repository.findByUserId(USER_ID)).thenReturn(Optional.of(PROFILE));
+
+        assertThatThrownBy(() -> service.validate(USER_ID)).isInstanceOf(CreatorProfileNotPendingException.class);
+    }
+
+    @Test
+    void validate_unknownProfile_throwsNotFound() {
+        when(repository.decideIfPending(USER_ID, "VALIDATED", null)).thenReturn(Optional.empty());
+        when(repository.findByUserId(USER_ID)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> service.validate(USER_ID)).isInstanceOf(CreatorProfileNotFoundException.class);
+    }
+
+    @Test
+    void findByValidationStatus_unknownStatus_throws() {
+        assertThatThrownBy(() -> service.findByValidationStatus("ARCHIVED"))
                 .isInstanceOf(IllegalArgumentException.class);
         verifyNoInteractions(repository);
     }

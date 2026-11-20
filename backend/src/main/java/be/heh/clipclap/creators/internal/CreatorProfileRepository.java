@@ -43,11 +43,16 @@ class CreatorProfileRepository {
                 .single();
     }
 
+    /** Un profil refusé qui est modifié repasse en attente, sans l'ancien motif (#33). */
     CreatorProfile update(Long userId, CreateProfileCommand command) {
         return jdbc.sql("""
                 UPDATE creator_profiles
                 SET display_name = :displayName, bio = :bio, city = :city,
-                    country = :country, service_areas = :serviceAreas
+                    country = :country, service_areas = :serviceAreas,
+                    validation_status = CASE WHEN validation_status = 'REJECTED' THEN 'PENDING'
+                                             ELSE validation_status END,
+                    rejection_reason  = CASE WHEN validation_status = 'REJECTED' THEN NULL
+                                             ELSE rejection_reason END
                 WHERE user_id = :userId
                 RETURNING *
                 """)
@@ -121,6 +126,43 @@ class CreatorProfileRepository {
                 .optional();
     }
 
+    List<CreatorProfile> findByValidationStatus(String status) {
+        return jdbc.sql("SELECT * FROM creator_profiles WHERE validation_status = :status ORDER BY user_id")
+                .param("status", status)
+                .query(CreatorProfileRepository::mapRow)
+                .list();
+    }
+
+    /**
+     * Change le statut d'un profil sans condition : utilisé à la création, pour mettre le
+     * nouveau profil en attente (#33).
+     */
+    CreatorProfile setStatus(Long userId, String status) {
+        return jdbc.sql("""
+                UPDATE creator_profiles SET validation_status = :status, rejection_reason = NULL
+                WHERE user_id = :userId
+                RETURNING *
+                """)
+                .param("status", status)
+                .param("userId", userId)
+                .query(CreatorProfileRepository::mapRow)
+                .single();
+    }
+
+    /** Vide si le profil n'existe pas ou n'est plus en attente : la condition est dans la requête (#33). */
+    Optional<CreatorProfile> decideIfPending(Long userId, String status, String rejectionReason) {
+        return jdbc.sql("""
+                UPDATE creator_profiles SET validation_status = :status, rejection_reason = :reason
+                WHERE user_id = :userId AND validation_status = 'PENDING'
+                RETURNING *
+                """)
+                .param("status", status)
+                .param("reason", rejectionReason)
+                .param("userId", userId)
+                .query(CreatorProfileRepository::mapRow)
+                .optional();
+    }
+
     private static CreatorProfile mapRow(ResultSet rs, int rowNum) throws SQLException {
         return new CreatorProfile(
                 rs.getLong("user_id"),
@@ -130,7 +172,8 @@ class CreatorProfileRepository {
                 rs.getString("city"),
                 rs.getString("country"),
                 rs.getString("service_areas"),
-                rs.getString("validation_status")
+                rs.getString("validation_status"),
+                rs.getString("rejection_reason")
         );
     }
 }
