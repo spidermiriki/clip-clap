@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCreatorProfile } from '../api/catalog'
 import ProfilPublic from './ProfilPublic'
 
-vi.mock('../api/catalog', () => ({ getCreatorProfile: vi.fn() }))
+vi.mock('../api/catalog', () => ({ getCreatorProfile: vi.fn(), getCategories: vi.fn(async () => [{ id: 1, name: 'Mariage' }]) }))
 
 const PROFIL = {
   userId: 3,
@@ -73,6 +73,16 @@ describe('ProfilPublic (#17)', () => {
     expect(await screen.findByRole('heading', { level: 3, name: 'Reportage mariage' })).toBeInTheDocument()
     expect(screen.getByText(/^8 h · 1\s?200,00\s€$/)).toBeInTheDocument()
     expect(screen.getByRole('list', { name: 'Options de Reportage mariage' })).toHaveTextContent(/Drone : \+ 150,00\s€/)
+  })
+
+  it("affiche la catégorie d'une prestation (#123)", async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue({
+      ...PROFIL,
+      offerings: [{ id: 5, name: 'Reportage mariage', durationMinutes: 480, basePrice: 1200, categoryId: 1, options: [] }],
+    })
+    renderProfil('/createurs/3')
+
+    expect(await screen.findByText(/^Mariage · 8 h · 1\s?200,00\s€$/)).toBeInTheDocument()
   })
 
   it('indique l\'absence de prestation', async () => {

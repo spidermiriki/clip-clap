@@ -81,6 +81,10 @@ CREATE TABLE IF NOT EXISTS offerings (
 
 CREATE INDEX IF NOT EXISTS idx_offerings_creator ON offerings (creator_id);
 
+-- Catégorie facultative d'une prestation (#123). ALTER plutôt qu'une colonne du CREATE : la table
+-- peut déjà exister (déploiement de #27). Une catégorie inconnue est refusée par la clé étrangère.
+ALTER TABLE offerings ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES categories (id) ON DELETE SET NULL;
+
 CREATE TABLE IF NOT EXISTS offering_options (
     id          BIGSERIAL     PRIMARY KEY,
     offering_id BIGINT        NOT NULL REFERENCES offerings (id) ON DELETE CASCADE,

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { Link } from 'react-router-dom'
+import { getCategories } from '../api/catalog'
 import { createOffering, deleteOffering, listMyOfferings, updateOffering } from '../api/offerings'
 import { formatDuree, formatPrix } from '../format'
 import styles from './MesPrestations.module.css'
 
-const FORMULAIRE_VIDE = { name: '', durationMinutes: '', basePrice: '', options: [] }
+const FORMULAIRE_VIDE = { name: '', durationMinutes: '', basePrice: '', categoryId: '', options: [] }
 
 // La virgule décimale est acceptée : « 89,90 » → 89.9
 function nombre(valeur) {
@@ -17,6 +18,7 @@ function versFormulaire(offering) {
     name: offering.name,
     durationMinutes: String(offering.durationMinutes),
     basePrice: String(offering.basePrice),
+    categoryId: offering.categoryId == null ? '' : String(offering.categoryId),
     options: offering.options.map((o) => ({ name: o.name, extraPrice: String(o.extraPrice) })),
   }
 }
@@ -34,6 +36,12 @@ export default function MesPrestations() {
   // null : nouvelle prestation ; sinon l'id de la prestation modifiée
   const [editionId, setEditionId] = useState(null)
   const [envoi, setEnvoi] = useState(false)
+  // Catégories de catalog (#123) ; sans elles, le formulaire reste utilisable sans catégorie
+  const [categories, setCategories] = useState([])
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => setCategories([]))
+  }, [])
 
   useEffect(() => {
     listMyOfferings(token)
@@ -80,6 +88,7 @@ export default function MesPrestations() {
       name: formulaire.name,
       durationMinutes: nombre(formulaire.durationMinutes),
       basePrice: nombre(formulaire.basePrice),
+      categoryId: formulaire.categoryId === '' ? null : Number(formulaire.categoryId),
       options: formulaire.options.map((o) => ({ name: o.name, extraPrice: nombre(o.extraPrice) })),
     }
     try {
@@ -110,6 +119,8 @@ export default function MesPrestations() {
     }
   }
 
+  const nomCategorie = (categoryId) => categories.find((c) => c.id === categoryId)?.name
+
   if (loading) return <main className={styles.container}><p>Chargement…</p></main>
 
   if (sansProfil) {
@@ -138,7 +149,9 @@ export default function MesPrestations() {
                 <li key={o.id}>
                   <div>
                     <strong>{o.name}</strong>
-                    <span className={styles.details}>{formatDuree(o.durationMinutes)} · {formatPrix(o.basePrice)}</span>
+                    <span className={styles.details}>
+                      {[nomCategorie(o.categoryId), formatDuree(o.durationMinutes), formatPrix(o.basePrice)].filter(Boolean).join(' · ')}
+                    </span>
                     {o.options.length > 0 && (
                       <ul className={styles.options}>
                         {o.options.map((opt) => (
@@ -178,6 +191,14 @@ export default function MesPrestations() {
               value={formulaire.basePrice}
               onChange={(e) => champ('basePrice', e.target.value)}
             />
+          </label>
+
+          <label>
+            Catégorie
+            <select value={formulaire.categoryId} onChange={(e) => champ('categoryId', e.target.value)}>
+              <option value="">Aucune</option>
+              {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+            </select>
           </label>
 
           <fieldset className={styles.optionsSaisie}>

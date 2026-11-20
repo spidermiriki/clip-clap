@@ -20,6 +20,11 @@ class OfferingExceptionHandler {
         return problem(HttpStatus.CONFLICT, "Prestation réservée", ex.getMessage());
     }
 
+    @ExceptionHandler(UnknownCategoryException.class)
+    ResponseEntity<ProblemDetail> handleUnknownCategory(UnknownCategoryException ex) {
+        return problem(HttpStatus.BAD_REQUEST, "Catégorie inconnue", ex.getMessage());
+    }
+
     @ExceptionHandler(CreatorProfileNotFoundException.class)
     ResponseEntity<ProblemDetail> handleProfileNotFound(CreatorProfileNotFoundException ex) {
         return problem(HttpStatus.NOT_FOUND, "Profil introuvable", ex.getMessage());

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getCreatorProfile } from '../api/catalog'
+import { getCategories, getCreatorProfile } from '../api/catalog'
 import { formatDuree, formatPrix } from '../format'
 import styles from './ProfilPublic.module.css'
 
@@ -12,6 +12,8 @@ export default function ProfilPublic() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // Noms des catégories de prestation (#123) : facultatifs, le profil s'affiche sans eux
+  const [categories, setCategories] = useState([])
 
   if (request.userId !== userId) {
     // Navigation d'un profil à un autre : on repart de zéro pendant le rendu, sans effet en cascade
@@ -20,6 +22,10 @@ export default function ProfilPublic() {
     setLoading(true)
     setError(null)
   }
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => setCategories([]))
+  }, [])
 
   useEffect(() => {
     let ignore = false
@@ -98,7 +104,10 @@ export default function ProfilPublic() {
             {profile.offerings.map((offering) => (
               <li key={offering.id}>
                 <h3>{offering.name}</h3>
-                <p>{formatDuree(offering.durationMinutes)} · {formatPrix(offering.basePrice)}</p>
+                <p>
+                  {[categories.find((c) => c.id === offering.categoryId)?.name, formatDuree(offering.durationMinutes),
+                    formatPrix(offering.basePrice)].filter(Boolean).join(' · ')}
+                </p>
                 {offering.options.length > 0 && (
                   <ul aria-label={`Options de ${offering.name}`}>
                     {offering.options.map((option) => (

@@ -8,6 +8,7 @@ import be.heh.clipclap.offerings.OfferingOption;
 import be.heh.clipclap.offerings.OfferingUsageChecker;
 import be.heh.clipclap.offerings.PriceQuote;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Supplier;
 
 @Service
 class OfferingService implements OfferingApi {
@@ -77,7 +79,8 @@ class OfferingService implements OfferingApi {
     Offering create(long userId, OfferingCommand command) {
         requireProfile(userId);
         var valid = validate(command);
-        long id = offerings.create(userId, valid.name(), valid.durationMinutes(), valid.basePrice());
+        long id = withKnownCategory(() ->
+                offerings.create(userId, valid.name(), valid.durationMinutes(), valid.basePrice(), valid.categoryId()));
         offerings.replaceOptions(id, valid.options());
         return offerings.findById(id).orElseThrow();
     }
@@ -85,7 +88,8 @@ class OfferingService implements OfferingApi {
     @Transactional
     Offering update(long userId, long offeringId, OfferingCommand command) {
         var valid = validate(command);
-        if (!offerings.update(offeringId, userId, valid.name(), valid.durationMinutes(), valid.basePrice())) {
+        if (!withKnownCategory(() -> offerings.update(offeringId, userId, valid.name(), valid.durationMinutes(),
+                valid.basePrice(), valid.categoryId()))) {
             throw new OfferingNotFoundException(offeringId);
         }
         offerings.replaceOptions(offeringId, valid.options());
@@ -101,6 +105,18 @@ class OfferingService implements OfferingApi {
             throw new OfferingInUseException();
         }
         offerings.delete(offeringId);
+    }
+
+    /**
+     * offerings ne lit pas la table categories du module catalog : c'est la clé étrangère qui
+     * refuse une catégorie inconnue (#123).
+     */
+    private static <T> T withKnownCategory(Supplier<T> write) {
+        try {
+            return write.get();
+        } catch (DataIntegrityViolationException e) {
+            throw new UnknownCategoryException();
+        }
     }
 
     private void requireProfile(long userId) {
@@ -130,7 +146,7 @@ class OfferingService implements OfferingApi {
                             validName(o.name(), "Le nom de l'option"), validPrice(o.extraPrice(), "Le supplément"));
                 })
                 .toList();
-        return new OfferingCommand(name, duration, price, options);
+        return new OfferingCommand(name, duration, price, command.categoryId(), options);
     }
 
     private static String validName(String name, String label) {

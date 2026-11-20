@@ -21,6 +21,7 @@ erDiagram
     categories ||--o{ creator_categories : "classe"
     creator_profiles ||--o{ offerings : "propose"
     offerings ||--o{ offering_options : "a pour options"
+    categories |o--o{ offerings : "classe"
 
     users {
         BIGSERIAL id PK
@@ -75,6 +76,7 @@ erDiagram
         VARCHAR(100) name "NOT NULL"
         INTEGER duration_minutes "NOT NULL, > 0"
         NUMERIC base_price "NOT NULL, (10,2), >= 0"
+        INTEGER category_id FK "→ categories.id, facultatif"
         TIMESTAMPTZ created_at "NOT NULL, défaut now()"
     }
 
@@ -180,6 +182,7 @@ Les prestations à prix fixe d'un créateur (#27) : nom, durée et prix de base,
 | `name` | `VARCHAR(100)` | `NOT NULL` |
 | `duration_minutes` | `INTEGER` | `NOT NULL`, `CHECK (duration_minutes > 0)` |
 | `base_price` | `NUMERIC(10,2)` | `NOT NULL`, `CHECK (base_price >= 0)`, en euros |
+| `category_id` | `INTEGER` | facultatif, `REFERENCES categories (id) ON DELETE SET NULL` (#123, ajoutée par `ALTER TABLE … ADD COLUMN IF NOT EXISTS`) |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
 
 ### `offering_options` — module `offerings`
@@ -195,7 +198,7 @@ Les options payantes d'une prestation (ex. drone, retouches avancées), chacune 
 
 ### Suppressions en cascade
 
-Supprimer un compte supprime son profil créateur, puis ses albums, puis leurs médias, ainsi que ses associations de catégories et ses prestations avec leurs options. Supprimer une catégorie supprime seulement ses associations avec les créateurs.
+Supprimer un compte supprime son profil créateur, puis ses albums, puis leurs médias, ainsi que ses associations de catégories et ses prestations avec leurs options. Supprimer une catégorie supprime seulement ses associations avec les créateurs, et retire la catégorie des prestations qui l'utilisaient.
 
 ---
 
