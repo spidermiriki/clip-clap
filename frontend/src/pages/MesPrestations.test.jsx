@@ -59,6 +59,33 @@ describe('MesPrestations (#27)', () => {
     expect(screen.getByLabelText('Nom')).toHaveValue('')
   })
 
+  it('accepte un prix avec séparateur de milliers (revue de #119)', async () => {
+    vi.mocked(createOffering).mockResolvedValue(MARIAGE)
+    renderPage()
+    await screen.findByText('Aucune prestation pour le moment.')
+
+    fireEvent.change(screen.getByLabelText('Nom'), { target: { value: 'Reportage mariage' } })
+    fireEvent.change(screen.getByLabelText('Durée (minutes)'), { target: { value: '480' } })
+    fireEvent.change(screen.getByLabelText('Prix de base (€)'), { target: { value: '1.200,00' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByText('Reportage mariage')).toBeInTheDocument()
+    expect(createOffering).toHaveBeenCalledWith(expect.objectContaining({ basePrice: 1200 }), 'jeton')
+  })
+
+  it("n'envoie pas un prix illisible et explique le format attendu", async () => {
+    renderPage()
+    await screen.findByText('Aucune prestation pour le moment.')
+
+    fireEvent.change(screen.getByLabelText('Nom'), { target: { value: 'Portrait' } })
+    fireEvent.change(screen.getByLabelText('Durée (minutes)'), { target: { value: '60' } })
+    fireEvent.change(screen.getByLabelText('Prix de base (€)'), { target: { value: '12,5,3' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Format de prix invalide')
+    expect(createOffering).not.toHaveBeenCalled()
+  })
+
   it('modifie une prestation existante', async () => {
     vi.mocked(listMyOfferings).mockResolvedValue([MARIAGE])
     vi.mocked(updateOffering).mockResolvedValue({ ...MARIAGE, name: 'Mariage demi-journée', durationMinutes: 240 })

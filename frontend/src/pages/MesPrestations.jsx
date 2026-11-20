@@ -2,15 +2,11 @@ import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { Link } from 'react-router-dom'
 import { createOffering, deleteOffering, listMyOfferings, updateOffering } from '../api/offerings'
-import { formatDuree, formatPrix } from '../format'
+import { formatDuree, formatPrix, parsePrix } from '../format'
 import styles from './MesPrestations.module.css'
 
 const FORMULAIRE_VIDE = { name: '', durationMinutes: '', basePrice: '', options: [] }
 
-// La virgule décimale est acceptée : « 89,90 » → 89.9
-function nombre(valeur) {
-  return Number(String(valeur).replace(',', '.'))
-}
 
 function versFormulaire(offering) {
   return {
@@ -75,13 +71,18 @@ export default function MesPrestations() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    setEnvoi(true)
     const corps = {
       name: formulaire.name,
-      durationMinutes: nombre(formulaire.durationMinutes),
-      basePrice: nombre(formulaire.basePrice),
-      options: formulaire.options.map((o) => ({ name: o.name, extraPrice: nombre(o.extraPrice) })),
+      durationMinutes: Number(formulaire.durationMinutes),
+      basePrice: parsePrix(formulaire.basePrice),
+      options: formulaire.options.map((o) => ({ name: o.name, extraPrice: parsePrix(o.extraPrice) })),
     }
+    // Un prix illisible n'est jamais envoyé : le backend le prendrait pour un prix manquant
+    if (corps.basePrice === null || corps.options.some((o) => o.extraPrice === null)) {
+      setError('Format de prix invalide : utilisez par exemple 1200, 89,90 ou 1 200,50.')
+      return
+    }
+    setEnvoi(true)
     try {
       if (editionId === null) {
         const creee = await createOffering(corps, token)
