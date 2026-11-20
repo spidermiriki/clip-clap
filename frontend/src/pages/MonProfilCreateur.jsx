@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
-import { createMyProfile, getMyProfile, updateMyProfile } from '../api/creators'
+import { getCategories } from '../api/catalog'
+import { createMyProfile, getMyCategories, getMyProfile, updateMyCategories, updateMyProfile } from '../api/creators'
 import styles from './MonProfilCreateur.module.css'
 
 const EMPTY_FORM = { displayName: '', bio: '', city: '', country: '', serviceAreas: '' }
@@ -15,11 +16,22 @@ export default function MonProfilCreateur() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  // Types de prestation (#87) : la liste vient de catalog, le choix de creators
+  const [categories, setCategories] = useState([])
+  const [categoriesIndisponibles, setCategoriesIndisponibles] = useState(false)
+  const [choix, setChoix] = useState([])
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => setCategoriesIndisponibles(true))
+  }, [])
 
   useEffect(() => {
     getMyProfile(accessToken)
-      .then((profile) => {
+      .then(async (profile) => {
         if (profile) {
+          setChoix(await getMyCategories(accessToken))
           setForm({
             displayName: profile.displayName ?? '',
             bio: profile.bio ?? '',
@@ -42,6 +54,11 @@ export default function MonProfilCreateur() {
     setSuccess(false)
   }
 
+  function basculer(categoryId) {
+    setChoix((prev) => (prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]))
+    setSuccess(false)
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!form.displayName.trim()) {
@@ -58,6 +75,8 @@ export default function MonProfilCreateur() {
       } else {
         await updateMyProfile(form, accessToken)
       }
+      // Après le profil : à la création, il doit exister avant ses catégories
+      if (!categoriesIndisponibles) setChoix(await updateMyCategories(choix, accessToken))
       setSuccess(true)
     } catch (err) {
       setError(err.message ?? 'Une erreur est survenue.')
@@ -111,6 +130,26 @@ export default function MonProfilCreateur() {
             onChange={handleChange}
           />
         </div>
+
+        <fieldset className={styles.field}>
+          <legend>Types de prestation</legend>
+          {categoriesIndisponibles ? (
+            <p>Les types de prestation ne peuvent pas être chargés pour le moment.</p>
+          ) : (
+            <div className={styles.categories}>
+              {categories.map((category) => (
+                <label key={category.id}>
+                  <input
+                    type="checkbox"
+                    checked={choix.includes(category.id)}
+                    onChange={() => basculer(category.id)}
+                  />
+                  {category.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
 
         {error && <p role="alert" className={styles.error}>{error}</p>}
         {success && <p role="status" className={styles.success}>Profil enregistré.</p>}
