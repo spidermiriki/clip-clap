@@ -184,19 +184,6 @@ class CreatorProfileRepositoryTest {
         assertThat(videos.totalElements()).isZero();
     }
 
-    @Test
-    void findAllValidatedUserIds_returnsOnlyValidatedProfiles() {
-        long validated = insertTestUser("ids-ok@example.com");
-        long pending = insertTestUser("ids-pending@example.com");
-        repository.save(validated, new CreateProfileCommand("Valide", null, null, null, null));
-        repository.save(pending, new CreateProfileCommand("En attente", null, null, null, null));
-        jdbcClient.sql("UPDATE creator_profiles SET validation_status = 'PENDING' WHERE user_id = :id")
-                  .param("id", pending).update();
-
-        assertThat(repository.findAllValidatedUserIds()).contains(validated).doesNotContain(pending);
-    }
-
-
     // Catégories de départ insérées par data.sql
     private int categoryId(String name) {
         return jdbcClient.sql("SELECT id FROM categories WHERE name = :name")

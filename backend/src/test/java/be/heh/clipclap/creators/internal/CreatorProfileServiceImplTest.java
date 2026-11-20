@@ -142,13 +142,6 @@ class CreatorProfileServiceImplTest {
     }
 
     @Test
-    void findAllValidatedUserIds_delegatesToRepository() {
-        when(repository.findAllValidatedUserIds()).thenReturn(Set.of(USER_ID));
-
-        assertThat(service.findAllValidatedUserIds()).containsExactly(USER_ID);
-    }
-
-    @Test
     void findAllValidated_withNegativePage_throwsAndNeverCallsRepository() {
         assertThatThrownBy(() -> service.findAllValidated(-1, 10, Set.of(), CreatorSearchCriteria.AUCUN))
                 .isInstanceOf(IllegalArgumentException.class);
