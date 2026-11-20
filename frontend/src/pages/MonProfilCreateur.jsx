@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
-import { createMyProfile, getMyProfile, updateMyProfile } from '../api/creators'
+import { getCategories } from '../api/catalog'
+import { createMyProfile, getMyCategories, getMyProfile, updateMyCategories, updateMyProfile } from '../api/creators'
 import styles from './MonProfilCreateur.module.css'
 
 const EMPTY_FORM = { displayName: '', bio: '', city: '', country: '', serviceAreas: '' }
@@ -15,6 +16,20 @@ export default function MonProfilCreateur() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  // Types de prestation (#87) : la liste vient de catalog, le choix de creators
+  const [categories, setCategories] = useState([])
+  const [categoriesIndisponibles, setCategoriesIndisponibles] = useState(false)
+  const [choix, setChoix] = useState([])
+  // Vrai quand le choix affiché est le vrai (lu, ou profil nouveau) : sinon on ne l'enregistre pas
+  const [choixPret, setChoixPret] = useState(false)
+  // Profil existant illisible : pas de formulaire, pour ne jamais l'écraser avec des champs vides
+  const [profilIndisponible, setProfilIndisponible] = useState(false)
+
+  useEffect(() => {
+    getCategories()
+      .then(setCategories)
+      .catch(() => setCategoriesIndisponibles(true))
+  }, [])
 
   useEffect(() => {
     getMyProfile(accessToken)
@@ -28,17 +43,31 @@ export default function MonProfilCreateur() {
             serviceAreas: profile.serviceAreas ?? '',
           })
           setIsCreation(false)
+          // À part, après le formulaire : leur échec ne vide jamais le profil (revue de #122).
+          // Sans eux, l'enregistrement ne touche pas aux catégories (voir handleSubmit).
+          getMyCategories(accessToken)
+            .then((ids) => {
+              setChoix(ids)
+              setChoixPret(true)
+            })
+            .catch(() => setCategoriesIndisponibles(true))
         } else {
           setIsCreation(true)
+          setChoixPret(true)
         }
       })
-      .catch(() => setError('Impossible de charger le profil.'))
+      .catch(() => setProfilIndisponible(true))
       .finally(() => setLoading(false))
   }, [accessToken])
 
   function handleChange(e) {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
     setError(null)
+    setSuccess(false)
+  }
+
+  function basculer(categoryId) {
+    setChoix((prev) => (prev.includes(categoryId) ? prev.filter((id) => id !== categoryId) : [...prev, categoryId]))
     setSuccess(false)
   }
 
@@ -58,6 +87,8 @@ export default function MonProfilCreateur() {
       } else {
         await updateMyProfile(form, accessToken)
       }
+      // Après le profil : à la création, il doit exister avant ses catégories
+      if (choixPret && !categoriesIndisponibles) setChoix(await updateMyCategories(choix, accessToken))
       setSuccess(true)
     } catch (err) {
       setError(err.message ?? 'Une erreur est survenue.')
@@ -67,6 +98,15 @@ export default function MonProfilCreateur() {
   }
 
   if (loading) return <p>Chargement…</p>
+
+  if (profilIndisponible) {
+    return (
+      <main className={styles.container}>
+        <h1>Mon profil créateur</h1>
+        <p role="alert" className={styles.error}>Impossible de charger le profil. Rechargez la page pour réessayer.</p>
+      </main>
+    )
+  }
 
   return (
     <main className={styles.container}>
@@ -111,6 +151,26 @@ export default function MonProfilCreateur() {
             onChange={handleChange}
           />
         </div>
+
+        <fieldset className={styles.field}>
+          <legend>Types de prestation</legend>
+          {categoriesIndisponibles ? (
+            <p>Les types de prestation ne peuvent pas être chargés pour le moment.</p>
+          ) : (
+            <div className={styles.categories}>
+              {categories.map((category) => (
+                <label key={category.id}>
+                  <input
+                    type="checkbox"
+                    checked={choix.includes(category.id)}
+                    onChange={() => basculer(category.id)}
+                  />
+                  {category.name}
+                </label>
+              ))}
+            </div>
+          )}
+        </fieldset>
 
         {error && <p role="alert" className={styles.error}>{error}</p>}
         {success && <p role="status" className={styles.success}>Profil enregistré.</p>}
