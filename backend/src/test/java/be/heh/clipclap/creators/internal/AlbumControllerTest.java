@@ -12,15 +12,21 @@ import org.springframework.modulith.test.ApplicationModuleTest;
 import org.springframework.modulith.test.ApplicationModuleTest.BootstrapMode;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.client.RestTestClient;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.WebApplicationContext;
 
 import static be.heh.clipclap.creators.internal.CloudinaryUploadSignerTest.sha1;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-// Identifiants Cloudinary factices : la signature et sa vérification sont locales, aucun test n'appelle Cloudinary
+// Identifiants Cloudinary factices : la signature et sa vérification sont locales, et le stockage
+// (suppression, #94) est simulé : aucun test n'appelle Cloudinary
 @ApplicationModuleTest(mode = BootstrapMode.DIRECT_DEPENDENCIES)
 @Import(TestcontainersConfiguration.class)
 @TestPropertySource(properties = {
@@ -37,6 +43,7 @@ class AlbumControllerTest {
 
     @Autowired WebApplicationContext context;
     @Autowired JdbcClient jdbc;
+    @MockitoBean MediaStorage mediaStorage;
     RestTestClient client;
 
     @BeforeEach
@@ -207,7 +214,115 @@ class AlbumControllerTest {
                 .expectStatus().isNotFound();
     }
 
+    // ── Suppression (#94) ───────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void supprimerUnePhoto_laRetireDeCloudinaryPuisDeLAlbum() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Portraits");
+        String publicId = "clicclap/creators/" + alice + "/albums/" + albumId + "/photo-1";
+        long photoId = insertMedia(albumId, publicId);
+
+        client.delete().uri("/api/creators/me/albums/{albumId}/photos/{mediaId}", albumId, photoId)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(mediaStorage).delete(publicId, "PHOTO");
+        assertThat(compterMedias()).isZero();
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void supprimerUnAlbum_supprimeSesMediasPuisLAlbum() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Mariage Dupont");
+        String dossier = "clicclap/creators/" + alice + "/albums/" + albumId;
+        insertMedia(albumId, dossier + "/photo-1");
+        insertMedia(albumId, dossier + "/photo-2");
+
+        client.delete().uri("/api/creators/me/albums/{albumId}", albumId)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(mediaStorage).delete(dossier + "/photo-1", "PHOTO");
+        verify(mediaStorage).delete(dossier + "/photo-2", "PHOTO");
+        client.get().uri("/api/creators/me/albums")
+                .exchange()
+                .expectBody().jsonPath("$.length()").isEqualTo(0);
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void stockageIndisponible_renvoie502_etLaPhotoResteDansLAlbum() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Portraits");
+        long photoId = insertMedia(albumId, "clicclap/creators/" + alice + "/albums/" + albumId + "/photo-1");
+        doThrow(new StorageUnavailableException("test")).when(mediaStorage).delete(any(), any());
+
+        client.delete().uri("/api/creators/me/albums/{albumId}/photos/{mediaId}", albumId, photoId)
+                .exchange()
+                .expectStatus().isEqualTo(502)
+                .expectBody().jsonPath("$.title").isEqualTo("Stockage indisponible");
+        client.delete().uri("/api/creators/me/albums/{albumId}", albumId)
+                .exchange()
+                .expectStatus().isEqualTo(502);
+
+        assertThat(compterMedias()).isEqualTo(1);
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void imageDeDemonstrationHorsDuDossier_retireeDeLaBaseSansToucherCloudinary() {
+        insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Démo");
+        long photoId = insertMedia(albumId, "samples/smile");
+
+        client.delete().uri("/api/creators/me/albums/{albumId}/photos/{mediaId}", albumId, photoId)
+                .exchange()
+                .expectStatus().isNoContent();
+
+        verify(mediaStorage, never()).delete(any(), any());
+        assertThat(compterMedias()).isZero();
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void mediaOuAlbumDUnAutre_renvoie404_sansRienSupprimer() {
+        insertCreator("alice@albums.test", ALICE);
+        long bob = insertCreator("bob@albums.test", "sub-bob@albums.test");
+        long albumDeBob = jdbc.sql("INSERT INTO albums (creator_id, name) VALUES (:bob, 'Album de Bob') RETURNING id")
+                .param("bob", bob).query(Long.class).single();
+        long photoDeBob = insertMedia(albumDeBob, "clicclap/creators/" + bob + "/albums/" + albumDeBob + "/photo");
+        long albumDAlice = createAlbum("Portraits");
+
+        client.delete().uri("/api/creators/me/albums/{albumId}", albumDeBob)
+                .exchange()
+                .expectStatus().isNotFound();
+        // Photo de Bob demandée à travers un album d'Alice : le média n'est pas dans cet album
+        client.delete().uri("/api/creators/me/albums/{albumId}/photos/{mediaId}", albumDAlice, photoDeBob)
+                .exchange()
+                .expectStatus().isNotFound()
+                .expectBody().jsonPath("$.title").isEqualTo("Média introuvable");
+
+        verify(mediaStorage, never()).delete(any(), any());
+        assertThat(compterMedias()).isEqualTo(1);
+    }
+
     // ── Outils ──────────────────────────────────────────────────────────────
+
+    private long insertMedia(long albumId, String publicId) {
+        return jdbc.sql("""
+                INSERT INTO media (album_id, url, cloudinary_public_id)
+                VALUES (:albumId, :url, :publicId)
+                RETURNING id
+                """)
+                .param("albumId", albumId)
+                .param("url", url(publicId))
+                .param("publicId", publicId)
+                .query(Long.class)
+                .single();
+    }
 
     private long createAlbum(String name) {
         Album album = client.post().uri("/api/creators/me/albums")

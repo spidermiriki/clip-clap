@@ -18,6 +18,20 @@ class CreatorExceptionHandler {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
 
+    @ExceptionHandler(MediaNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleMediaNotFound(MediaNotFoundException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Média introuvable");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(StorageUnavailableException.class)
+    ResponseEntity<ProblemDetail> handleStorageUnavailable(StorageUnavailableException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, ex.getMessage());
+        pd.setTitle("Stockage indisponible");
+        return ResponseEntity.status(HttpStatus.BAD_GATEWAY).body(pd);
+    }
+
     @ExceptionHandler(InvalidUploadException.class)
     ResponseEntity<ProblemDetail> handleInvalidUpload(InvalidUploadException ex) {
         var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
