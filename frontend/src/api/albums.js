@@ -101,6 +101,20 @@ async function fetchUploadPhoto(albumId, file, token) {
   return handleResponse(res, "La photo a été envoyée mais n'a pas pu être enregistrée.")
 }
 
+// Suppression (#94) : le backend retire le fichier de Cloudinary puis de la base
+async function fetchDeletePhoto(albumId, mediaId, token) {
+  const res = await fetch(apiUrl(`/api/creators/me/albums/${albumId}/photos/${mediaId}`), {
+    method: 'DELETE',
+    headers: authHeaders(token),
+  })
+  return handleResponse(res, 'Impossible de supprimer la photo.')
+}
+
+async function fetchDeleteAlbum(albumId, token) {
+  const res = await fetch(apiUrl(`/api/creators/me/albums/${albumId}`), { method: 'DELETE', headers: authHeaders(token) })
+  return handleResponse(res, "Impossible de supprimer l'album.")
+}
+
 // ── Mock (VITE_USE_MOCK=true) : aucun appel au backend ni à Cloudinary ────────
 
 const MOCK_DELAY_MS = 300
@@ -148,6 +162,20 @@ async function mockUploadPhoto(albumId, file) {
   return photo
 }
 
+async function mockDeletePhoto(albumId, mediaId) {
+  await delay(MOCK_DELAY_MS)
+  const album = mockAlbums.find((a) => a.id === albumId)
+  if (!album) throw { status: 404, message: 'Album introuvable' }
+  album.photos = album.photos.filter((p) => p.id !== mediaId)
+  return null
+}
+
+async function mockDeleteAlbum(albumId) {
+  await delay(MOCK_DELAY_MS)
+  mockAlbums = mockAlbums.filter((a) => a.id !== albumId)
+  return null
+}
+
 // ── Exports publics ───────────────────────────────────────────────────────────
 
 /** Albums du créateur connecté ([{ id, name, photos: [{ id, url }] }]). */
@@ -169,4 +197,14 @@ export function uploadPhoto(albumId, file, token) {
   const erreur = verifierFichier(file)
   if (erreur) return Promise.reject({ status: 400, message: erreur })
   return USE_MOCK ? mockUploadPhoto(albumId, file) : fetchUploadPhoto(albumId, file, token)
+}
+
+/** Supprime une photo de l'album (Cloudinary puis base) ; lève { status: 502 } si Cloudinary échoue. */
+export function deletePhoto(albumId, mediaId, token) {
+  return USE_MOCK ? mockDeletePhoto(albumId, mediaId) : fetchDeletePhoto(albumId, mediaId, token)
+}
+
+/** Supprime l'album et tous ses médias ; lève { status: 502 } si Cloudinary échoue. */
+export function deleteAlbum(albumId, token) {
+  return USE_MOCK ? mockDeleteAlbum(albumId) : fetchDeleteAlbum(albumId, token)
 }
