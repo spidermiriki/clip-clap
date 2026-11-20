@@ -15,6 +15,8 @@ export default function BackOffice() {
   const [message, setMessage] = useState(null)
   // Refus en cours de saisie : { userId, motif }
   const [refus, setRefus] = useState(null)
+  // Compte dont la décision est en cours d'envoi : ses boutons sont désactivés (pas de double envoi)
+  const [enCours, setEnCours] = useState(null)
 
   useEffect(() => {
     listPendingCreators(token)
@@ -31,22 +33,28 @@ export default function BackOffice() {
 
   async function valider(creator) {
     setError(null)
+    setEnCours(creator.userId)
     try {
       await validateCreator(creator.userId, token)
       retirer(creator.userId, `${creator.displayName} est validé : son profil apparaît dans la galerie.`)
     } catch (err) {
       setError(err?.message ?? 'Impossible de valider ce compte.')
+    } finally {
+      setEnCours(null)
     }
   }
 
   async function refuser(e, creator) {
     e.preventDefault()
     setError(null)
+    setEnCours(creator.userId)
     try {
       await rejectCreator(creator.userId, refus.motif, token)
       retirer(creator.userId, `${creator.displayName} est refusé.`)
     } catch (err) {
       setError(err?.message ?? 'Impossible de refuser ce compte.')
+    } finally {
+      setEnCours(null)
     }
   }
 
@@ -84,16 +92,24 @@ export default function BackOffice() {
                     />
                   </label>
                   <div className={styles.boutons}>
-                    <button type="submit">Confirmer le refus</button>
-                    <button type="button" onClick={() => setRefus(null)}>Annuler</button>
+                    <button type="submit" disabled={enCours === c.userId}>Confirmer le refus</button>
+                    <button type="button" onClick={() => setRefus(null)} disabled={enCours === c.userId}>Annuler</button>
                   </div>
                 </form>
               ) : (
                 <div className={styles.boutons}>
-                  <button type="button" onClick={() => valider(c)} aria-label={`Valider ${c.displayName}`}>Valider</button>
+                  <button
+                    type="button"
+                    onClick={() => valider(c)}
+                    disabled={enCours === c.userId}
+                    aria-label={`Valider ${c.displayName}`}
+                  >
+                    Valider
+                  </button>
                   <button
                     type="button"
                     onClick={() => setRefus({ userId: c.userId, motif: '' })}
+                    disabled={enCours === c.userId}
                     aria-label={`Refuser ${c.displayName}`}
                   >
                     Refuser

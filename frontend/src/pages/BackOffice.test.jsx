@@ -57,4 +57,31 @@ describe('BackOffice (#33)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("n'est pas en attente")
     expect(screen.getByText('Clara Lecomte')).toBeInTheDocument()
   })
+
+  it("désactive les boutons pendant l'envoi : un double-clic n'envoie qu'une décision (revue de #121)", async () => {
+    let terminer
+    vi.mocked(validateCreator).mockReturnValue(new Promise((resolve) => { terminer = resolve }))
+    renderPage()
+
+    const valider = await screen.findByRole('button', { name: 'Valider Clara Lecomte' })
+    fireEvent.click(valider)
+    fireEvent.click(valider)
+
+    expect(valider).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Refuser Clara Lecomte' })).toBeDisabled()
+    expect(validateCreator).toHaveBeenCalledTimes(1)
+
+    terminer({ ...CLARA, validationStatus: 'VALIDATED' })
+    expect(await screen.findByText('Aucun compte en attente.')).toBeInTheDocument()
+  })
+
+  it("réactive les boutons si l'envoi échoue", async () => {
+    vi.mocked(validateCreator).mockRejectedValue({ status: 500, message: 'Erreur serveur' })
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Valider Clara Lecomte' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Erreur serveur')
+    expect(screen.getByRole('button', { name: 'Valider Clara Lecomte' })).toBeEnabled()
+  })
 })
