@@ -12,9 +12,6 @@ public interface CreatorProfileService {
 
     Optional<CreatorProfile> findByUserId(Long userId);
 
-    /** Identifiants utilisateur de tous les profils validés. */
-    Set<Long> findAllValidatedUserIds();
-
     /**
      * Page de profils validés correspondant à {@code criteria}, sans ceux de
      * {@code excludedUserIds} : exclusion et filtres sont appliqués avant la pagination,

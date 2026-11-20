@@ -64,11 +64,6 @@ class CreatorProfileServiceImpl implements CreatorProfileService {
     }
 
     @Override
-    public Set<Long> findAllValidatedUserIds() {
-        return repository.findAllValidatedUserIds();
-    }
-
-    @Override
     public CreatorProfilePage findAllValidated(int page, int size, Set<Long> excludedUserIds,
                                                CreatorSearchCriteria criteria) {
         if (page < 0) throw new IllegalArgumentException("page doit être >= 0");
