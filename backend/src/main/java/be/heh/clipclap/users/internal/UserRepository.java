@@ -41,6 +41,13 @@ class UserRepository {
 			.list());
 	}
 
+	/** Tous les identifiants de comptes suspendus (#98). */
+	Set<Long> findAllSuspendedIds() {
+		return new HashSet<>(jdbc.sql("SELECT id FROM users WHERE suspended = true")
+			.query(Long.class)
+			.list());
+	}
+
 	/**
 	 * Crée le compte avec ce rôle s'il n'existe pas encore, ou met à jour son rôle sinon.
 	 * {@code ON CONFLICT} évite un doublon si deux requêtes de la même personne arrivent

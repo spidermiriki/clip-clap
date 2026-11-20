@@ -26,4 +26,9 @@ class UserApiImpl implements UserApi {
 		return repository.findSuspendedIds(userIds);
 	}
 
+	@Override
+	public Set<Long> findAllSuspendedIds() {
+		return repository.findAllSuspendedIds();
+	}
+
 }
