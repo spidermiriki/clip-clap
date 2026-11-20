@@ -25,4 +25,12 @@ public interface UserApi {
 	 */
 	Set<Long> findSuspendedIds(Set<Long> userIds);
 
+	/**
+	 * Tous les identifiants de comptes suspendus (#98) : permet à {@code catalog} d'exclure
+	 * les créateurs suspendus sans devoir d'abord charger tous les créateurs validés.
+	 *
+	 * @return l'ensemble des ids de la table {@code users} où {@code suspended = true}
+	 */
+	Set<Long> findAllSuspendedIds();
+
 }

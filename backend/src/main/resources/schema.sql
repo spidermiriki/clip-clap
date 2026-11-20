@@ -12,6 +12,8 @@ CREATE TABLE IF NOT EXISTS users (
     suspended     BOOLEAN      NOT NULL DEFAULT FALSE,
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
 );
+-- Index partiel : accélère findAllSuspendedIds (#98), les suspendus restant peu nombreux
+CREATE INDEX IF NOT EXISTS idx_users_suspended ON users (id) WHERE suspended;
 
 -- Module catalog
 CREATE TABLE IF NOT EXISTS categories (

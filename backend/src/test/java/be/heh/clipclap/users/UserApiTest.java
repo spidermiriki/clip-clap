@@ -58,6 +58,21 @@ class UserApiTest {
 		assertThat(userApi.findSuspendedIds(Set.of())).isEmpty();
 	}
 
+	@Test
+	void findAllSuspendedIds_quelquesSuspendus_renvoieSeulementCeuxLa() {
+		long suspendu = insertUser("suspendu2@example.com", "zitadel-sub-suspendu2", true);
+		insertUser("actif3@example.com", "zitadel-sub-actif3", false);
+
+		assertThat(userApi.findAllSuspendedIds()).containsExactly(suspendu);
+	}
+
+	@Test
+	void findAllSuspendedIds_aucunSuspendu_renvoieVide() {
+		insertUser("actif4@example.com", "zitadel-sub-actif4", false);
+
+		assertThat(userApi.findAllSuspendedIds()).isEmpty();
+	}
+
 	private long insertUser(String email, String sub) {
 		return insertUser(email, sub, false);
 	}
