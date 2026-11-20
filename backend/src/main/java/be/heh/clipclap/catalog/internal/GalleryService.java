@@ -6,6 +6,7 @@ import be.heh.clipclap.catalog.CreatorSummaryPage;
 import be.heh.clipclap.creators.AlbumService;
 import be.heh.clipclap.creators.CreatorProfileService;
 import be.heh.clipclap.creators.CreatorSearchCriteria;
+import be.heh.clipclap.offerings.OfferingApi;
 import be.heh.clipclap.users.UserApi;
 import org.springframework.stereotype.Service;
 
@@ -17,11 +18,14 @@ class GalleryService {
 	private final CreatorProfileService creatorProfileService;
 	private final AlbumService albumService;
 	private final UserApi userApi;
+	private final OfferingApi offeringApi;
 
-	GalleryService(CreatorProfileService creatorProfileService, AlbumService albumService, UserApi userApi) {
+	GalleryService(CreatorProfileService creatorProfileService, AlbumService albumService, UserApi userApi,
+			OfferingApi offeringApi) {
 		this.creatorProfileService = creatorProfileService;
 		this.albumService = albumService;
 		this.userApi = userApi;
+		this.offeringApi = offeringApi;
 	}
 
 	/** Créateurs visibles publiquement (profil validé, compte non suspendu, #75) et correspondant aux filtres (#14). */
@@ -36,13 +40,14 @@ class GalleryService {
 		return new CreatorSummaryPage(summaries, profilePage.page(), profilePage.size(), profilePage.totalElements());
 	}
 
-	/** Profil public (#17) et albums (#15) : mêmes règles de visibilité que la galerie (validé, non suspendu). */
+	/** Profil public (#17), albums (#15) et prestations (#27) : mêmes règles de visibilité que la galerie (validé, non suspendu). */
 	CreatorPublicProfile findPublicProfile(long userId) {
 		return creatorProfileService.findByUserId(userId)
 				.filter(p -> "VALIDATED".equals(p.validationStatus()))
 				.filter(p -> userApi.findSuspendedIds(Set.of(userId)).isEmpty())
 				.map(p -> new CreatorPublicProfile(p.userId(), p.displayName(), p.photoUrl(), p.bio(),
-						p.city(), p.country(), p.serviceAreas(), albumService.findAlbumsOf(userId)))
+						p.city(), p.country(), p.serviceAreas(), albumService.findAlbumsOf(userId),
+						offeringApi.findOfferingsOf(userId)))
 				.orElseThrow(() -> new CreatorNotPublicException(userId));
 	}
 }

@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { getCreatorProfile } from '../api/catalog'
+import { getCategories, getCreatorProfile } from '../api/catalog'
+import { formatDuree, formatPrix } from '../format'
 import styles from './ProfilPublic.module.css'
 
-// Profil public d'un créateur (wireframe 04, #17) et ses albums (#15). Les prestations arrivent en v0.2 (#27).
+// Profil public d'un créateur (wireframe 04, #17), ses prestations (#27) et ses albums (#15)
 export default function ProfilPublic() {
   const { userId } = useParams()
   // Un nouvel objet à chaque demande : « Réessayer » relance le chargement
@@ -11,6 +12,8 @@ export default function ProfilPublic() {
   const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  // Noms des catégories de prestation (#123) : facultatifs, le profil s'affiche sans eux
+  const [categories, setCategories] = useState([])
 
   if (request.userId !== userId) {
     // Navigation d'un profil à un autre : on repart de zéro pendant le rendu, sans effet en cascade
@@ -19,6 +22,10 @@ export default function ProfilPublic() {
     setLoading(true)
     setError(null)
   }
+
+  useEffect(() => {
+    getCategories().then(setCategories).catch(() => setCategories([]))
+  }, [])
 
   useEffect(() => {
     let ignore = false
@@ -88,6 +95,32 @@ export default function ProfilPublic() {
       <section aria-labelledby="titre-zones">
         <h2 id="titre-zones">Zones d&apos;intervention</h2>
         <p>{profile.serviceAreas || 'Non précisées.'}</p>
+      </section>
+
+      <section aria-labelledby="titre-prestations">
+        <h2 id="titre-prestations">Prestations</h2>
+        {profile.offerings?.length ? (
+          <ul className={styles.prestations} aria-label="Prestations proposées">
+            {profile.offerings.map((offering) => (
+              <li key={offering.id}>
+                <h3>{offering.name}</h3>
+                <p>
+                  {[categories.find((c) => c.id === offering.categoryId)?.name, formatDuree(offering.durationMinutes),
+                    formatPrix(offering.basePrice)].filter(Boolean).join(' · ')}
+                </p>
+                {offering.options.length > 0 && (
+                  <ul aria-label={`Options de ${offering.name}`}>
+                    {offering.options.map((option) => (
+                      <li key={option.id}>{option.name} : + {formatPrix(option.extraPrice)}</li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p>Aucune prestation pour le moment.</p>
+        )}
       </section>
 
       <section aria-labelledby="titre-albums">
