@@ -122,8 +122,10 @@ CREATE TABLE IF NOT EXISTS bookings (
     creator_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki). Pas encore NOT NULL : la
     -- création d'une réservation avec prestation et créneau choisis arrivera avec #29.
-    offering_id BIGINT REFERENCES offerings (id),
-    slot_id     BIGINT REFERENCES availability_slots (id),
+    -- ON DELETE SET NULL (#133) : supprimer une prestation ou un créneau n'efface pas l'historique
+    -- d'une réservation passée (refusée, annulée, expirée, terminée) ; son prix reste figé.
+    offering_id BIGINT REFERENCES offerings (id) ON DELETE SET NULL,
+    slot_id     BIGINT REFERENCES availability_slots (id) ON DELETE SET NULL,
     -- Prix total figé au moment de la réservation (#29) : une prestation modifiée ensuite ne change
     -- pas le prix d'une réservation existante.
     total_price NUMERIC(10, 2),
@@ -131,6 +133,16 @@ CREATE TABLE IF NOT EXISTS bookings (
                 CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- La table a pu être créée avant #133, sans ON DELETE : CREATE TABLE IF NOT EXISTS ne touche plus
+-- ses contraintes. Rejouable à chaque démarrage : chaque contrainte est supprimée puis recréée
+-- (noms générés par PostgreSQL, <table>_<colonne>_fkey), dans une seule instruction par contrainte.
+ALTER TABLE bookings
+    DROP CONSTRAINT IF EXISTS bookings_offering_id_fkey,
+    ADD CONSTRAINT bookings_offering_id_fkey FOREIGN KEY (offering_id) REFERENCES offerings (id) ON DELETE SET NULL;
+ALTER TABLE bookings
+    DROP CONSTRAINT IF EXISTS bookings_slot_id_fkey,
+    ADD CONSTRAINT bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES availability_slots (id) ON DELETE SET NULL;
 
 CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
