@@ -1,7 +1,7 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createAlbum, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
+import { createAlbum, deleteAlbum, deletePhoto, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
 import MesAlbums from './MesAlbums'
 
 vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: 'jeton' } }) }))
@@ -11,6 +11,8 @@ vi.mock('../api/albums', async (importOriginal) => ({
   createAlbum: vi.fn(),
   renameAlbum: vi.fn(),
   uploadPhoto: vi.fn(),
+  deletePhoto: vi.fn(),
+  deleteAlbum: vi.fn(),
 }))
 
 function renderPage() {
@@ -23,10 +25,15 @@ describe('MesAlbums (#15)', () => {
     vi.mocked(createAlbum).mockReset()
     vi.mocked(renameAlbum).mockReset().mockResolvedValue(null)
     vi.mocked(uploadPhoto).mockReset()
+    vi.mocked(deletePhoto).mockReset().mockResolvedValue(null)
+    vi.mocked(deleteAlbum).mockReset().mockResolvedValue(null)
   })
 
   // Sans `globals: true` dans la config Vitest, Testing Library ne démonte pas le rendu tout seul
-  afterEach(cleanup)
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+  })
 
   it('crée un album puis y envoie deux photos (scénario 5)', async () => {
     vi.mocked(createAlbum).mockResolvedValue({ id: 7, name: 'Mariage Dupont', photos: [] })
@@ -83,5 +90,60 @@ describe('MesAlbums (#15)', () => {
     renderPage()
 
     expect(await screen.findByRole('link', { name: 'Créer mon profil' })).toHaveAttribute('href', '/mon-profil')
+  })
+
+  // ── Suppression (#94) ──────────────────────────────────────────────────────
+
+  const ALBUM = {
+    id: 7,
+    name: 'Mariage Dupont',
+    photos: [{ id: 1, url: 'https://exemple.test/1.jpg' }, { id: 2, url: 'https://exemple.test/2.jpg' }],
+  }
+
+  it('supprime une photo après confirmation', async () => {
+    vi.mocked(listMyAlbums).mockResolvedValue([ALBUM])
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer la photo 1' }))
+
+    expect(await screen.findByRole('button', { name: /Mariage Dupont \(1\)/ })).toBeInTheDocument()
+    expect(deletePhoto).toHaveBeenCalledWith(7, 1, 'jeton')
+    // La photo restante est renumérotée
+    expect(screen.getByAltText('Mariage Dupont, photo 1')).toHaveAttribute('src', 'https://exemple.test/2.jpg')
+  })
+
+  it("ne supprime rien si l'utilisateur annule", async () => {
+    vi.mocked(listMyAlbums).mockResolvedValue([ALBUM])
+    vi.spyOn(window, 'confirm').mockReturnValue(false)
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: "Supprimer l'album" }))
+
+    expect(deleteAlbum).not.toHaveBeenCalled()
+  })
+
+  it("supprime l'album et sélectionne le suivant", async () => {
+    vi.mocked(listMyAlbums).mockResolvedValue([ALBUM, { id: 8, name: 'Portraits', photos: [] }])
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: "Supprimer l'album" }))
+
+    expect(await screen.findByRole('heading', { name: 'Portraits' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /Mariage Dupont/ })).not.toBeInTheDocument()
+    expect(deleteAlbum).toHaveBeenCalledWith(7, 'jeton')
+  })
+
+  it('affiche le refus du backend quand Cloudinary est indisponible (502) et garde la photo', async () => {
+    vi.mocked(listMyAlbums).mockResolvedValue([ALBUM])
+    vi.mocked(deletePhoto).mockRejectedValue({ status: 502, message: "Le stockage des médias n'a pas confirmé la suppression." })
+    vi.spyOn(window, 'confirm').mockReturnValue(true)
+    renderPage()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer la photo 1' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("n'a pas confirmé la suppression")
+    expect(screen.getByAltText('Mariage Dupont, photo 1')).toBeInTheDocument()
   })
 })
