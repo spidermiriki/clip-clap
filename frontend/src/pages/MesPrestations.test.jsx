@@ -1,10 +1,12 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createOffering, deleteOffering, listMyOfferings, updateOffering } from '../api/offerings'
 import MesPrestations from './MesPrestations'
 
-vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: 'jeton' } }) }))
+// Token modifiable : simule le renouvellement silencieux de la session (revue de #119)
+const auth = vi.hoisted(() => ({ token: 'jeton' }))
+vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: auth.token } }) }))
 vi.mock('../api/offerings', () => ({
   listMyOfferings: vi.fn(),
   createOffering: vi.fn(),
@@ -20,12 +22,15 @@ const MARIAGE = {
   options: [{ id: 9, name: 'Drone', extraPrice: 150 }],
 }
 
+const page = () => <MemoryRouter><MesPrestations /></MemoryRouter>
+
 function renderPage() {
-  return render(<MemoryRouter><MesPrestations /></MemoryRouter>)
+  return render(page())
 }
 
 describe('MesPrestations (#27)', () => {
   beforeEach(() => {
+    auth.token = 'jeton'
     vi.mocked(listMyOfferings).mockReset().mockResolvedValue([])
     vi.mocked(createOffering).mockReset()
     vi.mocked(updateOffering).mockReset()
@@ -129,5 +134,53 @@ describe('MesPrestations (#27)', () => {
     renderPage()
 
     expect(await screen.findByRole('link', { name: 'Créer mon profil' })).toBeInTheDocument()
+  })
+
+  // ── Rechargement à chaque nouveau token (revue de #119) ───────────────────
+
+  it("efface l'erreur quand le chargement suivant réussit", async () => {
+    vi.mocked(listMyOfferings)
+      .mockRejectedValueOnce({ status: 401, message: 'Session expirée' })
+      .mockResolvedValueOnce([MARIAGE])
+    const { rerender } = renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Session expirée')
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+
+    expect(await screen.findByText('Reportage mariage')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it("quitte l'écran « pas de profil » quand le chargement suivant réussit", async () => {
+    vi.mocked(listMyOfferings)
+      .mockRejectedValueOnce({ status: 404, message: 'Profil introuvable' })
+      .mockResolvedValueOnce([MARIAGE])
+    const { rerender } = renderPage()
+    await screen.findByRole('link', { name: 'Créer mon profil' })
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+
+    expect(await screen.findByText('Reportage mariage')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Créer mon profil' })).not.toBeInTheDocument()
+  })
+
+  it('ignore une réponse arrivée après une plus récente', async () => {
+    let repondreAncien
+    vi.mocked(listMyOfferings)
+      .mockReturnValueOnce(new Promise((resolve) => { repondreAncien = resolve }))
+      .mockResolvedValueOnce([MARIAGE])
+    const { rerender } = renderPage()
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+    expect(await screen.findByText('Reportage mariage')).toBeInTheDocument()
+
+    repondreAncien([{ ...MARIAGE, id: 99, name: 'Ancienne réponse' }])
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+    expect(screen.queryByText('Ancienne réponse')).not.toBeInTheDocument()
+    expect(screen.getByText('Reportage mariage')).toBeInTheDocument()
   })
 })

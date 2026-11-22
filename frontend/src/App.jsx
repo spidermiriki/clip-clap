@@ -58,6 +58,7 @@ function App() {
                 <Link to="/mes-disponibilites">Mes disponibilités</Link>
               </>
             )}
+            {roleFromProfile(auth.user?.profile) === 'ADMIN' && <Link to="/admin">Back-office</Link>}
             <span>{auth.user?.profile.email}</span>
             <button type="button" className="link" onClick={() => auth.signoutRedirect()}>
               Se déconnecter
