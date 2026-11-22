@@ -31,14 +31,27 @@ export default function MesPrestations() {
   const [editionId, setEditionId] = useState(null)
   const [envoi, setEnvoi] = useState(false)
 
+  // Relancé à chaque nouveau token (renouvellement silencieux de la session) : on repart d'un état
+  // propre, et une réponse arrivée après une plus récente est ignorée (revue de #119)
   useEffect(() => {
+    let ignore = false
+    setError(null)
+    setSansProfil(false)
     listMyOfferings(token)
-      .then(setOfferings)
+      .then((result) => {
+        if (!ignore) setOfferings(result)
+      })
       .catch((err) => {
+        if (ignore) return
         if (err?.status === 404) setSansProfil(true)
         else setError(err?.message ?? 'Impossible de charger vos prestations.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
   }, [token])
 
   function champ(nom, valeur) {
