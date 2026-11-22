@@ -18,11 +18,24 @@ export default function BackOffice() {
   // Compte dont la décision est en cours d'envoi : ses boutons sont désactivés (pas de double envoi)
   const [enCours, setEnCours] = useState(null)
 
+  // Relancé à chaque nouveau token (renouvellement silencieux de la session) : on repart d'un état
+  // propre, et une réponse arrivée après une plus récente est ignorée (#129, comme #119)
   useEffect(() => {
+    let ignore = false
+    setError(null)
     listPendingCreators(token)
-      .then(setEnAttente)
-      .catch((err) => setError(err?.message ?? 'Impossible de charger les comptes en attente.'))
-      .finally(() => setLoading(false))
+      .then((result) => {
+        if (!ignore) setEnAttente(result)
+      })
+      .catch((err) => {
+        if (!ignore) setError(err?.message ?? 'Impossible de charger les comptes en attente.')
+      })
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
   }, [token])
 
   function retirer(userId, texte) {
