@@ -15,7 +15,7 @@ import org.springframework.web.context.WebApplicationContext;
 
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-// catalog dépend directement de creators et de users (#75) : DIRECT_DEPENDENCIES charge les deux
+// catalog dépend directement de creators, users (#75) et offerings (#27) : DIRECT_DEPENDENCIES les charge
 @ApplicationModuleTest(mode = BootstrapMode.DIRECT_DEPENDENCIES)
 @Import(TestcontainersConfiguration.class)
 @Transactional
@@ -171,6 +171,30 @@ class GalleryControllerTest {
 				.jsonPath("$.albums[0].name").isEqualTo("Mariages")
 				.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
 				.jsonPath("$.albums[0].photos[0].url").isEqualTo("https://res.cloudinary.com/cloud-test/image/upload/v1/photo-1.jpg");
+	}
+
+	@Test
+	void getCreatorProfile_afficheSesPrestationsEtLeursOptions() {
+		long userId = insertValidatedCreator("prestations@gallery.test", "Avec prestations", false);
+		long offeringId = jdbcClient.sql("""
+				INSERT INTO offerings (creator_id, name, duration_minutes, base_price)
+				VALUES (:userId, 'Reportage mariage', 480, 1200.00)
+				RETURNING id
+				""")
+				.param("userId", userId).query(Long.class).single();
+		jdbcClient.sql("INSERT INTO offering_options (offering_id, name, extra_price) VALUES (:id, 'Drone', 150.00)")
+				.param("id", offeringId).update();
+
+		restTestClient.get().uri("/api/catalog/creators/{userId}", userId)
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.offerings.length()").isEqualTo(1)
+				.jsonPath("$.offerings[0].name").isEqualTo("Reportage mariage")
+				.jsonPath("$.offerings[0].durationMinutes").isEqualTo(480)
+				.jsonPath("$.offerings[0].basePrice").isEqualTo(1200.0)
+				.jsonPath("$.offerings[0].options[0].name").isEqualTo("Drone")
+				.jsonPath("$.offerings[0].options[0].extraPrice").isEqualTo(150.0);
 	}
 
 	@Test

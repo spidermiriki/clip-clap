@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Repository
 class AlbumRepository {
@@ -55,6 +56,39 @@ class AlbumRepository {
                 .param("publicId", publicId)
                 .query(Photo.class)
                 .single();
+    }
+
+    /** Média tel que stocké : de quoi le supprimer aussi chez Cloudinary (#94). */
+    record StoredMedia(long id, String publicId, String mediaType) {}
+
+    Optional<StoredMedia> findMedia(long albumId, long mediaId) {
+        return jdbc.sql("""
+                SELECT id, cloudinary_public_id AS public_id, media_type FROM media
+                WHERE id = :mediaId AND album_id = :albumId
+                """)
+                .param("mediaId", mediaId)
+                .param("albumId", albumId)
+                .query(StoredMedia.class)
+                .optional();
+    }
+
+    List<StoredMedia> findMedia(long albumId) {
+        return jdbc.sql("""
+                SELECT id, cloudinary_public_id AS public_id, media_type FROM media
+                WHERE album_id = :albumId
+                ORDER BY id
+                """)
+                .param("albumId", albumId)
+                .query(StoredMedia.class)
+                .list();
+    }
+
+    void deleteMedia(long mediaId) {
+        jdbc.sql("DELETE FROM media WHERE id = :mediaId").param("mediaId", mediaId).update();
+    }
+
+    void deleteAlbum(long albumId) {
+        jdbc.sql("DELETE FROM albums WHERE id = :albumId").param("albumId", albumId).update();
     }
 
     /** Albums du créateur (du plus ancien au plus récent) avec leurs photos, en deux requêtes. */

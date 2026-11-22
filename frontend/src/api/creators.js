@@ -38,6 +38,7 @@ async function handleResponse(res) {
 const MOCK_DELAY_MS = 300
 
 let mockStore = null
+let mockCategoryIds = []
 
 async function mockGet() {
   await delay(MOCK_DELAY_MS)
@@ -48,7 +49,7 @@ async function mockCreate(data) {
   await delay(MOCK_DELAY_MS)
   if (!data.displayName?.trim()) throw { status: 400, message: 'Le nom affiché est obligatoire.' }
   if (mockStore) throw { status: 409, message: 'Un profil créateur existe déjà pour ce compte.' }
-  mockStore = { userId: 1, photoUrl: null, validationStatus: 'VALIDATED', ...data }
+  mockStore = { userId: 1, photoUrl: null, validationStatus: 'PENDING', rejectionReason: null, ...data }
   return { ...mockStore }
 }
 
@@ -58,6 +59,17 @@ async function mockUpdate(data) {
   if (!mockStore) throw { status: 404, message: 'Profil introuvable.' }
   mockStore = { ...mockStore, ...data }
   return { ...mockStore }
+}
+
+async function mockGetCategories() {
+  await delay(MOCK_DELAY_MS)
+  return [...mockCategoryIds]
+}
+
+async function mockUpdateCategories(categoryIds) {
+  await delay(MOCK_DELAY_MS)
+  mockCategoryIds = [...new Set(categoryIds)].sort((a, b) => a - b)
+  return [...mockCategoryIds]
 }
 
 // ── API réelle ────────────────────────────────────────────────────────────────
@@ -85,6 +97,24 @@ async function fetchUpdate(data, token) {
   return handleResponse(res)
 }
 
+async function fetchGetCategories(token) {
+  const res = await fetch(apiUrl('/api/creators/me/categories'), { headers: authHeaders(token) })
+  return (await handleResponse(res)) ?? []
+}
+
+async function fetchUpdateCategories(categoryIds, token) {
+  const res = await fetch(apiUrl('/api/creators/me/categories'), {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
+    body: JSON.stringify({ categoryIds }),
+  })
+  // handleResponse renvoie null pour un 404 « Profil introuvable » (utile au GET du profil) :
+  // ici, ce n'est pas un résultat mais un échec (revue de #122)
+  const ids = await handleResponse(res)
+  if (!Array.isArray(ids)) throw { status: res.status, message: 'Profil introuvable.' }
+  return ids
+}
+
 // ── Exports publics ───────────────────────────────────────────────────────────
 
 /** Renvoie le profil courant, ou null si aucun profil n'existe (404 "Profil introuvable"). */
@@ -100,4 +130,14 @@ export function createMyProfile(data, accessToken = null) {
 /** Met à jour le profil. Lève { status: 400 } si invalide. */
 export function updateMyProfile(data, accessToken = null) {
   return USE_MOCK ? mockUpdate(data) : fetchUpdate(data, accessToken)
+}
+
+/** Identifiants des types de prestation choisis (#87) ; [] si le profil n'existe pas encore. */
+export function getMyCategories(accessToken = null) {
+  return USE_MOCK ? mockGetCategories() : fetchGetCategories(accessToken)
+}
+
+/** Remplace les types de prestation choisis. Lève { status: 400 } pour une catégorie inconnue. */
+export function updateMyCategories(categoryIds, accessToken = null) {
+  return USE_MOCK ? mockUpdateCategories(categoryIds) : fetchUpdateCategories(categoryIds, accessToken)
 }

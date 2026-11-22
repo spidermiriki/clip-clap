@@ -1,5 +1,5 @@
--- Schéma v0.1 (MVP) : comptes, profils créateurs, catégories, albums et médias.
--- Les tables des versions suivantes (prestations, réservations, avis, signalements)
+-- Schéma : comptes, profils créateurs, catégories, albums et médias (v0.1), prestations (v0.2).
+-- Les tables des versions suivantes (agenda, réservations, avis, signalements)
 -- seront ajoutées au fil des releases.
 
 -- Module users
@@ -68,17 +68,62 @@ CREATE TABLE IF NOT EXISTS media (
 
 CREATE INDEX IF NOT EXISTS idx_media_album ON media (album_id);
 
--- Module bookings
+-- Module offerings (v0.2)
+-- Prestations à prix fixe d'un créateur (#27), avec leurs options payantes
+CREATE TABLE IF NOT EXISTS offerings (
+    id               BIGSERIAL     PRIMARY KEY,
+    creator_id       BIGINT        NOT NULL REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
+    name             VARCHAR(100)  NOT NULL,
+    duration_minutes INTEGER       NOT NULL CHECK (duration_minutes > 0),
+    base_price       NUMERIC(10,2) NOT NULL CHECK (base_price >= 0),
+    created_at       TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_offerings_creator ON offerings (creator_id);
+
+-- Catégorie facultative d'une prestation (#123). ALTER plutôt qu'une colonne du CREATE : la table
+-- peut déjà exister (déploiement de #27). Une catégorie inconnue est refusée par la clé étrangère.
+ALTER TABLE offerings ADD COLUMN IF NOT EXISTS category_id INTEGER REFERENCES categories (id) ON DELETE SET NULL;
+
+CREATE TABLE IF NOT EXISTS offering_options (
+    id          BIGSERIAL     PRIMARY KEY,
+    offering_id BIGINT        NOT NULL REFERENCES offerings (id) ON DELETE CASCADE,
+    name        VARCHAR(100)  NOT NULL,
+    extra_price NUMERIC(10,2) NOT NULL CHECK (extra_price >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_offering_options_offering ON offering_options (offering_id);
+
+-- Créneaux libres d'un créateur (#28), en TIMESTAMPTZ : affichés et saisis à l'heure de Bruxelles.
+-- Le module bookings les référence par availability_slots.id (slot_id).
+CREATE TABLE IF NOT EXISTS availability_slots (
+    id         BIGSERIAL   PRIMARY KEY,
+    creator_id BIGINT      NOT NULL REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
+    starts_at  TIMESTAMPTZ NOT NULL,
+    ends_at    TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK (ends_at > starts_at)
+);
+
+CREATE INDEX IF NOT EXISTS idx_availability_slots_creator ON availability_slots (creator_id, starts_at);
+
+-- Préavis minimum et marge entre deux rendez-vous, par créateur (#28) ; sans ligne, les deux valent 0
+CREATE TABLE IF NOT EXISTS scheduling_settings (
+    creator_id       BIGINT  PRIMARY KEY REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
+    min_notice_hours INTEGER NOT NULL DEFAULT 0 CHECK (min_notice_hours BETWEEN 0 AND 720),
+    buffer_minutes   INTEGER NOT NULL DEFAULT 0 CHECK (buffer_minutes BETWEEN 0 AND 480)
+);
+
+-- Module bookings (v0.2)
 -- Statuts possibles : EN_ATTENTE, CONFIRMEE, REFUSEE, ANNULEE, EXPIREE, TERMINEE (#39)
 CREATE TABLE IF NOT EXISTS bookings (
     id          BIGSERIAL   PRIMARY KEY,
     client_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     creator_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    -- Prestation et créneau réservés (#29, contrat sur #29 avec @spidermiriki) : pas encore NOT NULL
-    -- ni REFERENCES, en attente de offerings (#119) et availability_slots (#128) ; passeront en
-    -- NOT NULL REFERENCES quand #29 posera la création d'une réservation.
-    offering_id BIGINT,
-    slot_id     BIGINT,
+    -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki). Pas encore NOT NULL : la
+    -- création d'une réservation avec prestation et créneau choisis arrivera avec #29.
+    offering_id BIGINT REFERENCES offerings (id),
+    slot_id     BIGINT REFERENCES availability_slots (id),
     -- Prix total figé au moment de la réservation (#29) : une prestation modifiée ensuite ne change
     -- pas le prix d'une réservation existante.
     total_price NUMERIC(10, 2),

@@ -91,3 +91,32 @@ section p {
   gap: 1rem;
   margin-top: 1rem;
 }
+
+.prestations {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.prestations > li {
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.prestations h3 {
+  margin: 0 0 0.25rem;
+}
+
+.prestations p {
+  margin: 0;
+}
+
+.prestations ul {
+  margin: 0.5rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.9rem;
+}
