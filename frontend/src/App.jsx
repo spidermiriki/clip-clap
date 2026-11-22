@@ -54,6 +54,7 @@ function App() {
               <>
                 <Link to="/mon-profil">Mon profil</Link>
                 <Link to="/mes-albums">Mes albums</Link>
+                <Link to="/mes-prestations">Mes prestations</Link>
               </>
             )}
             {roleFromProfile(auth.user?.profile) === 'ADMIN' && <Link to="/admin">Back-office</Link>}

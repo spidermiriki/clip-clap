@@ -1,5 +1,5 @@
--- Schéma v0.1 (MVP) : comptes, profils créateurs, catégories, albums et médias.
--- Les tables des versions suivantes (prestations, réservations, avis, signalements)
+-- Schéma : comptes, profils créateurs, catégories, albums et médias (v0.1), prestations (v0.2).
+-- Les tables des versions suivantes (agenda, réservations, avis, signalements)
 -- seront ajoutées au fil des releases.
 
 -- Module users
@@ -67,3 +67,25 @@ CREATE TABLE IF NOT EXISTS media (
 );
 
 CREATE INDEX IF NOT EXISTS idx_media_album ON media (album_id);
+
+-- Module offerings (v0.2)
+-- Prestations à prix fixe d'un créateur (#27), avec leurs options payantes
+CREATE TABLE IF NOT EXISTS offerings (
+    id               BIGSERIAL     PRIMARY KEY,
+    creator_id       BIGINT        NOT NULL REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
+    name             VARCHAR(100)  NOT NULL,
+    duration_minutes INTEGER       NOT NULL CHECK (duration_minutes > 0),
+    base_price       NUMERIC(10,2) NOT NULL CHECK (base_price >= 0),
+    created_at       TIMESTAMPTZ   NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_offerings_creator ON offerings (creator_id);
+
+CREATE TABLE IF NOT EXISTS offering_options (
+    id          BIGSERIAL     PRIMARY KEY,
+    offering_id BIGINT        NOT NULL REFERENCES offerings (id) ON DELETE CASCADE,
+    name        VARCHAR(100)  NOT NULL,
+    extra_price NUMERIC(10,2) NOT NULL CHECK (extra_price >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS idx_offering_options_offering ON offering_options (offering_id);
