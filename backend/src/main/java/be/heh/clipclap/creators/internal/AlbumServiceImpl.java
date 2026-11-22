@@ -16,11 +16,14 @@ class AlbumServiceImpl implements AlbumService {
     private final AlbumRepository albums;
     private final CreatorProfileRepository profiles;
     private final UploadSigner uploadSigner;
+    private final MediaStorage mediaStorage;
 
-    AlbumServiceImpl(AlbumRepository albums, CreatorProfileRepository profiles, UploadSigner uploadSigner) {
+    AlbumServiceImpl(AlbumRepository albums, CreatorProfileRepository profiles, UploadSigner uploadSigner,
+                     MediaStorage mediaStorage) {
         this.albums = albums;
         this.profiles = profiles;
         this.uploadSigner = uploadSigner;
+        this.mediaStorage = mediaStorage;
     }
 
     @Override
@@ -81,6 +84,44 @@ class AlbumServiceImpl implements AlbumService {
             throw new InvalidUploadException("La signature de Cloudinary est invalide");
         }
         return albums.addPhoto(albumId, secureUrl, publicId);
+    }
+
+    // ── Suppression (#94) ───────────────────────────────────────────────────
+    // Cloudinary d'abord, la base ensuite : si Cloudinary échoue, rien n'est retiré de la base.
+    // Pas de transaction englobante : un album à moitié supprimé garde ses médias restants,
+    // et il suffit de relancer la suppression pour la terminer.
+
+    void deletePhoto(long userId, long albumId, long mediaId) {
+        requireOwned(userId, albumId);
+        var media = albums.findMedia(albumId, mediaId).orElseThrow(() -> new MediaNotFoundException(mediaId));
+        removeFromStorage(userId, albumId, media);
+        albums.deleteMedia(media.id());
+    }
+
+    void deleteAlbum(long userId, long albumId) {
+        requireOwned(userId, albumId);
+        var medias = albums.findMedia(albumId);
+        int supprimes = 0;
+        for (var media : medias) {
+            try {
+                removeFromStorage(userId, albumId, media);
+            } catch (StorageUnavailableException e) {
+                throw StorageUnavailableException.partielle(supprimes, medias.size(), e);
+            }
+            albums.deleteMedia(media.id());
+            supprimes++;
+        }
+        albums.deleteAlbum(albumId);
+    }
+
+    /**
+     * Seuls les fichiers envoyés dans le dossier de l'album sont supprimés chez Cloudinary : les
+     * images d'exemple des données de démonstration ({@code samples/...}) ne sont jamais touchées.
+     */
+    private void removeFromStorage(long userId, long albumId, AlbumRepository.StoredMedia media) {
+        if (media.publicId().startsWith(folder(userId, albumId) + "/")) {
+            mediaStorage.delete(media.publicId(), media.mediaType());
+        }
     }
 
     static String folder(long userId, long albumId) {
