@@ -6,6 +6,27 @@ import styles from './MonProfilCreateur.module.css'
 
 const EMPTY_FORM = { displayName: '', bio: '', city: '', country: '', serviceAreas: '' }
 
+// Statut de validation du profil par l'administrateur (#33) : rien à signaler une fois validé
+function BandeauValidation({ statut }) {
+  if (statut?.validationStatus === 'PENDING') {
+    return (
+      <p role="status" className={styles.bandeau}>
+        Votre profil est en attente de validation par un administrateur : il n&apos;apparaîtra dans la
+        galerie qu&apos;une fois validé. Vous pouvez déjà préparer vos albums et vos prestations.
+      </p>
+    )
+  }
+  if (statut?.validationStatus === 'REJECTED') {
+    return (
+      <p role="status" className={`${styles.bandeau} ${styles.refuse}`}>
+        Votre profil a été refusé : {statut.rejectionReason}. Corrigez-le puis enregistrez : il repassera en
+        attente de validation.
+      </p>
+    )
+  }
+  return null
+}
+
 export default function MonProfilCreateur() {
   const { user } = useAuth()
   const accessToken = user?.access_token ?? null
@@ -16,6 +37,7 @@ export default function MonProfilCreateur() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(false)
+  const [statut, setStatut] = useState(null)
   // Types de prestation (#87) : la liste vient de catalog, le choix de creators
   const [categories, setCategories] = useState([])
   const [categoriesIndisponibles, setCategoriesIndisponibles] = useState(false)
@@ -35,6 +57,7 @@ export default function MonProfilCreateur() {
     getMyProfile(accessToken)
       .then((profile) => {
         if (profile) {
+          setStatut(profile)
           setForm({
             displayName: profile.displayName ?? '',
             bio: profile.bio ?? '',
@@ -82,10 +105,10 @@ export default function MonProfilCreateur() {
     setSuccess(false)
     try {
       if (isCreation) {
-        await createMyProfile(form, accessToken)
+        setStatut(await createMyProfile(form, accessToken))
         setIsCreation(false)
       } else {
-        await updateMyProfile(form, accessToken)
+        setStatut(await updateMyProfile(form, accessToken))
       }
       // Après le profil : à la création, il doit exister avant ses catégories
       if (choixPret && !categoriesIndisponibles) setChoix(await updateMyCategories(choix, accessToken))
@@ -111,6 +134,7 @@ export default function MonProfilCreateur() {
   return (
     <main className={styles.container}>
       <h1>{isCreation ? 'Créer mon profil créateur' : 'Mon profil créateur'}</h1>
+      <BandeauValidation statut={statut} />
 
       <form className={styles.form} onSubmit={handleSubmit} noValidate>
         <div className={styles.field}>

@@ -46,7 +46,11 @@ class CreatorControllerTest {
                         """)
                 .exchange()
                 .expectStatus().isCreated()
-                .expectBody().jsonPath("$.displayName").isEqualTo("Alice");
+                .expectBody()
+                .jsonPath("$.displayName").isEqualTo("Alice")
+                // Depuis la v0.2, un nouveau profil attend la validation d'un administrateur (#33)
+                .jsonPath("$.validationStatus").isEqualTo("PENDING")
+                .jsonPath("$.rejectionReason").isEmpty();
     }
 
     @Test

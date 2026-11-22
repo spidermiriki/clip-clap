@@ -31,7 +31,7 @@ class CreatorCategoryServiceTest {
 
     @BeforeEach
     void setUp() {
-        var profil = new CreatorProfile(USER_ID, "Alice", null, null, null, null, null, "VALIDATED");
+        var profil = new CreatorProfile(USER_ID, "Alice", null, null, null, null, null, "VALIDATED", null);
         when(profiles.findByUserId(USER_ID)).thenReturn(Optional.of(profil));
     }
 

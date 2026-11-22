@@ -49,7 +49,7 @@ async function mockCreate(data) {
   await delay(MOCK_DELAY_MS)
   if (!data.displayName?.trim()) throw { status: 400, message: 'Le nom affiché est obligatoire.' }
   if (mockStore) throw { status: 409, message: 'Un profil créateur existe déjà pour ce compte.' }
-  mockStore = { userId: 1, photoUrl: null, validationStatus: 'VALIDATED', ...data }
+  mockStore = { userId: 1, photoUrl: null, validationStatus: 'PENDING', rejectionReason: null, ...data }
   return { ...mockStore }
 }
 

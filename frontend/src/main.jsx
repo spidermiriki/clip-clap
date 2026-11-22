@@ -7,6 +7,7 @@ import App from './App.jsx'
 import Callback from './pages/Callback.jsx'
 import Galerie from './pages/Galerie.jsx'
 import Inscription from './pages/Inscription.jsx'
+import BackOffice from './pages/BackOffice.jsx'
 import MesAlbums from './pages/MesAlbums.jsx'
 import MonProfilCreateur from './pages/MonProfilCreateur.jsx'
 import ProfilPublic from './pages/ProfilPublic.jsx'
@@ -35,6 +36,14 @@ createRoot(document.getElementById('root')).render(
               element={(
                 <ProtectedRoute roles={['CREATOR']}>
                   <MesAlbums />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="admin"
+              element={(
+                <ProtectedRoute roles={['ADMIN']}>
+                  <BackOffice />
                 </ProtectedRoute>
               )}
             />
