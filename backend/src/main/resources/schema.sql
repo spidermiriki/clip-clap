@@ -113,3 +113,39 @@ CREATE TABLE IF NOT EXISTS scheduling_settings (
     min_notice_hours INTEGER NOT NULL DEFAULT 0 CHECK (min_notice_hours BETWEEN 0 AND 720),
     buffer_minutes   INTEGER NOT NULL DEFAULT 0 CHECK (buffer_minutes BETWEEN 0 AND 480)
 );
+
+-- Module bookings (v0.2)
+-- Statuts possibles : EN_ATTENTE, CONFIRMEE, REFUSEE, ANNULEE, EXPIREE, TERMINEE (#39)
+CREATE TABLE IF NOT EXISTS bookings (
+    id          BIGSERIAL   PRIMARY KEY,
+    client_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    creator_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki). Pas encore NOT NULL : la
+    -- création d'une réservation avec prestation et créneau choisis arrivera avec #29.
+    offering_id BIGINT REFERENCES offerings (id),
+    slot_id     BIGINT REFERENCES availability_slots (id),
+    -- Prix total figé au moment de la réservation (#29) : une prestation modifiée ensuite ne change
+    -- pas le prix d'une réservation existante.
+    total_price NUMERIC(10, 2),
+    status      VARCHAR(20) NOT NULL DEFAULT 'EN_ATTENTE'
+                CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
+-- Anti-collision (#30, scénario 21) : un créneau ne peut être confirmé que par une seule réservation
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_slot_confirmee ON bookings (slot_id) WHERE status = 'CONFIRMEE';
+
+-- Journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée
+CREATE TABLE IF NOT EXISTS booking_status_history (
+    id              BIGSERIAL   PRIMARY KEY,
+    booking_id      BIGINT      NOT NULL REFERENCES bookings (id) ON DELETE CASCADE,
+    actor_id        BIGINT      NOT NULL REFERENCES users (id),
+    -- NULL pour la première entrée (création de la réservation)
+    previous_status VARCHAR(20) CHECK (previous_status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    new_status      VARCHAR(20) NOT NULL CHECK (new_status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    changed_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_booking_status_history_booking ON booking_status_history (booking_id);
