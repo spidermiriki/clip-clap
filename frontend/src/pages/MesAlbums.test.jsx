@@ -1,10 +1,12 @@
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAlbum, deleteAlbum, deletePhoto, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
 import MesAlbums from './MesAlbums'
 
-vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: 'jeton' } }) }))
+// Token modifiable : simule le renouvellement silencieux de la session (#129)
+const auth = vi.hoisted(() => ({ token: 'jeton' }))
+vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: auth.token } }) }))
 vi.mock('../api/albums', async (importOriginal) => ({
   ...(await importOriginal()),
   listMyAlbums: vi.fn(),
@@ -15,12 +17,15 @@ vi.mock('../api/albums', async (importOriginal) => ({
   deleteAlbum: vi.fn(),
 }))
 
+const page = () => <MemoryRouter><MesAlbums /></MemoryRouter>
+
 function renderPage() {
-  return render(<MemoryRouter><MesAlbums /></MemoryRouter>)
+  return render(page())
 }
 
 describe('MesAlbums (#15)', () => {
   beforeEach(() => {
+    auth.token = 'jeton'
     vi.mocked(listMyAlbums).mockReset().mockResolvedValue([])
     vi.mocked(createAlbum).mockReset()
     vi.mocked(renameAlbum).mockReset().mockResolvedValue(null)
@@ -145,5 +150,53 @@ describe('MesAlbums (#15)', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent("n'a pas confirmé la suppression")
     expect(screen.getByAltText('Mariage Dupont, photo 1')).toBeInTheDocument()
+  })
+
+  // ── Rechargement à chaque nouveau token (#129) ─────────────────────────────
+
+  it("efface l'erreur quand le chargement suivant réussit", async () => {
+    vi.mocked(listMyAlbums)
+      .mockRejectedValueOnce({ status: 401, message: 'Session expirée' })
+      .mockResolvedValueOnce([{ id: 3, name: 'Portraits', photos: [] }])
+    const { rerender } = renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Session expirée')
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+
+    expect(await screen.findByRole('heading', { name: 'Portraits' })).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it("quitte l'écran « pas de profil » quand le chargement suivant réussit", async () => {
+    vi.mocked(listMyAlbums)
+      .mockRejectedValueOnce({ status: 404, message: 'Profil introuvable' })
+      .mockResolvedValueOnce([{ id: 3, name: 'Portraits', photos: [] }])
+    const { rerender } = renderPage()
+    await screen.findByRole('link', { name: 'Créer mon profil' })
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+
+    expect(await screen.findByRole('heading', { name: 'Portraits' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Créer mon profil' })).not.toBeInTheDocument()
+  })
+
+  it('ignore une réponse arrivée après une plus récente', async () => {
+    let repondreAncien
+    vi.mocked(listMyAlbums)
+      .mockReturnValueOnce(new Promise((resolve) => { repondreAncien = resolve }))
+      .mockResolvedValueOnce([{ id: 3, name: 'Portraits', photos: [] }])
+    const { rerender } = renderPage()
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+    expect(await screen.findByRole('heading', { name: 'Portraits' })).toBeInTheDocument()
+
+    repondreAncien([{ id: 9, name: 'Ancienne réponse', photos: [] }])
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+    expect(screen.queryByText('Ancienne réponse')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Portraits' })).toBeInTheDocument()
   })
 })

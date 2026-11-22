@@ -35,17 +35,29 @@ export default function MesDisponibilites() {
   const [creneau, setCreneau] = useState({ date: '', debut: '', fin: '' })
   const [envoi, setEnvoi] = useState(false)
 
+  // Relancé à chaque nouveau token (renouvellement silencieux de la session) : on repart d'un état
+  // propre, et une réponse arrivée après une plus récente est ignorée (#129, comme #119)
   useEffect(() => {
+    let ignore = false
+    setError(null)
+    setSansProfil(false)
     Promise.all([listMySlots(token), getMySettings(token)])
       .then(([creneaux, settings]) => {
+        if (ignore) return
         setSlots(creneaux)
         setReglages({ minNoticeHours: String(settings.minNoticeHours), bufferMinutes: String(settings.bufferMinutes) })
       })
       .catch((err) => {
+        if (ignore) return
         if (err?.status === 404) setSansProfil(true)
         else setError(err?.message ?? 'Impossible de charger vos disponibilités.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
   }, [token])
 
   async function enregistrerReglages(e) {
