@@ -71,16 +71,26 @@ CREATE INDEX IF NOT EXISTS idx_media_album ON media (album_id);
 -- Module bookings
 -- Statuts possibles : EN_ATTENTE, CONFIRMEE, REFUSEE, ANNULEE, EXPIREE, TERMINEE (#39)
 CREATE TABLE IF NOT EXISTS bookings (
-    id         BIGSERIAL   PRIMARY KEY,
-    client_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    creator_id BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    status     VARCHAR(20) NOT NULL DEFAULT 'EN_ATTENTE'
-               CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
-    created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    id          BIGSERIAL   PRIMARY KEY,
+    client_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    creator_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
+    -- Prestation et créneau réservés (#29, contrat sur #29 avec @spidermiriki) : pas encore NOT NULL
+    -- ni REFERENCES, en attente de offerings (#119) et availability_slots (#128) ; passeront en
+    -- NOT NULL REFERENCES quand #29 posera la création d'une réservation.
+    offering_id BIGINT,
+    slot_id     BIGINT,
+    -- Prix total figé au moment de la réservation (#29) : une prestation modifiée ensuite ne change
+    -- pas le prix d'une réservation existante.
+    total_price NUMERIC(10, 2),
+    status      VARCHAR(20) NOT NULL DEFAULT 'EN_ATTENTE'
+                CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE')),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
+-- Anti-collision (#30, scénario 21) : un créneau ne peut être confirmé que par une seule réservation
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_slot_confirmee ON bookings (slot_id) WHERE status = 'CONFIRMEE';
 
 -- Journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée
 CREATE TABLE IF NOT EXISTS booking_status_history (

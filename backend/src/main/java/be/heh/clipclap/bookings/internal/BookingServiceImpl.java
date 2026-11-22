@@ -42,13 +42,23 @@ class BookingServiceImpl {
     Booking changerStatut(long bookingId, long actorId, String nouveauStatut) {
         Booking booking = bookings.findById(bookingId)
                 .orElseThrow(() -> new BookingNotFoundException(bookingId));
+        String statutActuel = booking.status();
 
-        if (!TRANSITIONS_AUTORISEES.getOrDefault(booking.status(), Set.of()).contains(nouveauStatut)) {
-            throw new InvalidBookingTransitionException(booking.status(), nouveauStatut);
+        if (!TRANSITIONS_AUTORISEES.getOrDefault(statutActuel, Set.of()).contains(nouveauStatut)) {
+            throw new InvalidBookingTransitionException(statutActuel, nouveauStatut);
         }
 
-        bookings.updateStatus(bookingId, nouveauStatut);
-        bookings.insertHistoryEntry(bookingId, actorId, booking.status(), nouveauStatut);
+        // La mise à jour porte elle-même la condition de statut (pas de verrou explicite) : si une
+        // requête concurrente a déjà changé le statut entre notre lecture et cette écriture, aucune
+        // ligne n'est modifiée et aucun historique n'est écrit pour cette transition.
+        if (!bookings.updateStatusSiActuel(bookingId, statutActuel, nouveauStatut)) {
+            String statutReel = bookings.findById(bookingId)
+                    .orElseThrow(() -> new BookingNotFoundException(bookingId))
+                    .status();
+            throw new InvalidBookingTransitionException(statutReel, nouveauStatut);
+        }
+
+        bookings.insertHistoryEntry(bookingId, actorId, statutActuel, nouveauStatut);
         return bookings.findById(bookingId).orElseThrow(() -> new BookingNotFoundException(bookingId));
     }
 

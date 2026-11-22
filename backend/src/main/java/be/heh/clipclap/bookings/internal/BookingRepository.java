@@ -39,11 +39,22 @@ class BookingRepository {
                 .optional();
     }
 
-    void updateStatus(long bookingId, String status) {
-        jdbc.sql("UPDATE bookings SET status = :status WHERE id = :bookingId")
-                .param("status", status)
+    /**
+     * Transition conditionnée par le statut lu : la condition {@code AND status = :statutActuel}
+     * porte l'exclusion mutuelle jusque dans la requête, sans verrou explicite. Renvoie {@code false}
+     * si aucune ligne n'a été modifiée, c'est-à-dire si le statut a déjà changé entre la lecture et
+     * cette écriture (requête concurrente).
+     */
+    boolean updateStatusSiActuel(long bookingId, String statutActuel, String nouveauStatut) {
+        int lignesModifiees = jdbc.sql("""
+                UPDATE bookings SET status = :nouveauStatut
+                WHERE id = :bookingId AND status = :statutActuel
+                """)
+                .param("nouveauStatut", nouveauStatut)
                 .param("bookingId", bookingId)
+                .param("statutActuel", statutActuel)
                 .update();
+        return lignesModifiees == 1;
     }
 
     void insertHistoryEntry(long bookingId, long actorId, String previousStatus, String newStatus) {
