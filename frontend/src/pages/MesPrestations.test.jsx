@@ -7,6 +7,7 @@ import MesPrestations from './MesPrestations'
 // Token modifiable : simule le renouvellement silencieux de la session (revue de #119)
 const auth = vi.hoisted(() => ({ token: 'jeton' }))
 vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: auth.token } }) }))
+vi.mock('../api/catalog', () => ({ getCategories: vi.fn(async () => [{ id: 1, name: 'Mariage' }, { id: 6, name: 'Portrait' }]) }))
 vi.mock('../api/offerings', () => ({
   listMyOfferings: vi.fn(),
   createOffering: vi.fn(),
@@ -58,10 +59,25 @@ describe('MesPrestations (#27)', () => {
 
     expect(await screen.findByText('Reportage mariage')).toBeInTheDocument()
     expect(createOffering).toHaveBeenCalledWith(
-      { name: 'Reportage mariage', durationMinutes: 480, basePrice: 1200, options: [{ name: 'Drone', extraPrice: 150.5 }] },
+      { name: 'Reportage mariage', durationMinutes: 480, basePrice: 1200, categoryId: null, options: [{ name: 'Drone', extraPrice: 150.5 }] },
       'jeton',
     )
     expect(screen.getByLabelText('Nom')).toHaveValue('')
+  })
+
+  it("enregistre la catégorie choisie, avec un prix « 1.200,00 », et l'affiche dans la liste (#123)", async () => {
+    vi.mocked(createOffering).mockResolvedValue({ ...MARIAGE, categoryId: 1 })
+    renderPage()
+    await screen.findByRole('option', { name: 'Mariage' })
+
+    fireEvent.change(screen.getByLabelText('Nom'), { target: { value: 'Reportage mariage' } })
+    fireEvent.change(screen.getByLabelText('Durée (minutes)'), { target: { value: '480' } })
+    fireEvent.change(screen.getByLabelText('Prix de base (€)'), { target: { value: '1.200,00' } })
+    fireEvent.change(screen.getByLabelText('Catégorie'), { target: { value: '1' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByText(/^Mariage · 8 h · 1\s?200,00\s€$/)).toBeInTheDocument()
+    expect(createOffering).toHaveBeenCalledWith(expect.objectContaining({ categoryId: 1, basePrice: 1200 }), 'jeton')
   })
 
   it('accepte un prix avec séparateur de milliers (revue de #119)', async () => {

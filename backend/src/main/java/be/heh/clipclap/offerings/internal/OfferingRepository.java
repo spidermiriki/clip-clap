@@ -22,31 +22,35 @@ class OfferingRepository {
         this.jdbc = jdbc;
     }
 
-    private record Row(long id, long creatorId, String name, int durationMinutes, BigDecimal basePrice) {}
+    private record Row(long id, long creatorId, String name, int durationMinutes, BigDecimal basePrice, Integer categoryId) {}
 
-    long create(long creatorId, String name, int durationMinutes, BigDecimal basePrice) {
+    long create(long creatorId, String name, int durationMinutes, BigDecimal basePrice, Integer categoryId) {
         return jdbc.sql("""
-                INSERT INTO offerings (creator_id, name, duration_minutes, base_price)
-                VALUES (:creatorId, :name, :duration, :price)
+                INSERT INTO offerings (creator_id, name, duration_minutes, base_price, category_id)
+                VALUES (:creatorId, :name, :duration, :price, :categoryId)
                 RETURNING id
                 """)
                 .param("creatorId", creatorId)
                 .param("name", name)
                 .param("duration", durationMinutes)
                 .param("price", basePrice)
+                .param("categoryId", categoryId)
                 .query(Long.class)
                 .single();
     }
 
     /** Faux si la prestation n'existe pas ou appartient à un autre créateur. */
-    boolean update(long offeringId, long creatorId, String name, int durationMinutes, BigDecimal basePrice) {
+    boolean update(long offeringId, long creatorId, String name, int durationMinutes, BigDecimal basePrice,
+                   Integer categoryId) {
         return jdbc.sql("""
-                UPDATE offerings SET name = :name, duration_minutes = :duration, base_price = :price
+                UPDATE offerings SET name = :name, duration_minutes = :duration, base_price = :price,
+                                     category_id = :categoryId
                 WHERE id = :id AND creator_id = :creatorId
                 """)
                 .param("name", name)
                 .param("duration", durationMinutes)
                 .param("price", basePrice)
+                .param("categoryId", categoryId)
                 .param("id", offeringId)
                 .param("creatorId", creatorId)
                 .update() == 1;
@@ -77,7 +81,7 @@ class OfferingRepository {
 
     Optional<Offering> findById(long offeringId) {
         return withOptions(jdbc.sql("""
-                SELECT id, creator_id, name, duration_minutes, base_price FROM offerings WHERE id = :id
+                SELECT id, creator_id, name, duration_minutes, base_price, category_id FROM offerings WHERE id = :id
                 """)
                 .param("id", offeringId)
                 .query(Row.class)
@@ -88,7 +92,7 @@ class OfferingRepository {
     /** Prestations du créateur (de la plus ancienne à la plus récente) avec leurs options, en deux requêtes. */
     List<Offering> findByCreator(long creatorId) {
         return withOptions(jdbc.sql("""
-                SELECT id, creator_id, name, duration_minutes, base_price FROM offerings
+                SELECT id, creator_id, name, duration_minutes, base_price, category_id FROM offerings
                 WHERE creator_id = :creatorId
                 ORDER BY created_at, id
                 """)
@@ -113,7 +117,7 @@ class OfferingRepository {
                         .add(new OfferingOption(rs.getLong("id"), rs.getString("name"), rs.getBigDecimal("extra_price"))))
                 .list();
         return rows.stream()
-                .map(r -> new Offering(r.id(), r.creatorId(), r.name(), r.durationMinutes(), r.basePrice(),
+                .map(r -> new Offering(r.id(), r.creatorId(), r.name(), r.durationMinutes(), r.basePrice(), r.categoryId(),
                         List.copyOf(options.get(r.id()))))
                 .toList();
     }

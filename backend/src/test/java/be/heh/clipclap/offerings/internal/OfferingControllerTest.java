@@ -150,6 +150,48 @@ class OfferingControllerTest {
         }
     }
 
+    // ── Catégorie d'une prestation (#123) ───────────────────────────────────
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void categorie_facultative_enregistreeEtModifiable() {
+        insertCreator("alice@offerings.test", ALICE);
+        int mariage = categoryId("Mariage");
+        int portrait = categoryId("Portrait");
+
+        long id = create("{\"name\":\"Reportage\",\"durationMinutes\":480,\"basePrice\":1200,\"categoryId\":" + mariage + "}");
+        client.get().uri("/api/offerings/me")
+                .exchange()
+                .expectBody().jsonPath("$[0].categoryId").isEqualTo(mariage);
+
+        client.put().uri("/api/offerings/me/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"name\":\"Reportage\",\"durationMinutes\":480,\"basePrice\":1200,\"categoryId\":" + portrait + "}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.categoryId").isEqualTo(portrait);
+
+        client.put().uri("/api/offerings/me/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"name\":\"Reportage\",\"durationMinutes\":480,\"basePrice\":1200}")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody().jsonPath("$.categoryId").isEmpty();
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void categorieInconnue_renvoie400ProblemDetail() {
+        insertCreator("alice@offerings.test", ALICE);
+
+        client.post().uri("/api/offerings/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body("{\"name\":\"Portrait\",\"durationMinutes\":60,\"basePrice\":100,\"categoryId\":999999}")
+                .exchange()
+                .expectStatus().isBadRequest()
+                .expectBody().jsonPath("$.title").isEqualTo("Catégorie inconnue");
+    }
+
     // ── Accès ───────────────────────────────────────────────────────────────
 
     @Test
@@ -203,6 +245,11 @@ class OfferingControllerTest {
                 .returnResult().getResponseBody();
         assertThat(created).isNotNull();
         return created.id();
+    }
+
+    // Catégories de départ insérées par data.sql
+    private int categoryId(String name) {
+        return jdbc.sql("SELECT id FROM categories WHERE name = :name").param("name", name).query(Integer.class).single();
     }
 
     private long insertUser(String email, String sub) {
