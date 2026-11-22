@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-@RestControllerAdvice(assignableTypes = {CreatorController.class, AlbumController.class})
+@RestControllerAdvice(assignableTypes = {CreatorController.class, AlbumController.class, CreatorCategoryController.class})
 class CreatorExceptionHandler {
 
     @ExceptionHandler(AlbumNotFoundException.class)
@@ -16,6 +16,13 @@ class CreatorExceptionHandler {
         var pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
         pd.setTitle("Album introuvable");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(UnknownCategoryException.class)
+    ResponseEntity<ProblemDetail> handleUnknownCategory(UnknownCategoryException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Catégorie inconnue");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
     }
 
     @ExceptionHandler(MediaNotFoundException.class)

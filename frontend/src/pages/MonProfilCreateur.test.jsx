@@ -4,10 +4,14 @@ import { getMyProfile } from '../api/creators'
 import MonProfilCreateur from './MonProfilCreateur'
 
 vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: 'jeton' } }) }))
+// « Mon profil » charge aussi les types de prestation (#87) : listes vides ici
+vi.mock('../api/catalog', () => ({ getCategories: vi.fn(async () => []) }))
 vi.mock('../api/creators', () => ({
   getMyProfile: vi.fn(),
   createMyProfile: vi.fn(),
   updateMyProfile: vi.fn(),
+  getMyCategories: vi.fn(async () => []),
+  updateMyCategories: vi.fn(async () => []),
 }))
 
 const PROFIL = { userId: 1, displayName: 'Alice', bio: '', city: 'Mons', country: 'Belgique', serviceAreas: '' }
