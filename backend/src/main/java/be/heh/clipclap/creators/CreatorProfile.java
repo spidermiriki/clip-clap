@@ -8,5 +8,6 @@ public record CreatorProfile(
         String city,
         String country,
         String serviceAreas,
-        String validationStatus
+        String validationStatus,
+        String rejectionReason
 ) {}
