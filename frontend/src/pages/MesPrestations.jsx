@@ -3,15 +3,11 @@ import { useAuth } from 'react-oidc-context'
 import { Link } from 'react-router-dom'
 import { getCategories } from '../api/catalog'
 import { createOffering, deleteOffering, listMyOfferings, updateOffering } from '../api/offerings'
-import { formatDuree, formatPrix } from '../format'
+import { formatDuree, formatPrix, parsePrix } from '../format'
 import styles from './MesPrestations.module.css'
 
 const FORMULAIRE_VIDE = { name: '', durationMinutes: '', basePrice: '', categoryId: '', options: [] }
 
-// La virgule décimale est acceptée : « 89,90 » → 89.9
-function nombre(valeur) {
-  return Number(String(valeur).replace(',', '.'))
-}
 
 function versFormulaire(offering) {
   return {
@@ -43,14 +39,27 @@ export default function MesPrestations() {
     getCategories().then(setCategories).catch(() => setCategories([]))
   }, [])
 
+  // Relancé à chaque nouveau token (renouvellement silencieux de la session) : on repart d'un état
+  // propre, et une réponse arrivée après une plus récente est ignorée (revue de #119)
   useEffect(() => {
+    let ignore = false
+    setError(null)
+    setSansProfil(false)
     listMyOfferings(token)
-      .then(setOfferings)
+      .then((result) => {
+        if (!ignore) setOfferings(result)
+      })
       .catch((err) => {
+        if (ignore) return
         if (err?.status === 404) setSansProfil(true)
         else setError(err?.message ?? 'Impossible de charger vos prestations.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
   }, [token])
 
   function champ(nom, valeur) {
@@ -83,14 +92,19 @@ export default function MesPrestations() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
-    setEnvoi(true)
     const corps = {
       name: formulaire.name,
-      durationMinutes: nombre(formulaire.durationMinutes),
-      basePrice: nombre(formulaire.basePrice),
+      durationMinutes: Number(formulaire.durationMinutes),
+      basePrice: parsePrix(formulaire.basePrice),
       categoryId: formulaire.categoryId === '' ? null : Number(formulaire.categoryId),
-      options: formulaire.options.map((o) => ({ name: o.name, extraPrice: nombre(o.extraPrice) })),
+      options: formulaire.options.map((o) => ({ name: o.name, extraPrice: parsePrix(o.extraPrice) })),
     }
+    // Un prix illisible n'est jamais envoyé : le backend le prendrait pour un prix manquant
+    if (corps.basePrice === null || corps.options.some((o) => o.extraPrice === null)) {
+      setError('Format de prix invalide : utilisez par exemple 1200, 89,90 ou 1 200,50.')
+      return
+    }
+    setEnvoi(true)
     try {
       if (editionId === null) {
         const creee = await createOffering(corps, token)

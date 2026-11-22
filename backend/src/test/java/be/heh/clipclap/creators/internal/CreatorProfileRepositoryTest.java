@@ -43,6 +43,43 @@ class CreatorProfileRepositoryTest {
         assertThat(found.get().validationStatus()).isEqualTo("VALIDATED");
     }
 
+    // ── Validation par l'administrateur (#33) ───────────────────────────────
+
+    @Test
+    void decideIfPending_seulementPourUnProfilEnAttente() {
+        long userId = insertTestUser("attente@example.com");
+        repository.save(userId, new CreateProfileCommand("En attente", null, null, null, null));
+        repository.setStatus(userId, "PENDING");
+
+        var refuse = repository.decideIfPending(userId, "REJECTED", "Photos floues");
+
+        assertThat(refuse).map(p -> p.validationStatus() + " / " + p.rejectionReason()).contains("REJECTED / Photos floues");
+        assertThat(repository.decideIfPending(userId, "VALIDATED", null)).isEmpty();
+        assertThat(repository.findByValidationStatus("REJECTED")).extracting(p -> p.userId()).contains(userId);
+    }
+
+    @Test
+    void update_dUnProfilRefuse_leRemetEnAttenteSansMotif() {
+        long userId = insertTestUser("refuse@example.com");
+        repository.save(userId, new CreateProfileCommand("Refusé", null, null, null, null));
+        repository.setStatus(userId, "PENDING");
+        repository.decideIfPending(userId, "REJECTED", "Profil incomplet");
+
+        var corrige = repository.update(userId, new CreateProfileCommand("Corrigé", "Nouvelle bio", null, null, null));
+
+        assertThat(corrige.validationStatus()).isEqualTo("PENDING");
+        assertThat(corrige.rejectionReason()).isNull();
+    }
+
+    @Test
+    void update_dUnProfilValide_resteValide() {
+        long userId = insertTestUser("valide@example.com");
+        repository.save(userId, new CreateProfileCommand("Validé", null, null, null, null));
+
+        assertThat(repository.update(userId, new CreateProfileCommand("Validé 2", null, null, null, null)).validationStatus())
+                .isEqualTo("VALIDATED");
+    }
+
     @Test
     void update_modifiesExistingProfile() {
         long userId = insertTestUser("bob@example.com");
@@ -183,19 +220,6 @@ class CreatorProfileRepositoryTest {
         assertThat(photos.totalElements()).isEqualTo(1);
         assertThat(videos.totalElements()).isZero();
     }
-
-    @Test
-    void findAllValidatedUserIds_returnsOnlyValidatedProfiles() {
-        long validated = insertTestUser("ids-ok@example.com");
-        long pending = insertTestUser("ids-pending@example.com");
-        repository.save(validated, new CreateProfileCommand("Valide", null, null, null, null));
-        repository.save(pending, new CreateProfileCommand("En attente", null, null, null, null));
-        jdbcClient.sql("UPDATE creator_profiles SET validation_status = 'PENDING' WHERE user_id = :id")
-                  .param("id", pending).update();
-
-        assertThat(repository.findAllValidatedUserIds()).contains(validated).doesNotContain(pending);
-    }
-
 
     // Catégories de départ insérées par data.sql
     private int categoryId(String name) {

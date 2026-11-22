@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
 import { Link } from 'react-router-dom'
-import { createAlbum, FORMATS_ACCEPTES, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
+import { createAlbum, deleteAlbum, deletePhoto, FORMATS_ACCEPTES, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
 import styles from './MesAlbums.module.css'
 
 // Gestion des albums du créateur connecté (wireframe 10, #15)
@@ -31,7 +31,8 @@ export default function MesAlbums() {
       .finally(() => setLoading(false))
   }, [token])
 
-  const album = albums.find((a) => a.id === selectedId) ?? null
+  // Sans sélection valide (ex. après la suppression de l'album affiché), le premier album est montré
+  const album = albums.find((a) => a.id === selectedId) ?? albums[0] ?? null
 
   function majAlbum(albumId, changer) {
     setAlbums((prev) => prev.map((a) => (a.id === albumId ? changer(a) : a)))
@@ -80,6 +81,33 @@ export default function MesAlbums() {
     }
   }
 
+  async function supprimerPhoto(photo, index) {
+    if (!window.confirm(`Supprimer la photo ${index + 1} de « ${album.name} » ?`)) return
+    setError(null)
+    const albumId = album.id
+    try {
+      await deletePhoto(albumId, photo.id, token)
+      majAlbum(albumId, (a) => ({ ...a, photos: a.photos.filter((p) => p.id !== photo.id) }))
+    } catch (err) {
+      setError(err?.message ?? 'Impossible de supprimer la photo.')
+    }
+  }
+
+  async function supprimerAlbum() {
+    if (!window.confirm(`Supprimer l'album « ${album.name} » et toutes ses photos ?`)) return
+    setError(null)
+    const albumId = album.id
+    try {
+      await deleteAlbum(albumId, token)
+      // Forme fonctionnelle : l'état a pu changer pendant la requête (revue de #125)
+      setAlbums((prev) => prev.filter((a) => a.id !== albumId))
+      setSelectedId((id) => (id === albumId ? null : id))
+      setRenommage(null)
+    } catch (err) {
+      setError(err?.message ?? "Impossible de supprimer l'album.")
+    }
+  }
+
   function handleDrop(e) {
     e.preventDefault()
     if (!envoi) envoyer(e.dataTransfer.files)
@@ -112,7 +140,7 @@ export default function MesAlbums() {
                 <li key={a.id}>
                   <button
                     type="button"
-                    aria-current={a.id === selectedId ? 'true' : undefined}
+                    aria-current={a.id === album?.id ? 'true' : undefined}
                     onClick={() => { setSelectedId(a.id); setRenommage(null) }}
                   >
                     {a.name} <span className={styles.compte}>({a.photos.length})</span>
@@ -138,6 +166,7 @@ export default function MesAlbums() {
                 <>
                   <h2>{album.name}</h2>
                   <button type="button" onClick={() => setRenommage(album.name)}>Renommer</button>
+                  <button type="button" onClick={supprimerAlbum}>Supprimer l&apos;album</button>
                 </>
               ) : (
                 <form onSubmit={handleRenommer} className={styles.renommer}>
@@ -167,8 +196,16 @@ export default function MesAlbums() {
             ) : (
               <ul className={styles.photos} aria-label={`Photos de ${album.name}`}>
                 {album.photos.map((photo, index) => (
-                  <li key={photo.id}>
+                  <li key={photo.id} className={styles.photo}>
                     <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                    <button
+                      type="button"
+                      className={styles.supprimer}
+                      onClick={() => supprimerPhoto(photo, index)}
+                      aria-label={`Supprimer la photo ${index + 1}`}
+                    >
+                      Supprimer
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -31,8 +31,9 @@ class GalleryService {
 	/** Créateurs visibles publiquement (profil validé, compte non suspendu, #75) et correspondant aux filtres (#14). */
 	CreatorSummaryPage findCreators(int page, int size, CreatorSearchCriteria criteria) {
 		// Les suspendus sont exclus dans la requête paginée de creators, pas après coup,
-		// pour que totalElements et le contenu des pages restent justes
-		Set<Long> suspendus = userApi.findSuspendedIds(creatorProfileService.findAllValidatedUserIds());
+		// pour que totalElements et le contenu des pages restent justes. Le coût dépend du
+		// nombre de suspendus, plus du nombre de créateurs validés (#98)
+		Set<Long> suspendus = userApi.findAllSuspendedIds();
 		var profilePage = creatorProfileService.findAllValidated(page, size, suspendus, criteria);
 		var summaries = profilePage.items().stream()
 				.map(p -> new CreatorSummary(p.userId(), p.displayName(), p.photoUrl(), p.city(), p.country()))

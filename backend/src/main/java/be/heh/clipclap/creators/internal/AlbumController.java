@@ -4,6 +4,7 @@ import be.heh.clipclap.creators.Album;
 import be.heh.clipclap.creators.Album.Photo;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -60,5 +61,17 @@ class AlbumController {
     @ResponseStatus(HttpStatus.CREATED)
     Photo addPhoto(Authentication auth, @PathVariable long albumId, @RequestBody AddPhotoCommand command) {
         return albumService.addPhoto(currentUser.id(auth), albumId, command);
+    }
+
+    @DeleteMapping("/{albumId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deleteAlbum(Authentication auth, @PathVariable long albumId) {
+        albumService.deleteAlbum(currentUser.id(auth), albumId);
+    }
+
+    @DeleteMapping("/{albumId}/photos/{mediaId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    void deletePhoto(Authentication auth, @PathVariable long albumId, @PathVariable long mediaId) {
+        albumService.deletePhoto(currentUser.id(auth), albumId, mediaId);
     }
 }
