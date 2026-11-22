@@ -1,6 +1,7 @@
 package be.heh.clipclap.creators.internal;
 
 import be.heh.clipclap.creators.CreatorProfile;
+import be.heh.clipclap.creators.CreatorProfileNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,9 +18,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-/** Seule une clé étrangère violée (23503) devient « catégorie inconnue » (revue de #122). */
+/** Revue de #122 : seule une clé étrangère violée (23503) devient « catégorie inconnue » ; profil vérifié en premier. */
 @ExtendWith(MockitoExtension.class)
 class CreatorCategoryServiceTest {
 
@@ -32,7 +35,7 @@ class CreatorCategoryServiceTest {
     @BeforeEach
     void setUp() {
         var profil = new CreatorProfile(USER_ID, "Alice", null, null, null, null, null, "VALIDATED", null);
-        when(profiles.findByUserId(USER_ID)).thenReturn(Optional.of(profil));
+        lenient().when(profiles.findByUserId(USER_ID)).thenReturn(Optional.of(profil));
     }
 
     @Test
@@ -51,6 +54,13 @@ class CreatorCategoryServiceTest {
         assertThatThrownBy(() -> service.replaceMine(USER_ID, List.of(1)))
                 .isInstanceOf(DataIntegrityViolationException.class)
                 .isNotInstanceOf(UnknownCategoryException.class);
+    }
+
+    @Test
+    void sansProfil_404AvantLaValidationDeLaListe() {
+        assertThatThrownBy(() -> service.replaceMine(99L, null))
+                .isInstanceOf(CreatorProfileNotFoundException.class);
+        verifyNoInteractions(categories);
     }
 
     private static DataIntegrityViolationException violation(String sqlState) {

@@ -93,4 +93,27 @@ describe('MonProfilCreateur : types de prestation (#87)', () => {
     expect(screen.queryByRole('button', { name: 'Enregistrer' })).not.toBeInTheDocument()
     expect(updateMyProfile).not.toHaveBeenCalled()
   })
+
+  it("signale que le profil est enregistré quand seuls les types échouent (revue de #122)", async () => {
+    vi.mocked(updateMyCategories).mockRejectedValue({ status: 500, message: 'Erreur serveur (500).' })
+    render(<MonProfilCreateur />)
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Sport' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent("Profil enregistré, mais les types de prestation n'ont pas pu l'être.")
+    expect(updateMyProfile).toHaveBeenCalled()
+    expect(screen.queryByText('Profil enregistré.')).not.toBeInTheDocument()
+  })
+
+  it('ne casse pas les cases à cocher si la réponse des types est inattendue', async () => {
+    vi.mocked(updateMyCategories).mockResolvedValue(null)
+    render(<MonProfilCreateur />)
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: 'Sport' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Enregistrer' }))
+
+    expect(await screen.findByText('Profil enregistré.')).toBeInTheDocument()
+    expect(screen.getByRole('checkbox', { name: 'Sport' })).toBeChecked()
+  })
 })

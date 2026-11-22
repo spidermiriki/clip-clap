@@ -33,10 +33,11 @@ class CreatorCategoryService {
     /** Tout ou rien : une catégorie inconnue annule toute la sélection. */
     @Transactional
     List<Integer> replaceMine(long userId, List<Integer> categoryIds) {
+        // Le profil d'abord : sans profil, 404 comme pour le GET, quel que soit le corps (revue de #122)
+        requireProfile(userId);
         if (categoryIds == null || categoryIds.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("categoryIds doit être une liste d'identifiants");
         }
-        requireProfile(userId);
         try {
             categories.replace(userId, new TreeSet<>(categoryIds));
         } catch (DataIntegrityViolationException e) {

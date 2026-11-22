@@ -108,7 +108,11 @@ async function fetchUpdateCategories(categoryIds, token) {
     headers: { 'Content-Type': 'application/json', ...authHeaders(token) },
     body: JSON.stringify({ categoryIds }),
   })
-  return handleResponse(res)
+  // handleResponse renvoie null pour un 404 « Profil introuvable » (utile au GET du profil) :
+  // ici, ce n'est pas un résultat mais un échec (revue de #122)
+  const ids = await handleResponse(res)
+  if (!Array.isArray(ids)) throw { status: res.status, message: 'Profil introuvable.' }
+  return ids
 }
 
 // ── Exports publics ───────────────────────────────────────────────────────────

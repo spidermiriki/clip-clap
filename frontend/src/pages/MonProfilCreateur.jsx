@@ -110,14 +110,25 @@ export default function MonProfilCreateur() {
       } else {
         setStatut(await updateMyProfile(form, accessToken))
       }
-      // Après le profil : à la création, il doit exister avant ses catégories
-      if (choixPret && !categoriesIndisponibles) setChoix(await updateMyCategories(choix, accessToken))
-      setSuccess(true)
     } catch (err) {
       setError(err.message ?? 'Une erreur est survenue.')
-    } finally {
       setSaving(false)
+      return
     }
+    // Après le profil (à la création, il doit exister avant ses catégories), et à part : un échec
+    // des catégories ne doit pas masquer que le profil, lui, est enregistré (revue de #122)
+    if (choixPret && !categoriesIndisponibles) {
+      try {
+        const ids = await updateMyCategories(choix, accessToken)
+        if (Array.isArray(ids)) setChoix(ids)
+      } catch {
+        setError("Profil enregistré, mais les types de prestation n'ont pas pu l'être.")
+        setSaving(false)
+        return
+      }
+    }
+    setSuccess(true)
+    setSaving(false)
   }
 
   if (loading) return <p>Chargement…</p>
