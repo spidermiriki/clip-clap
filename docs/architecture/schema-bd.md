@@ -22,6 +22,8 @@ erDiagram
     creator_profiles ||--o{ offerings : "propose"
     offerings ||--o{ offering_options : "a pour options"
     categories |o--o{ offerings : "classe"
+    creator_profiles ||--o{ availability_slots : "ouvre"
+    creator_profiles ||--o| scheduling_settings : "règle"
 
     users {
         BIGSERIAL id PK
@@ -85,6 +87,20 @@ erDiagram
         BIGINT offering_id FK "→ offerings.id, indexé"
         VARCHAR(100) name "NOT NULL"
         NUMERIC extra_price "NOT NULL, (10,2), >= 0"
+    }
+
+    availability_slots {
+        BIGSERIAL id PK
+        BIGINT creator_id FK "→ creator_profiles.user_id"
+        TIMESTAMPTZ starts_at "NOT NULL"
+        TIMESTAMPTZ ends_at "NOT NULL, > starts_at"
+        TIMESTAMPTZ created_at "NOT NULL, défaut now()"
+    }
+
+    scheduling_settings {
+        BIGINT creator_id PK, FK "→ creator_profiles.user_id"
+        INTEGER min_notice_hours "NOT NULL, 0 à 720"
+        INTEGER buffer_minutes "NOT NULL, 0 à 480"
     }
 ```
 
@@ -196,6 +212,28 @@ Les options payantes d'une prestation (ex. drone, retouches avancées), chacune 
 | `name` | `VARCHAR(100)` | `NOT NULL` |
 | `extra_price` | `NUMERIC(10,2)` | `NOT NULL`, `CHECK (extra_price >= 0)`, en euros |
 
+### `availability_slots` — module `offerings`
+
+Les créneaux libres d'un créateur (#28). Les heures sont stockées en `TIMESTAMPTZ`, saisies et affichées à l'heure de Bruxelles. Le module `bookings` les référence par `availability_slots.id` (`slot_id`).
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | `BIGSERIAL` | clé primaire |
+| `creator_id` | `BIGINT` | `NOT NULL`, `REFERENCES creator_profiles (user_id) ON DELETE CASCADE`, index `idx_availability_slots_creator (creator_id, starts_at)` |
+| `starts_at` | `TIMESTAMPTZ` | `NOT NULL` |
+| `ends_at` | `TIMESTAMPTZ` | `NOT NULL`, `CHECK (ends_at > starts_at)` |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
+
+### `scheduling_settings` — module `offerings`
+
+Le préavis minimum et la marge entre deux rendez-vous d'un créateur (#28). Sans ligne, les deux valent 0.
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `creator_id` | `BIGINT` | clé primaire, `REFERENCES creator_profiles (user_id) ON DELETE CASCADE` |
+| `min_notice_hours` | `INTEGER` | `NOT NULL`, défaut 0, `CHECK (min_notice_hours BETWEEN 0 AND 720)` |
+| `buffer_minutes` | `INTEGER` | `NOT NULL`, défaut 0, `CHECK (buffer_minutes BETWEEN 0 AND 480)` |
+
 ### Suppressions en cascade
 
 Supprimer un compte supprime son profil créateur, puis ses albums, puis leurs médias, ainsi que ses associations de catégories et ses prestations avec leurs options. Supprimer une catégorie supprime seulement ses associations avec les créateurs, et retire la catégorie des prestations qui l'utilisaient.
@@ -214,7 +252,6 @@ Elles seront ajoutées à `schema.sql`, puis à ce document, au fil des releases
 
 | Release | Module | Données |
 |---------|--------|---------|
-| v0.2 | `offerings` | Créneaux disponibles, préavis et marge (#28) |
 | v0.2 | `bookings` | Réservations et journal des changements de statut |
 | v0.3 | `bookings` | Réservations multiples (packs) |
 | v0.3 | `reputation` | Avis et notes |

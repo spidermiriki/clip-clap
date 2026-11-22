@@ -93,3 +93,23 @@ CREATE TABLE IF NOT EXISTS offering_options (
 );
 
 CREATE INDEX IF NOT EXISTS idx_offering_options_offering ON offering_options (offering_id);
+
+-- Créneaux libres d'un créateur (#28), en TIMESTAMPTZ : affichés et saisis à l'heure de Bruxelles.
+-- Le module bookings les référence par availability_slots.id (slot_id).
+CREATE TABLE IF NOT EXISTS availability_slots (
+    id         BIGSERIAL   PRIMARY KEY,
+    creator_id BIGINT      NOT NULL REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
+    starts_at  TIMESTAMPTZ NOT NULL,
+    ends_at    TIMESTAMPTZ NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    CHECK (ends_at > starts_at)
+);
+
+CREATE INDEX IF NOT EXISTS idx_availability_slots_creator ON availability_slots (creator_id, starts_at);
+
+-- Préavis minimum et marge entre deux rendez-vous, par créateur (#28) ; sans ligne, les deux valent 0
+CREATE TABLE IF NOT EXISTS scheduling_settings (
+    creator_id       BIGINT  PRIMARY KEY REFERENCES creator_profiles (user_id) ON DELETE CASCADE,
+    min_notice_hours INTEGER NOT NULL DEFAULT 0 CHECK (min_notice_hours BETWEEN 0 AND 720),
+    buffer_minutes   INTEGER NOT NULL DEFAULT 0 CHECK (buffer_minutes BETWEEN 0 AND 480)
+);
