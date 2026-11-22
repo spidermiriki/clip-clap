@@ -137,6 +137,15 @@ CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
 -- Anti-collision (#30, scénario 21) : un créneau ne peut être confirmé que par une seule réservation
 CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_slot_confirmee ON bookings (slot_id) WHERE status = 'CONFIRMEE';
 
+-- ON DELETE SET NULL manquant sur offering_id/slot_id dans #126 (table déjà possiblement en
+-- production) : DROP puis ADD, pas de ADD CONSTRAINT IF NOT EXISTS en PostgreSQL.
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_offering_id_fkey;
+ALTER TABLE bookings ADD CONSTRAINT bookings_offering_id_fkey
+    FOREIGN KEY (offering_id) REFERENCES offerings (id) ON DELETE SET NULL;
+ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_slot_id_fkey;
+ALTER TABLE bookings ADD CONSTRAINT bookings_slot_id_fkey
+    FOREIGN KEY (slot_id) REFERENCES availability_slots (id) ON DELETE SET NULL;
+
 -- Journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée
 CREATE TABLE IF NOT EXISTS booking_status_history (
     id              BIGSERIAL   PRIMARY KEY,
