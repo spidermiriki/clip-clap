@@ -146,4 +146,30 @@ describe('MesAlbums (#15)', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent("n'a pas confirmé la suppression")
     expect(screen.getByAltText('Mariage Dupont, photo 1')).toBeInTheDocument()
   })
+
+  // ── Vidéos (#94) ───────────────────────────────────────────────────────────
+
+  it("envoie une vidéo et l'affiche avec un lecteur", async () => {
+    vi.mocked(listMyAlbums).mockResolvedValue([{ id: 7, name: 'Clips', photos: [] }])
+    vi.mocked(uploadPhoto).mockResolvedValue({ id: 3, url: 'https://exemple.test/clip.mp4', mediaType: 'VIDEO' })
+    const { container } = renderPage()
+    await screen.findByText('Cet album ne contient pas encore de photo.')
+
+    const clip = new File(['x'], 'clip.mp4', { type: 'video/mp4' })
+    fireEvent.change(container.querySelector('input[type="file"]'), { target: { files: [clip] } })
+
+    const lecteur = await screen.findByLabelText('Clips, vidéo 1')
+    expect(lecteur.tagName).toBe('VIDEO')
+    expect(lecteur).toHaveAttribute('src', 'https://exemple.test/clip.mp4')
+    expect(screen.getByRole('button', { name: 'Supprimer la vidéo 1' })).toBeInTheDocument()
+    expect(uploadPhoto).toHaveBeenCalledWith(7, clip, 'jeton')
+  })
+
+  it('accepte les vidéos dans le sélecteur de fichiers', async () => {
+    vi.mocked(listMyAlbums).mockResolvedValue([{ id: 7, name: 'Clips', photos: [] }])
+    const { container } = renderPage()
+    await screen.findByText('Cet album ne contient pas encore de photo.')
+
+    expect(container.querySelector('input[type="file"]').getAttribute('accept')).toContain('video/mp4')
+  })
 })

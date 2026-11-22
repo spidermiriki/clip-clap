@@ -10,5 +10,7 @@ record UploadSignature(
         long timestamp,
         String signature,
         String folder,
-        String allowedFormats
+        String allowedFormats,
+        // « image » ou « video » : l'adresse d'envoi chez Cloudinary (/{resourceType}/upload, #94)
+        String resourceType
 ) {}

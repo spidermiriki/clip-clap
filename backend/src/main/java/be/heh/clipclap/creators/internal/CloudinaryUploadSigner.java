@@ -15,6 +15,7 @@ import java.util.Map;
 class CloudinaryUploadSigner implements UploadSigner {
 
     static final String ALLOWED_FORMATS = "jpg,png,webp";
+    static final String VIDEO_FORMATS = "mp4,webm,mov";
 
     private final CloudinaryProperties properties;
     private final Clock clock;
@@ -35,16 +36,19 @@ class CloudinaryUploadSigner implements UploadSigner {
     }
 
     @Override
-    public UploadSignature sign(String folder) {
+    public UploadSignature sign(String folder, String mediaType) {
         requireConfigured();
+        boolean video = "VIDEO".equals(mediaType);
+        String formats = video ? VIDEO_FORMATS : ALLOWED_FORMATS;
         long timestamp = clock.instant().getEpochSecond();
         // Le dossier et les formats sont signés : le navigateur ne peut pas les modifier
         Map<String, Object> params = Map.of(
                 "folder", folder,
                 "timestamp", timestamp,
-                "allowed_formats", ALLOWED_FORMATS);
+                "allowed_formats", formats);
         String signature = Util.produceSignature(params, properties.apiSecret(), Configuration.DEFAULT_SIGNATURE_VERSION);
-        return new UploadSignature(properties.cloudName(), properties.apiKey(), timestamp, signature, folder, ALLOWED_FORMATS);
+        return new UploadSignature(properties.cloudName(), properties.apiKey(), timestamp, signature, folder, formats,
+                video ? "video" : "image");
     }
 
     @Override

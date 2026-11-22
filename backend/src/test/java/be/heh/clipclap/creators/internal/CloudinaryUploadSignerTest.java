@@ -25,16 +25,27 @@ class CloudinaryUploadSignerTest {
 
     @Test
     void sign_signeLeDossierLesFormatsEtLHorodatage_sansExposerLeSecret() {
-        UploadSignature signature = signer.sign("clicclap/creators/1/albums/2");
+        UploadSignature signature = signer.sign("clicclap/creators/1/albums/2", "PHOTO");
 
         assertThat(signature.timestamp()).isEqualTo(1_731_400_000L);
         assertThat(signature.folder()).isEqualTo("clicclap/creators/1/albums/2");
         assertThat(signature.allowedFormats()).isEqualTo("jpg,png,webp");
+        assertThat(signature.resourceType()).isEqualTo("image");
         assertThat(signature.cloudName()).isEqualTo("cloud-test");
         assertThat(signature.apiKey()).isEqualTo("cle-test");
         assertThat(signature.signature()).isEqualTo(
                 sha1("allowed_formats=jpg,png,webp&folder=clicclap/creators/1/albums/2&timestamp=1731400000" + SECRET));
         assertThat(signature.toString()).doesNotContain(SECRET);
+    }
+
+    @Test
+    void sign_video_signeLesFormatsVideo_etViseLEndpointVideo() {
+        UploadSignature signature = signer.sign("clicclap/creators/1/albums/2", "VIDEO");
+
+        assertThat(signature.allowedFormats()).isEqualTo("mp4,webm,mov");
+        assertThat(signature.resourceType()).isEqualTo("video");
+        assertThat(signature.signature()).isEqualTo(
+                sha1("allowed_formats=mp4,webm,mov&folder=clicclap/creators/1/albums/2&timestamp=1731400000" + SECRET));
     }
 
     @Test
@@ -52,7 +63,7 @@ class CloudinaryUploadSignerTest {
         var nonConfigure = new CloudinaryUploadSigner(new CloudinaryProperties("", "", ""), HORLOGE);
 
         assertThat(nonConfigure.isConfigured()).isFalse();
-        assertThatThrownBy(() -> nonConfigure.sign("dossier")).isInstanceOf(UploadNotConfiguredException.class);
+        assertThatThrownBy(() -> nonConfigure.sign("dossier", "PHOTO")).isInstanceOf(UploadNotConfiguredException.class);
     }
 
     static String sha1(String texte) {

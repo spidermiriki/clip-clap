@@ -170,7 +170,33 @@ class GalleryControllerTest {
 				.jsonPath("$.albums.length()").isEqualTo(1)
 				.jsonPath("$.albums[0].name").isEqualTo("Mariages")
 				.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
-				.jsonPath("$.albums[0].photos[0].url").isEqualTo("https://res.cloudinary.com/cloud-test/image/upload/v1/photo-1.jpg");
+				.jsonPath("$.albums[0].photos[0].url").isEqualTo("https://res.cloudinary.com/cloud-test/image/upload/v1/photo-1.jpg")
+				.jsonPath("$.albums[0].photos[0].mediaType").isEqualTo("PHOTO");
+	}
+
+	@Test
+	void getCreatorProfile_afficheSesVideos_etLeFiltreVideoLeTrouve() {
+		long userId = insertValidatedCreator("video@gallery.test", "Avec vidéo", false);
+		long albumId = jdbcClient.sql("INSERT INTO albums (creator_id, name) VALUES (:userId, 'Clips') RETURNING id")
+				.param("userId", userId).query(Long.class).single();
+		jdbcClient.sql("""
+				INSERT INTO media (album_id, url, cloudinary_public_id, media_type)
+				VALUES (:albumId, 'https://res.cloudinary.com/cloud-test/video/upload/v1/clip.mp4', 'clip', 'VIDEO')
+				""")
+				.param("albumId", albumId)
+				.update();
+
+		restTestClient.get().uri("/api/catalog/creators/{userId}", userId)
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.albums[0].photos.length()").isEqualTo(1)
+				.jsonPath("$.albums[0].photos[0].mediaType").isEqualTo("VIDEO");
+		restTestClient.get().uri("/api/catalog/creators?mediaType=VIDEO&size=50")
+				.exchange()
+				.expectStatus().isOk()
+				.expectBody()
+				.jsonPath("$.items[?(@.displayName == 'Avec vidéo')]").exists();
 	}
 
 	@Test

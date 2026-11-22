@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -52,9 +53,11 @@ class AlbumController {
         albumService.rename(currentUser.id(auth), albumId, body.name());
     }
 
+    /** {@code type} : {@code PHOTO} (par défaut) ou {@code VIDEO} (#94). */
     @PostMapping("/{albumId}/upload-signature")
-    UploadSignature signUpload(Authentication auth, @PathVariable long albumId) {
-        return albumService.signUpload(currentUser.id(auth), albumId);
+    UploadSignature signUpload(Authentication auth, @PathVariable long albumId,
+                               @RequestParam(defaultValue = "PHOTO") String type) {
+        return albumService.signUpload(currentUser.id(auth), albumId, type);
     }
 
     @PostMapping("/{albumId}/photos")

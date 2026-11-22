@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MESSAGE_ECHEC_ENVOI, uploadPhoto, verifierFichier } from './albums'
+import { MESSAGE_ECHEC_ENVOI, typeDeMedia, uploadPhoto, verifierFichier } from './albums'
 
 // fetch est simulé : aucun appel réel au backend ni à Cloudinary
 function reponse(status, body) {
@@ -13,9 +13,11 @@ const SIGNATURE = {
   signature: 'sig-backend',
   folder: 'clicclap/creators/1/albums/7',
   allowedFormats: 'jpg,png,webp',
+  resourceType: 'image',
 }
 
 const photoJpeg = () => new File(['x'], 'mariage.jpg', { type: 'image/jpeg' })
+const videoMp4 = () => new File(['x'], 'clip.mp4', { type: 'video/mp4' })
 
 describe('uploadPhoto (#15)', () => {
   let fetchMock
@@ -45,7 +47,7 @@ describe('uploadPhoto (#15)', () => {
     expect(photo.id).toBe(5)
 
     const [urlSignature, optionsSignature] = fetchMock.mock.calls[0]
-    expect(urlSignature).toBe('/api/creators/me/albums/7/upload-signature')
+    expect(urlSignature).toBe('/api/creators/me/albums/7/upload-signature?type=PHOTO')
     expect(optionsSignature.headers.Authorization).toBe('Bearer jeton')
 
     const [urlCloudinary, optionsCloudinary] = fetchMock.mock.calls[1]
@@ -65,7 +67,28 @@ describe('uploadPhoto (#15)', () => {
       version: '1731400123',
       signature: 'sig-cloudinary',
       secureUrl: 'https://res.cloudinary.com/cloud-test/image/upload/v1731400123/clicclap/creators/1/albums/7/abc.jpg',
+      mediaType: 'PHOTO',
     })
+  })
+
+  it('envoie une vidéo avec la signature vidéo, vers /video/upload (#94)', async () => {
+    fetchMock
+      .mockResolvedValueOnce(reponse(200, { ...SIGNATURE, allowedFormats: 'mp4,webm,mov', resourceType: 'video' }))
+      .mockResolvedValueOnce(reponse(200, {
+        public_id: 'clicclap/creators/1/albums/7/clip',
+        version: 1731400123,
+        signature: 'sig-cloudinary',
+        secure_url: 'https://res.cloudinary.com/cloud-test/video/upload/v1731400123/clicclap/creators/1/albums/7/clip.mp4',
+      }))
+      .mockResolvedValueOnce(reponse(201, { id: 6, url: 'https://res.cloudinary.com/cloud-test/video/upload/v1731400123/clip.mp4', mediaType: 'VIDEO' }))
+
+    const video = await uploadPhoto(7, videoMp4(), 'jeton')
+
+    expect(video.mediaType).toBe('VIDEO')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/creators/me/albums/7/upload-signature?type=VIDEO')
+    expect(fetchMock.mock.calls[1][0]).toBe('https://api.cloudinary.com/v1_1/cloud-test/video/upload')
+    expect(fetchMock.mock.calls[1][1].body.get('allowed_formats')).toBe('mp4,webm,mov')
+    expect(JSON.parse(fetchMock.mock.calls[2][1].body).mediaType).toBe('VIDEO')
   })
 
   it('refuse un format non accepté avant tout appel réseau', async () => {
@@ -117,5 +140,15 @@ describe('verifierFichier', () => {
     expect(verifierFichier(photoJpeg())).toBeNull()
     const lourd = new File([new Uint8Array(10 * 1024 * 1024 + 1)], 'lourd.png', { type: 'image/png' })
     expect(verifierFichier(lourd)).toContain('10 Mo')
+  })
+
+  it("accepte MP4, WebM et MOV jusqu'à 100 Mo, et refuse au-delà (#94)", () => {
+    expect(verifierFichier(videoMp4())).toBeNull()
+    expect(verifierFichier(new File(['x'], 'clip.mov', { type: 'video/quicktime' }))).toBeNull()
+    expect(typeDeMedia(videoMp4())).toBe('VIDEO')
+    expect(typeDeMedia(photoJpeg())).toBe('PHOTO')
+    const tropLourde = { name: 'long.mp4', type: 'video/mp4', size: 100 * 1024 * 1024 + 1 }
+    expect(verifierFichier(tropLourde)).toContain('100 Mo')
+    expect(verifierFichier({ name: 'clip.avi', type: 'video/x-msvideo', size: 10 })).toContain('MP4, WebM et MOV')
   })
 })

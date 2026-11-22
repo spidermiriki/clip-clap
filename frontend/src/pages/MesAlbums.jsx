@@ -4,7 +4,10 @@ import { Link } from 'react-router-dom'
 import { createAlbum, deleteAlbum, deletePhoto, FORMATS_ACCEPTES, listMyAlbums, renameAlbum, uploadPhoto } from '../api/albums'
 import styles from './MesAlbums.module.css'
 
-// Gestion des albums du créateur connecté (wireframe 10, #15)
+// « photo 2 » ou « vidéo 2 » : libellé d'un média de l'album (#94)
+const nature = (media) => (media.mediaType === 'VIDEO' ? 'vidéo' : 'photo')
+
+// Gestion des albums du créateur connecté (wireframe 10, #15), photos et vidéos (#94)
 export default function MesAlbums() {
   const { user } = useAuth()
   const token = user?.access_token ?? null
@@ -70,26 +73,26 @@ export default function MesAlbums() {
     const albumId = album.id
     try {
       for (const [index, fichier] of liste.entries()) {
-        setEnvoi(`Envoi de la photo ${index + 1} sur ${liste.length}…`)
+        setEnvoi(`Envoi du fichier ${index + 1} sur ${liste.length}…`)
         const photo = await uploadPhoto(albumId, fichier, token)
         majAlbum(albumId, (a) => ({ ...a, photos: [...a.photos, photo] }))
       }
     } catch (err) {
-      setError(err?.message ?? "L'envoi de la photo a échoué.")
+      setError(err?.message ?? "L'envoi du fichier a échoué.")
     } finally {
       setEnvoi(null)
     }
   }
 
   async function supprimerPhoto(photo, index) {
-    if (!window.confirm(`Supprimer la photo ${index + 1} de « ${album.name} » ?`)) return
+    if (!window.confirm(`Supprimer la ${nature(photo)} ${index + 1} de « ${album.name} » ?`)) return
     setError(null)
     const albumId = album.id
     try {
       await deletePhoto(albumId, photo.id, token)
       majAlbum(albumId, (a) => ({ ...a, photos: a.photos.filter((p) => p.id !== photo.id) }))
     } catch (err) {
-      setError(err?.message ?? 'Impossible de supprimer la photo.')
+      setError(err?.message ?? `Impossible de supprimer la ${nature(photo)}.`)
     }
   }
 
@@ -181,7 +184,7 @@ export default function MesAlbums() {
             </div>
 
             <label className={styles.depot} onDragOver={(e) => e.preventDefault()} onDrop={handleDrop}>
-              <span>{envoi ?? 'Déposez vos photos ici ou cliquez pour les choisir (JPEG, PNG ou WebP, 10 Mo max.)'}</span>
+              <span>{envoi ?? "Déposez vos photos et vidéos ici ou cliquez pour les choisir (photos JPEG, PNG ou WebP jusqu'à 10 Mo ; vidéos MP4, WebM ou MOV jusqu'à 100 Mo)"}</span>
               <input
                 type="file"
                 accept={FORMATS_ACCEPTES.join(',')}
@@ -197,12 +200,16 @@ export default function MesAlbums() {
               <ul className={styles.photos} aria-label={`Photos de ${album.name}`}>
                 {album.photos.map((photo, index) => (
                   <li key={photo.id} className={styles.photo}>
-                    <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                    {photo.mediaType === 'VIDEO' ? (
+                      <video src={photo.url} controls preload="metadata" aria-label={`${album.name}, vidéo ${index + 1}`} />
+                    ) : (
+                      <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                    )}
                     <button
                       type="button"
                       className={styles.supprimer}
                       onClick={() => supprimerPhoto(photo, index)}
-                      aria-label={`Supprimer la photo ${index + 1}`}
+                      aria-label={`Supprimer la ${nature(photo)} ${index + 1}`}
                     >
                       Supprimer
                     </button>

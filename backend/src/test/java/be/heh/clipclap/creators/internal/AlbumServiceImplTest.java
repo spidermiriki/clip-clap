@@ -22,8 +22,8 @@ class AlbumServiceImplTest {
     void sansIdentifiantsCloudinary_signatureEtEnregistrementRepondentIndisponible() {
         when(uploadSigner.isConfigured()).thenReturn(false);
 
-        assertThatThrownBy(() -> service.signUpload(1L, 2L)).isInstanceOf(UploadNotConfiguredException.class);
-        assertThatThrownBy(() -> service.addPhoto(1L, 2L, new AddPhotoCommand("p", "1", "s", "u")))
+        assertThatThrownBy(() -> service.signUpload(1L, 2L, "PHOTO")).isInstanceOf(UploadNotConfiguredException.class);
+        assertThatThrownBy(() -> service.addPhoto(1L, 2L, new AddPhotoCommand("p", "1", "s", "u", null)))
                 .isInstanceOf(UploadNotConfiguredException.class);
         verifyNoInteractions(albums);
     }
