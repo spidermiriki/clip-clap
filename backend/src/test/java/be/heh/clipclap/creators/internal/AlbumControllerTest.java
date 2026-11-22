@@ -132,6 +132,74 @@ class AlbumControllerTest {
                 .expectBody().jsonPath("$.apiSecret").doesNotExist();
     }
 
+    // ── Vidéos (#94) ────────────────────────────────────────────────────────
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void signatureVideo_formatsVideo_etEndpointVideo() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Clips");
+        String dossier = "clicclap/creators/" + alice + "/albums/" + albumId;
+
+        UploadSignature signature = client.post().uri("/api/creators/me/albums/{id}/upload-signature?type=VIDEO", albumId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(UploadSignature.class)
+                .returnResult().getResponseBody();
+
+        assertThat(signature).isNotNull();
+        assertThat(signature.allowedFormats()).isEqualTo("mp4,webm,mov");
+        assertThat(signature.resourceType()).isEqualTo("video");
+        assertThat(signature.signature()).isEqualTo(
+                sha1("allowed_formats=mp4,webm,mov&folder=" + dossier + "&timestamp=" + signature.timestamp() + SECRET));
+        client.post().uri("/api/creators/me/albums/{id}/upload-signature?type=GIF", albumId)
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void videoAuthentique_enregistreeEtVisibleAvecSonType() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Clips");
+        String publicId = "clicclap/creators/" + alice + "/albums/" + albumId + "/clip-1";
+
+        addPhoto(albumId, video(publicId, urlVideo(publicId)))
+                .expectStatus().isCreated()
+                .expectBody()
+                .jsonPath("$.mediaType").isEqualTo("VIDEO")
+                .jsonPath("$.url").isEqualTo(urlVideo(publicId));
+
+        client.get().uri("/api/creators/me/albums")
+                .exchange()
+                .expectBody()
+                .jsonPath("$[0].photos.length()").isEqualTo(1)
+                .jsonPath("$[0].photos[0].mediaType").isEqualTo("VIDEO");
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void typeAnnonceQuiNeCorrespondPasALUrl_renvoie400() {
+        long alice = insertCreator("alice@albums.test", ALICE);
+        long albumId = createAlbum("Clips");
+        String dossier = "clicclap/creators/" + alice + "/albums/" + albumId;
+
+        // Vidéo annoncée, mais URL d'image
+        addPhoto(albumId, video(dossier + "/clip", url(dossier + "/clip")))
+                .expectStatus().isBadRequest();
+        // Photo annoncée (par défaut), mais URL de vidéo
+        String signature = sha1("public_id=" + dossier + "/photo&version=" + VERSION + SECRET);
+        addPhoto(albumId, """
+                {"publicId":"%s","version":"%s","signature":"%s","secureUrl":"%s"}
+                """.formatted(dossier + "/photo", VERSION, signature, urlVideo(dossier + "/photo")))
+                .expectStatus().isBadRequest();
+        // Type inconnu
+        addPhoto(albumId, video(dossier + "/clip", urlVideo(dossier + "/clip")).replace("\"VIDEO\"", "\"GIF\""))
+                .expectStatus().isBadRequest();
+
+        assertThat(compterMedias()).isZero();
+    }
+
     @Test
     @WithMockUser(username = ALICE)
     void scenario5_deuxPhotosAuthentiques_visiblesDansLAlbum() {
@@ -150,7 +218,8 @@ class AlbumControllerTest {
                 .expectStatus().isOk()
                 .expectBody()
                 .jsonPath("$[0].photos.length()").isEqualTo(2)
-                .jsonPath("$[0].photos[1].url").isEqualTo(url(dossier + "/photo-2"));
+                .jsonPath("$[0].photos[1].url").isEqualTo(url(dossier + "/photo-2"))
+                .jsonPath("$[0].photos[1].mediaType").isEqualTo("PHOTO");
     }
 
     @Test
@@ -375,6 +444,17 @@ class AlbumControllerTest {
 
     private static String url(String publicId) {
         return "https://res.cloudinary.com/cloud-test/image/upload/v" + VERSION + "/" + publicId + ".jpg";
+    }
+
+    private static String video(String publicId, String secureUrl) {
+        String signature = sha1("public_id=" + publicId + "&version=" + VERSION + SECRET);
+        return """
+                {"publicId":"%s","version":"%s","signature":"%s","secureUrl":"%s","mediaType":"VIDEO"}
+                """.formatted(publicId, VERSION, signature, secureUrl);
+    }
+
+    private static String urlVideo(String publicId) {
+        return "https://res.cloudinary.com/cloud-test/video/upload/v" + VERSION + "/" + publicId + ".mp4";
     }
 
     private long compterMedias() {

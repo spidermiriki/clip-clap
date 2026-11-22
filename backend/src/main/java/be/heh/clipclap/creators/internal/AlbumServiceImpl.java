@@ -7,6 +7,7 @@ import be.heh.clipclap.creators.CreatorProfileNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Locale;
 
 @Service
 class AlbumServiceImpl implements AlbumService {
@@ -49,22 +50,23 @@ class AlbumServiceImpl implements AlbumService {
         }
     }
 
-    /** Étape 1 : signature d'un upload limité au dossier de cet album. */
-    UploadSignature signUpload(long userId, long albumId) {
+    /** Étape 1 : signature d'un upload limité au dossier de cet album et aux formats du type de média (#94). */
+    UploadSignature signUpload(long userId, long albumId, String type) {
         if (!uploadSigner.isConfigured()) {
             throw new UploadNotConfiguredException();
         }
         requireOwned(userId, albumId);
-        return uploadSigner.sign(folder(userId, albumId));
+        return uploadSigner.sign(folder(userId, albumId), mediaType(type));
     }
 
-    /** Étape 3 : enregistrement d'une photo, seulement si la réponse de Cloudinary est authentique et cohérente. */
+    /** Étape 3 : enregistrement d'une photo ou d'une vidéo, seulement si la réponse de Cloudinary est authentique et cohérente. */
     Photo addPhoto(long userId, long albumId, AddPhotoCommand command) {
         if (!uploadSigner.isConfigured()) {
             throw new UploadNotConfiguredException();
         }
         requireOwned(userId, albumId);
 
+        String type = mediaType(command.mediaType());
         String publicId = required(command.publicId(), "publicId");
         String version = required(command.version(), "version");
         String signature = required(command.signature(), "signature");
@@ -76,14 +78,17 @@ class AlbumServiceImpl implements AlbumService {
         if (!version.matches("\\d{1,20}")) {
             throw new InvalidUploadException("Version de la photo invalide");
         }
-        String prefix = "https://res.cloudinary.com/" + uploadSigner.cloudName() + "/image/upload/";
+        // Une vidéo n'est servie que sous /video/upload/, une photo sous /image/upload/ : un type
+        // annoncé qui ne correspond pas à l'URL renvoyée par Cloudinary est refusé (#94)
+        String resourceType = "VIDEO".equals(type) ? "video" : "image";
+        String prefix = "https://res.cloudinary.com/" + uploadSigner.cloudName() + "/" + resourceType + "/upload/";
         if (!secureUrl.startsWith(prefix) || !secureUrl.contains("/v" + version + "/" + publicId)) {
-            throw new InvalidUploadException("L'URL de la photo ne correspond pas à l'upload");
+            throw new InvalidUploadException("L'URL du média ne correspond pas à l'upload");
         }
         if (!uploadSigner.isAuthentic(publicId, version, signature)) {
             throw new InvalidUploadException("La signature de Cloudinary est invalide");
         }
-        return albums.addPhoto(albumId, secureUrl, publicId);
+        return albums.addPhoto(albumId, secureUrl, publicId, type);
     }
 
     // ── Suppression (#94) ───────────────────────────────────────────────────
@@ -149,6 +154,18 @@ class AlbumServiceImpl implements AlbumService {
             throw new IllegalArgumentException("Le nom de l'album ne peut pas dépasser " + NAME_MAX_LENGTH + " caractères");
         }
         return nom;
+    }
+
+    /** {@code PHOTO} par défaut ; tout autre type que {@code PHOTO} ou {@code VIDEO} est refusé (400). */
+    private static String mediaType(String type) {
+        if (type == null || type.isBlank()) {
+            return "PHOTO";
+        }
+        String valeur = type.trim().toUpperCase(Locale.ROOT);
+        if (!valeur.equals("PHOTO") && !valeur.equals("VIDEO")) {
+            throw new IllegalArgumentException("Le type de média doit valoir PHOTO ou VIDEO");
+        }
+        return valeur;
     }
 
     private static String required(String value, String field) {

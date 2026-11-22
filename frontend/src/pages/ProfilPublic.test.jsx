@@ -112,4 +112,16 @@ describe('ProfilPublic (#17)', () => {
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Clara Lecomte' })).toBeInTheDocument()
   })
+
+  it('affiche une vidéo avec un lecteur (#94)', async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue({
+      ...PROFIL,
+      albums: [{ id: 2, name: 'Clips musicaux', photos: [{ id: 20, url: 'https://exemple.test/clip.mp4', mediaType: 'VIDEO' }] }],
+    })
+    renderProfil('/createurs/3')
+
+    const lecteur = await screen.findByLabelText('Clips musicaux, vidéo 1')
+    expect(lecteur.tagName).toBe('VIDEO')
+    expect(lecteur).toHaveAttribute('controls')
+  })
 })

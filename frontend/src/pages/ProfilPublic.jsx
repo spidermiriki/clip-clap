@@ -133,7 +133,11 @@ export default function ProfilPublic() {
                 <ul className={styles.photos} aria-label={`Photos de l'album ${album.name}`}>
                   {album.photos.map((photo, index) => (
                     <li key={photo.id}>
-                      <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                      {photo.mediaType === 'VIDEO' ? (
+                        <video src={photo.url} controls preload="metadata" aria-label={`${album.name}, vidéo ${index + 1}`} />
+                      ) : (
+                        <img src={photo.url} alt={`${album.name}, photo ${index + 1}`} loading="lazy" />
+                      )}
                     </li>
                   ))}
                 </ul>

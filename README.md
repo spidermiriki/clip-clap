@@ -104,7 +104,7 @@ npm run dev
 
 ### Données de démonstration
 
-Le profil Spring `demo` ajoute des créateurs fictifs (`backend/src/main/resources/demo-data.sql`) : 10 créateurs visibles en Belgique et en France, avec leurs types de prestation, plus un compte suspendu et un profil en attente qui n'apparaissent pas dans la galerie. Le script est rejouable à chaque démarrage.
+Le profil Spring `demo` ajoute des créateurs fictifs (`backend/src/main/resources/demo-data.sql`) : 10 créateurs visibles en Belgique et en France, avec leurs types de prestation et des albums (dont une vidéo, pour le filtre « Vidéo »), plus un compte suspendu et un profil en attente qui n'apparaissent pas dans la galerie. Le script est rejouable à chaque démarrage.
 
 ```bash
 cd backend

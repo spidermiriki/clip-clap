@@ -45,15 +45,16 @@ class AlbumRepository {
                 .single() == 1;
     }
 
-    Photo addPhoto(long albumId, String url, String publicId) {
+    Photo addPhoto(long albumId, String url, String publicId, String mediaType) {
         return jdbc.sql("""
                 INSERT INTO media (album_id, url, cloudinary_public_id, media_type)
-                VALUES (:albumId, :url, :publicId, 'PHOTO')
-                RETURNING id, url
+                VALUES (:albumId, :url, :publicId, :mediaType)
+                RETURNING id, url, media_type
                 """)
                 .param("albumId", albumId)
                 .param("url", url)
                 .param("publicId", publicId)
+                .param("mediaType", mediaType)
                 .query(Photo.class)
                 .single();
     }
@@ -105,12 +106,12 @@ class AlbumRepository {
         Map<Long, List<Photo>> photos = new LinkedHashMap<>();
         names.keySet().forEach(id -> photos.put(id, new ArrayList<>()));
         jdbc.sql("""
-                SELECT id, album_id, url FROM media
-                WHERE album_id IN (:albumIds) AND media_type = 'PHOTO'
+                SELECT id, album_id, url, media_type FROM media
+                WHERE album_id IN (:albumIds)
                 ORDER BY created_at, id
                 """)
                 .param("albumIds", names.keySet())
-                .query((rs, rowNum) -> photos.get(rs.getLong("album_id")).add(new Photo(rs.getLong("id"), rs.getString("url"))))
+                .query((rs, rowNum) -> photos.get(rs.getLong("album_id")).add(new Photo(rs.getLong("id"), rs.getString("url"), rs.getString("media_type"))))
                 .list();
 
         return names.entrySet().stream()

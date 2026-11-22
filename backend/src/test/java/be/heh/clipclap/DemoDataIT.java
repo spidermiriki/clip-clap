@@ -71,7 +71,7 @@ class DemoDataIT {
 	}
 
 	@Test
-	void filtreParTypeDeMedia_trouveLesQuatreCreateursQuiOntDesPhotos() {
+	void filtreParTypeDeMedia_trouveLesQuatreCreateursAvecPhotos_etCeluiQuiAUneVideo() {
 		client.get().uri("/api/catalog/creators?mediaType=PHOTO&size=50")
 			.exchange()
 			.expectStatus().isOk()
@@ -81,10 +81,28 @@ class DemoDataIT {
 			.jsonPath("$.items[?(@.displayName == 'Bruno Lambert')]").exists()
 			.jsonPath("$.items[?(@.displayName == 'Chloé Dubois')]").exists()
 			.jsonPath("$.items[?(@.displayName == 'Inès Moreau')]").exists();
+		// Une seule vidéo de démonstration (#94) : le clip de Farid Benali
 		client.get().uri("/api/catalog/creators?mediaType=VIDEO")
 			.exchange()
 			.expectStatus().isOk()
-			.expectBody().jsonPath("$.totalElements").isEqualTo(0);
+			.expectBody()
+			.jsonPath("$.totalElements").isEqualTo(1)
+			.jsonPath("$.items[0].displayName").isEqualTo("Farid Benali");
+	}
+
+	@Test
+	void profilPublic_afficheLaVideoDeDemonstration() {
+		long farid = idDe("farid.benali@clicclap.test");
+
+		client.get().uri("/api/catalog/creators/{id}", farid)
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody()
+			.jsonPath("$.albums.length()").isEqualTo(1)
+			.jsonPath("$.albums[0].name").isEqualTo("Clips musicaux")
+			.jsonPath("$.albums[0].photos.length()").isEqualTo(1)
+			.jsonPath("$.albums[0].photos[0].mediaType").isEqualTo("VIDEO")
+			.jsonPath("$.albums[0].photos[?(@.url == 'https://res.cloudinary.com/mcnayzr8/video/upload/samples/cld-sample-video.mp4')]").exists();
 	}
 
 	@Test
@@ -98,6 +116,7 @@ class DemoDataIT {
 			.jsonPath("$.albums.length()").isEqualTo(1)
 			.jsonPath("$.albums[0].name").isEqualTo("Mariages 2026")
 			.jsonPath("$.albums[0].photos.length()").isEqualTo(2)
+			.jsonPath("$.albums[0].photos[0].mediaType").isEqualTo("PHOTO")
 			.jsonPath("$.albums[0].photos[?(@.url == 'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg')]").exists()
 			.jsonPath("$.albums[0].photos[?(@.url == 'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471945/samples/smile.jpg')]").exists();
 	}
@@ -114,8 +133,8 @@ class DemoDataIT {
 		populator.execute(dataSource);
 
 		assertThat(comptesAvant).isEqualTo(12);
-		assertThat(albumsAvant).isEqualTo(4);
-		assertThat(mediasAvant).isEqualTo(8);
+		assertThat(albumsAvant).isEqualTo(5);
+		assertThat(mediasAvant).isEqualTo(9);
 		assertThat(compter("SELECT COUNT(*) FROM users WHERE email LIKE '%@clicclap.test'")).isEqualTo(comptesAvant);
 		assertThat(compter("SELECT COUNT(*) FROM creator_categories")).isEqualTo(liensAvant);
 		assertThat(compter("SELECT COUNT(*) FROM albums")).isEqualTo(albumsAvant);

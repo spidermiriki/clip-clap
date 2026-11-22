@@ -64,7 +64,7 @@ JOIN users u ON u.email = l.email
 JOIN categories c ON c.name = l.category
 ON CONFLICT DO NOTHING;
 
--- Module creators : albums et photos de départ (#15). Images de la médiathèque Cloudinary du projet
+-- Module creators : albums, photos (#15) et une vidéo (#94) de départ. Images de la médiathèque Cloudinary du projet
 -- (URL de diffusion publiques : seul le nom du cloud y figure, aucun identifiant secret).
 -- Pas de clé unique sur albums et media : NOT EXISTS évite les doublons quand le script est rejoué.
 INSERT INTO albums (creator_id, name)
@@ -73,24 +73,27 @@ FROM (VALUES
     ('alice.martin@clicclap.test',  'Mariages 2026'),
     ('bruno.lambert@clicclap.test', 'Soirées et événements'),
     ('chloe.dubois@clicclap.test',  'Portraits animaliers'),
-    ('ines.moreau@clicclap.test',   'Nature et grand air')
+    ('ines.moreau@clicclap.test',   'Nature et grand air'),
+    ('farid.benali@clicclap.test',  'Clips musicaux')
 ) AS a (email, name)
 JOIN users u ON u.email = a.email
 WHERE NOT EXISTS (SELECT 1 FROM albums x WHERE x.creator_id = u.id AND x.name = a.name);
 
--- ORDER BY m.ordre : les jointures ne garantissent pas l'ordre des lignes, donc celui des photos dans l'album
+-- ORDER BY m.ordre : les jointures ne garantissent pas l'ordre des lignes, donc celui des photos dans l'album.
+-- La vidéo d'exemple (#94) a une URL sans version, servie telle quelle par Cloudinary.
 INSERT INTO media (album_id, url, cloudinary_public_id, media_type)
-SELECT al.id, m.url, m.public_id, 'PHOTO'
+SELECT al.id, m.url, m.public_id, m.media_type
 FROM (VALUES
-    (1, 'alice.martin@clicclap.test',  'Mariages 2026',         'samples/two-ladies',         'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg'),
-    (2, 'alice.martin@clicclap.test',  'Mariages 2026',         'samples/smile',              'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471945/samples/smile.jpg'),
-    (3, 'bruno.lambert@clicclap.test', 'Soirées et événements', 'samples/balloons',           'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471944/samples/balloons.jpg'),
-    (4, 'bruno.lambert@clicclap.test', 'Soirées et événements', 'samples/imagecon-group',     'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471940/samples/imagecon-group.jpg'),
-    (5, 'chloe.dubois@clicclap.test',  'Portraits animaliers',  'samples/animals/cat',        'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471935/samples/animals/cat.jpg'),
-    (6, 'chloe.dubois@clicclap.test',  'Portraits animaliers',  'samples/animals/three-dogs', 'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471938/samples/animals/three-dogs.jpg'),
-    (7, 'ines.moreau@clicclap.test',   'Nature et grand air',   'samples/sheep',              'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471937/samples/sheep.jpg'),
-    (8, 'ines.moreau@clicclap.test',   'Nature et grand air',   'samples/animals/reindeer',   'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471936/samples/animals/reindeer.jpg')
-) AS m (ordre, email, album, public_id, url)
+    (1, 'alice.martin@clicclap.test',  'Mariages 2026',         'samples/two-ladies',         'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471943/samples/two-ladies.jpg', 'PHOTO'),
+    (2, 'alice.martin@clicclap.test',  'Mariages 2026',         'samples/smile',              'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471945/samples/smile.jpg', 'PHOTO'),
+    (3, 'bruno.lambert@clicclap.test', 'Soirées et événements', 'samples/balloons',           'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471944/samples/balloons.jpg', 'PHOTO'),
+    (4, 'bruno.lambert@clicclap.test', 'Soirées et événements', 'samples/imagecon-group',     'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471940/samples/imagecon-group.jpg', 'PHOTO'),
+    (5, 'chloe.dubois@clicclap.test',  'Portraits animaliers',  'samples/animals/cat',        'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471935/samples/animals/cat.jpg', 'PHOTO'),
+    (6, 'chloe.dubois@clicclap.test',  'Portraits animaliers',  'samples/animals/three-dogs', 'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471938/samples/animals/three-dogs.jpg', 'PHOTO'),
+    (7, 'ines.moreau@clicclap.test',   'Nature et grand air',   'samples/sheep',              'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471937/samples/sheep.jpg', 'PHOTO'),
+    (8, 'ines.moreau@clicclap.test',   'Nature et grand air',   'samples/animals/reindeer',   'https://res.cloudinary.com/mcnayzr8/image/upload/v1794471936/samples/animals/reindeer.jpg', 'PHOTO'),
+    (9, 'farid.benali@clicclap.test',  'Clips musicaux',        'samples/cld-sample-video',   'https://res.cloudinary.com/mcnayzr8/video/upload/samples/cld-sample-video.mp4', 'VIDEO')
+) AS m (ordre, email, album, public_id, url, media_type)
 JOIN users u ON u.email = m.email
 JOIN albums al ON al.creator_id = u.id AND al.name = m.album
 WHERE NOT EXISTS (SELECT 1 FROM media x WHERE x.album_id = al.id AND x.cloudinary_public_id = m.public_id)
