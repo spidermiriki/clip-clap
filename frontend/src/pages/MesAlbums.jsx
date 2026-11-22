@@ -21,17 +21,29 @@ export default function MesAlbums() {
   const [renommage, setRenommage] = useState(null)
   const [envoi, setEnvoi] = useState(null)
 
+  // Relancé à chaque nouveau token (renouvellement silencieux de la session) : on repart d'un état
+  // propre, et une réponse arrivée après une plus récente est ignorée (#129, comme #119)
   useEffect(() => {
+    let ignore = false
+    setError(null)
+    setSansProfil(false)
     listMyAlbums(token)
       .then((result) => {
+        if (ignore) return
         setAlbums(result)
         setSelectedId(result[0]?.id ?? null)
       })
       .catch((err) => {
+        if (ignore) return
         if (err?.status === 404) setSansProfil(true)
         else setError(err?.message ?? 'Impossible de charger vos albums.')
       })
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!ignore) setLoading(false)
+      })
+    return () => {
+      ignore = true
+    }
   }, [token])
 
   // Sans sélection valide (ex. après la suppression de l'album affiché), le premier album est montré

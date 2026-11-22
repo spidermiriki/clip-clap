@@ -1,10 +1,12 @@
-import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createSlot, deleteSlot, getMySettings, listMySlots, saveMySettings } from '../api/availability'
 import MesDisponibilites from './MesDisponibilites'
 
-vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: 'jeton' } }) }))
+// Token modifiable : simule le renouvellement silencieux de la session (#129)
+const auth = vi.hoisted(() => ({ token: 'jeton' }))
+vi.mock('react-oidc-context', () => ({ useAuth: () => ({ user: { access_token: auth.token } }) }))
 vi.mock('../api/availability', () => ({
   listMySlots: vi.fn(),
   createSlot: vi.fn(),
@@ -15,12 +17,15 @@ vi.mock('../api/availability', () => ({
 
 const VENDREDI = { id: 4, creatorUserId: 1, start: '2027-04-02T14:00:00+02:00', end: '2027-04-02T16:00:00+02:00' }
 
+const page = () => <MemoryRouter><MesDisponibilites /></MemoryRouter>
+
 function renderPage() {
-  return render(<MemoryRouter><MesDisponibilites /></MemoryRouter>)
+  return render(page())
 }
 
 describe('MesDisponibilites (#28)', () => {
   beforeEach(() => {
+    auth.token = 'jeton'
     vi.mocked(listMySlots).mockReset().mockResolvedValue([])
     vi.mocked(getMySettings).mockReset().mockResolvedValue({ minNoticeHours: 0, bufferMinutes: 0 })
     vi.mocked(createSlot).mockReset()
@@ -97,5 +102,53 @@ describe('MesDisponibilites (#28)', () => {
     renderPage()
 
     expect(await screen.findByRole('link', { name: 'Créer mon profil' })).toBeInTheDocument()
+  })
+
+  // ── Rechargement à chaque nouveau token (#129) ─────────────────────────────
+
+  it("efface l'erreur quand le chargement suivant réussit", async () => {
+    vi.mocked(listMySlots)
+      .mockRejectedValueOnce({ status: 401, message: 'Session expirée' })
+      .mockResolvedValueOnce([{ id: 5, creatorUserId: 1, start: '2027-04-02T10:00:00+02:00', end: '2027-04-02T11:00:00+02:00' }])
+    const { rerender } = renderPage()
+    expect(await screen.findByRole('alert')).toHaveTextContent('Session expirée')
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+
+    expect(await screen.findByText('10:00 – 11:00')).toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it("quitte l'écran « pas de profil » quand le chargement suivant réussit", async () => {
+    vi.mocked(listMySlots)
+      .mockRejectedValueOnce({ status: 404, message: 'Profil introuvable' })
+      .mockResolvedValueOnce([{ id: 5, creatorUserId: 1, start: '2027-04-02T10:00:00+02:00', end: '2027-04-02T11:00:00+02:00' }])
+    const { rerender } = renderPage()
+    await screen.findByRole('link', { name: 'Créer mon profil' })
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+
+    expect(await screen.findByText('10:00 – 11:00')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Créer mon profil' })).not.toBeInTheDocument()
+  })
+
+  it('ignore une réponse arrivée après une plus récente', async () => {
+    let repondreAncien
+    vi.mocked(listMySlots)
+      .mockReturnValueOnce(new Promise((resolve) => { repondreAncien = resolve }))
+      .mockResolvedValueOnce([{ id: 5, creatorUserId: 1, start: '2027-04-02T10:00:00+02:00', end: '2027-04-02T11:00:00+02:00' }])
+    const { rerender } = renderPage()
+
+    auth.token = 'jeton-renouvele'
+    rerender(page())
+    expect(await screen.findByText('10:00 – 11:00')).toBeInTheDocument()
+
+    repondreAncien([{ id: 9, creatorUserId: 1, start: '2027-04-02T18:00:00+02:00', end: '2027-04-02T19:00:00+02:00' }])
+    await act(() => new Promise((resolve) => setTimeout(resolve, 0)))
+
+    expect(screen.queryByText('18:00 – 19:00')).not.toBeInTheDocument()
+    expect(screen.getByText('10:00 – 11:00')).toBeInTheDocument()
   })
 })
