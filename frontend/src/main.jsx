@@ -9,6 +9,7 @@ import Galerie from './pages/Galerie.jsx'
 import Inscription from './pages/Inscription.jsx'
 import BackOffice from './pages/BackOffice.jsx'
 import MesAlbums from './pages/MesAlbums.jsx'
+import MesDisponibilites from './pages/MesDisponibilites.jsx'
 import MesPrestations from './pages/MesPrestations.jsx'
 import MonProfilCreateur from './pages/MonProfilCreateur.jsx'
 import ProfilPublic from './pages/ProfilPublic.jsx'
@@ -45,6 +46,14 @@ createRoot(document.getElementById('root')).render(
               element={(
                 <ProtectedRoute roles={['CREATOR']}>
                   <MesPrestations />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="mes-disponibilites"
+              element={(
+                <ProtectedRoute roles={['CREATOR']}>
+                  <MesDisponibilites />
                 </ProtectedRoute>
               )}
             />
