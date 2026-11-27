@@ -46,6 +46,13 @@ describe('ProfilPublic (#17)', () => {
     expect(screen.getByText('Hainaut, Bruxelles')).toBeInTheDocument()
   })
 
+  it('propose un lien « Réserver » vers la page de réservation (#29)', async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue(PROFIL)
+    renderProfil('/createurs/3')
+
+    expect(await screen.findByRole('link', { name: 'Réserver' })).toHaveAttribute('href', '/createurs/3/reserver')
+  })
+
   it('affiche les albums et leurs photos (#15)', async () => {
     vi.mocked(getCreatorProfile).mockResolvedValue({
       ...PROFIL,

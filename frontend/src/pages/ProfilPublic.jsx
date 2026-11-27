@@ -87,6 +87,8 @@ export default function ProfilPublic() {
         </div>
       </header>
 
+      <Link to={`/createurs/${userId}/reserver`} className={styles.reserver}>Réserver</Link>
+
       <section aria-labelledby="titre-bio">
         <h2 id="titre-bio">À propos</h2>
         <p>{profile.bio || "Ce créateur n'a pas encore rédigé sa présentation."}</p>

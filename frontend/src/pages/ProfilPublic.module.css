@@ -86,6 +86,16 @@ section p {
   margin: 0;
 }
 
+.reserver {
+  display: inline-block;
+  padding: 0.5rem 1.1rem;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .actions {
   display: flex;
   align-items: center;

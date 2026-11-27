@@ -234,6 +234,36 @@ Le préavis minimum et la marge entre deux rendez-vous d'un créateur (#28). San
 | `min_notice_hours` | `INTEGER` | `NOT NULL`, défaut 0, `CHECK (min_notice_hours BETWEEN 0 AND 720)` |
 | `buffer_minutes` | `INTEGER` | `NOT NULL`, défaut 0, `CHECK (buffer_minutes BETWEEN 0 AND 480)` |
 
+### `bookings` — module `bookings`
+
+Les demandes de réservation d'un client pour une prestation et un créneau d'un créateur (#29). Le prix total est figé au moment de la réservation : modifier la prestation ensuite ne change pas une réservation existante.
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | `BIGSERIAL` | clé primaire |
+| `client_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_client` |
+| `creator_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_creator` |
+| `offering_id` | `BIGINT` | `NOT NULL` (depuis #29), `REFERENCES offerings (id)` |
+| `slot_id` | `BIGINT` | `NOT NULL` (depuis #29), `REFERENCES availability_slots (id)` |
+| `total_price` | `NUMERIC(10,2)` | prix de base + options choisies, figé à la création (#29) |
+| `status` | `VARCHAR(20)` | `NOT NULL`, défaut `'EN_ATTENTE'`, `CHECK` parmi `EN_ATTENTE`, `CONFIRMEE`, `REFUSEE`, `ANNULEE`, `EXPIREE`, `TERMINEE` |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
+
+Index unique partiel `uq_bookings_slot_confirmee (slot_id) WHERE status = 'CONFIRMEE'` : anti-collision, un créneau ne peut être confirmé que par une seule réservation (#30).
+
+### `booking_status_history` — module `bookings`
+
+Le journal des changements de statut d'une réservation (#39), une ligne par transition réussie, jamais modifiée.
+
+| Colonne | Type | Contraintes |
+|---------|------|-------------|
+| `id` | `BIGSERIAL` | clé primaire |
+| `booking_id` | `BIGINT` | `NOT NULL`, `REFERENCES bookings (id) ON DELETE CASCADE`, index `idx_booking_status_history_booking` |
+| `actor_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id)` |
+| `previous_status` | `VARCHAR(20)` | `NULL` pour la première entrée (création), sinon même `CHECK` que `status` |
+| `new_status` | `VARCHAR(20)` | `NOT NULL`, même `CHECK` que `status` |
+| `changed_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
+
 ### Suppressions en cascade
 
 Supprimer un compte supprime son profil créateur, puis ses albums, puis leurs médias, ainsi que ses associations de catégories et ses prestations avec leurs options. Supprimer une catégorie supprime seulement ses associations avec les créateurs, et retire la catégorie des prestations qui l'utilisaient.
@@ -252,7 +282,6 @@ Elles seront ajoutées à `schema.sql`, puis à ce document, au fil des releases
 
 | Release | Module | Données |
 |---------|--------|---------|
-| v0.2 | `bookings` | Réservations et journal des changements de statut |
 | v0.3 | `bookings` | Réservations multiples (packs) |
 | v0.3 | `reputation` | Avis et notes |
 | v0.3 – v1.0 | `moderation` | Signalements d'avis et de médias |

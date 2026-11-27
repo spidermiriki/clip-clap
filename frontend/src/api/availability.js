@@ -54,3 +54,11 @@ export async function saveMySettings(settings, token) {
   })
   return handleResponse(res, "Impossible d'enregistrer vos réglages.")
 }
+
+/** Créneaux réservables d'un créateur ce jour-là (#28), publique : utilisée par la réservation (#29). */
+export async function getAvailableSlots(creatorId, date, offeringId) {
+  const params = new URLSearchParams({ date })
+  if (offeringId) params.set('offeringId', String(offeringId))
+  const res = await fetch(apiUrl(`/api/offerings/creators/${encodeURIComponent(creatorId)}/slots?${params}`))
+  return handleResponse(res, 'Impossible de charger les créneaux disponibles.')
+}
