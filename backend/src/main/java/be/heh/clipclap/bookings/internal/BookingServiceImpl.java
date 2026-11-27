@@ -37,6 +37,9 @@ class BookingServiceImpl {
 
     @Transactional
     Booking creer(long clientId, BookingCommand command) {
+        if (command == null || command.offeringId() == null || command.slotId() == null) {
+            throw new IllegalArgumentException("La prestation et le créneau sont obligatoires");
+        }
         var offering = offeringApi.findOffering(command.offeringId())
                 .orElseThrow(() -> new OfferingNotFoundException(command.offeringId()));
         if (offering.creatorUserId() == clientId) {

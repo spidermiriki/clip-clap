@@ -94,6 +94,19 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void creer_offeringIdOuSlotIdManquant_leveIllegalArgumentException() {
+        long client = insertUser("client@bookings.test", "sub-client-5b", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-5b");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+
+        assertThatThrownBy(() -> service.creer(client, new BookingCommand(null, slot, Set.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> service.creer(client, new BookingCommand(offering, null, Set.of())))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void creer_optionInconnuePourLaPrestation_leveIllegalArgumentException() {
         long client = insertUser("client@bookings.test", "sub-client-6", "CLIENT");
         long creator = insertCreator("creator@bookings.test", "sub-creator-6");

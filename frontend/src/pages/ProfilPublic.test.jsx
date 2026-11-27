@@ -1,10 +1,14 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { useAuth } from 'react-oidc-context'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getCreatorProfile } from '../api/catalog'
+import { getMyProfile } from '../api/creators'
 import ProfilPublic from './ProfilPublic'
 
 vi.mock('../api/catalog', () => ({ getCreatorProfile: vi.fn(), getCategories: vi.fn(async () => [{ id: 1, name: 'Mariage' }]) }))
+vi.mock('../api/creators', () => ({ getMyProfile: vi.fn() }))
+vi.mock('react-oidc-context', () => ({ useAuth: vi.fn() }))
 
 const PROFIL = {
   userId: 3,
@@ -14,6 +18,7 @@ const PROFIL = {
   city: 'Mons',
   country: 'Belgique',
   serviceAreas: 'Hainaut, Bruxelles',
+  offerings: [{ id: 1, name: 'Shooting portrait', durationMinutes: 60, basePrice: 100, options: [] }],
 }
 
 function renderProfil(url) {
@@ -30,6 +35,9 @@ function renderProfil(url) {
 describe('ProfilPublic (#17)', () => {
   beforeEach(() => {
     vi.mocked(getCreatorProfile).mockReset()
+    vi.mocked(getMyProfile).mockReset()
+    // Visiteur anonyme par défaut : pas de rôle, getMyProfile jamais appelée
+    vi.mocked(useAuth).mockReset().mockReturnValue({ user: null })
   })
 
   // Sans `globals: true` dans la config Vitest, Testing Library ne démonte pas le rendu tout seul
@@ -51,6 +59,38 @@ describe('ProfilPublic (#17)', () => {
     renderProfil('/createurs/3')
 
     expect(await screen.findByRole('link', { name: 'Réserver' })).toHaveAttribute('href', '/createurs/3/reserver')
+  })
+
+  it('masque « Réserver » sans aucune prestation', async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue({ ...PROFIL, offerings: [] })
+    renderProfil('/createurs/3')
+
+    await screen.findByText('Aucune prestation pour le moment.')
+    expect(screen.queryByRole('link', { name: 'Réserver' })).not.toBeInTheDocument()
+  })
+
+  it('masque « Réserver » sur son propre profil créateur (scénario 22)', async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue(PROFIL)
+    vi.mocked(useAuth).mockReturnValue({
+      user: { access_token: 'jeton', profile: { 'urn:zitadel:iam:org:project:roles': { CREATOR: {} } } },
+    })
+    vi.mocked(getMyProfile).mockResolvedValue({ userId: 3 })
+    renderProfil('/createurs/3')
+
+    await screen.findByRole('heading', { level: 1, name: 'Clara Lecomte' })
+    expect(await screen.findByText('Shooting portrait')).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Réserver' })).not.toBeInTheDocument()
+  })
+
+  it('garde « Réserver » pour un créateur qui visite le profil d\'un autre créateur', async () => {
+    vi.mocked(getCreatorProfile).mockResolvedValue(PROFIL)
+    vi.mocked(useAuth).mockReturnValue({
+      user: { access_token: 'jeton', profile: { 'urn:zitadel:iam:org:project:roles': { CREATOR: {} } } },
+    })
+    vi.mocked(getMyProfile).mockResolvedValue({ userId: 42 })
+    renderProfil('/createurs/3')
+
+    expect(await screen.findByRole('link', { name: 'Réserver' })).toBeInTheDocument()
   })
 
   it('affiche les albums et leurs photos (#15)', async () => {

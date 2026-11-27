@@ -54,6 +54,12 @@ describe('Reservation (#29, scénarios 14 et 22)', () => {
     fireEvent.click(await screen.findByRole('button', { name: '14:00 – 22:00' }))
   }
 
+  it('charge les créneaux avec le jeton (#28/#29 : authentification exigée)', async () => {
+    await choisirPrestationCreneauEtOption()
+
+    expect(getAvailableSlots).toHaveBeenCalledWith('3', '2027-04-02', '5', 'jeton')
+  })
+
   it('calcule le total à partir du prix de base et des options cochées', async () => {
     await choisirPrestationCreneauEtOption()
 

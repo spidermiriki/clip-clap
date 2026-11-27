@@ -55,10 +55,17 @@ export async function saveMySettings(settings, token) {
   return handleResponse(res, "Impossible d'enregistrer vos réglages.")
 }
 
-/** Créneaux réservables d'un créateur ce jour-là (#28), publique : utilisée par la réservation (#29). */
-export async function getAvailableSlots(creatorId, date, offeringId) {
+/**
+ * Créneaux réservables d'un créateur ce jour-là (#28), utilisée par la réservation (#29).
+ * Accessible à tout compte connecté (client ou créateur), pas seulement au créateur concerné,
+ * mais un jeton valide reste exigé comme sur tout le reste de l'API (`SecurityConfig` n'ouvre
+ * sans authentification que `GET /api/catalog/**`).
+ */
+export async function getAvailableSlots(creatorId, date, offeringId, token) {
   const params = new URLSearchParams({ date })
   if (offeringId) params.set('offeringId', String(offeringId))
-  const res = await fetch(apiUrl(`/api/offerings/creators/${encodeURIComponent(creatorId)}/slots?${params}`))
+  const res = await fetch(apiUrl(`/api/offerings/creators/${encodeURIComponent(creatorId)}/slots?${params}`), {
+    headers: headers(token),
+  })
   return handleResponse(res, 'Impossible de charger les créneaux disponibles.')
 }

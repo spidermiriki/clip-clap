@@ -60,7 +60,7 @@ export default function Reservation() {
     if (!offeringId || !date) return
     let ignore = false
     setSlotsLoading(true)
-    getAvailableSlots(userId, date, offeringId)
+    getAvailableSlots(userId, date, offeringId, token)
       .then((result) => {
         if (!ignore) setSlots(result)
       })
@@ -73,7 +73,7 @@ export default function Reservation() {
     return () => {
       ignore = true
     }
-  }, [userId, offeringId, date])
+  }, [userId, offeringId, date, token])
 
   function toggleOption(id) {
     setOptionIds((prev) => {
@@ -105,7 +105,7 @@ export default function Reservation() {
       if (err?.status === 409) {
         // Le créneau choisi vient d'être pris : on retire le choix et on recharge la liste
         setSlotId('')
-        getAvailableSlots(userId, date, offeringId).then(setSlots).catch(() => {})
+        getAvailableSlots(userId, date, offeringId, token).then(setSlots).catch(() => {})
       }
     } finally {
       setEnvoi(false)

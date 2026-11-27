@@ -158,6 +158,20 @@ class BookingControllerTest {
 
     @Test
     @WithMockUser(username = CLIENT_SUB)
+    void creer_slotIdManquant_renvoie400() {
+        insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+
+        client.post().uri("/api/bookings")
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body("{\"offeringId\":" + offeringId + "}")
+                .exchange()
+                .expectStatus().isBadRequest();
+    }
+
+    @Test
+    @WithMockUser(username = CLIENT_SUB)
     void creer_optionInconnue_renvoie400() {
         insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
         long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);

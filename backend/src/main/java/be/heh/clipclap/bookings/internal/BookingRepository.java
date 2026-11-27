@@ -124,8 +124,11 @@ class BookingRepository {
                 rs.getLong("id"),
                 rs.getLong("client_id"),
                 rs.getLong("creator_id"),
-                rs.getLong("offering_id"),
-                rs.getLong("slot_id"),
+                // offering_id/slot_id sont nullables (ON DELETE SET NULL, #133) : getLong renverrait 0
+                // au lieu de null pour une réservation passée dont la prestation ou le créneau a été
+                // supprimé depuis.
+                rs.getObject("offering_id", Long.class),
+                rs.getObject("slot_id", Long.class),
                 rs.getBigDecimal("total_price"),
                 rs.getString("status"),
                 toInstant(rs.getTimestamp("created_at"))
