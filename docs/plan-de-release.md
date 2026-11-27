@@ -55,27 +55,37 @@
 ### v0.2 — Séances 5 à 7
 **Objectif :** Le flux de réservation complet avec agenda et anti-collision.
 
+> **État au 27/11/2026.** Les cases cochées sont mergées dans `main` (issue, puis PR entre parenthèses).
+> Encore ouvertes :
+> - **Gedeon** : #31 (acceptation et refus), #34 (tableau de bord client), #35 (annulation), #36 (expiration), #37 (API « Terminée ») ;
+> - **Francisco** : #32 (tableau de bord créateur, PR #140 en draft en attendant #31), #38 (bouton « Marquer comme terminée »), #141 (données de démo, PR #142) ;
+> - **Non assignée** : #127 (identification de l'utilisateur connecté via `UserApi`) ;
+> - **Livraison** : #40 (Francisco).
+
 #### Séance 5
-- [ ] **(Francisco)** Création de prestations à prix fixe par le créateur (nom, durée, prix, options payantes), affichées sur le profil public à la place des tarifs indicatifs (#27)
-- [ ] **(Francisco)** Gestion des disponibilités : le créateur définit ses créneaux libres et son préavis minimum
-- [ ] **(Francisco)** Reporté de la v0.1 : suppression de photos et d'albums, ajout de vidéos (#94) ; choix des types de prestation dans « Mon profil » (#87)
-- [ ] **(Les deux)** Reporté de la v0.1 : exclusion des créateurs suspendus de la galerie sans charger tous les créateurs validés (#98 : méthode `UserApi` par Gedeon, puis `catalog` par Francisco)
-- [ ] **(Gedeon)** Interface de réservation : le client choisit une prestation et un créneau disponible
-- [ ] **(Gedeon)** Anti-collision : un créneau confirmé n'est plus réservable ; marge entre deux rendez-vous (s'appuie sur les disponibilités exposées par `offerings`)
+- [x] **(Francisco)** Création de prestations à prix fixe par le créateur (nom, durée, prix, options payantes), affichées sur le profil public à la place des tarifs indicatifs (#27, PR #119) ; catégorie d'une prestation (#123, PR #124)
+- [x] **(Francisco)** Gestion des disponibilités : le créateur définit ses créneaux libres et son préavis minimum (#28, PR #128)
+- [x] **(Francisco)** Reporté de la v0.1 : suppression de photos et d'albums, ajout de vidéos (#94, PR #125 et #131) ; choix des types de prestation dans « Mon profil » (#87, PR #122)
+- [x] **(Les deux)** Reporté de la v0.1 : exclusion des créateurs suspendus de la galerie sans charger tous les créateurs validés (#98 : méthode `UserApi` par Gedeon, PR #118, puis `catalog` par Francisco, PR #120)
+- [x] **(Gedeon)** Interface de réservation : le client choisit une prestation et un créneau disponible (#29, PR #135)
+- [x] **(Gedeon)** Anti-collision : un créneau confirmé n'est plus réservable ; marge entre deux rendez-vous (s'appuie sur les disponibilités exposées par `offerings`) (#30, PR #139)
+- [x] **(Francisco)** Suppression d'un créneau bloquée tant qu'il a une réservation en attente ou confirmée (#136, PR #137)
+- [x] **(Francisco)** Rechargement des pages à chaque nouveau jeton de session (#129, PR #130)
+- [ ] **(Francisco)** Données de démonstration : prestations et créneaux (#141, PR #142)
 
 #### Séance 6
-- [ ] **(Gedeon)** API d'acceptation et de refus des demandes reçues (module `bookings`)
-- [ ] **(Francisco)** Tableau de bord créateur (page) : demandes reçues, boutons accepter ou refuser
-- [ ] **(Francisco)** Validation des comptes créateurs par l'administrateur
+- [ ] **(Gedeon)** API d'acceptation et de refus des demandes reçues (module `bookings`) (#31)
+- [ ] **(Francisco)** Tableau de bord créateur (page) : demandes reçues, boutons accepter ou refuser (#32, PR #140 en draft)
+- [x] **(Francisco)** Validation des comptes créateurs par l'administrateur (#33, PR #121)
 
 #### Séance 7
-- [ ] **(Gedeon)** Tableau de bord client : suivi des statuts (En attente, Confirmée, Refusée, Annulée, Expirée, Terminée)
-- [ ] **(Gedeon)** Annulation par le client (gratuite jusqu'à 48 h avant, marquée « tardive » après)
-- [ ] **(Gedeon)** Expiration automatique : demande non traitée après 7 jours → statut Expirée, créneau libéré
-- [ ] **(Gedeon)** API pour marquer une prestation comme terminée
-- [ ] **(Francisco)** Bouton « Marquer comme terminée » sur le tableau de bord créateur
-- [ ] **(Gedeon)** Journal des changements de statut (qui, quand, de quel statut vers quel statut)
-- [ ] **Déploiement v0.2 + tests**
+- [ ] **(Gedeon)** Tableau de bord client : suivi des statuts (En attente, Confirmée, Refusée, Annulée, Expirée, Terminée) (#34)
+- [ ] **(Gedeon)** Annulation par le client (gratuite jusqu'à 48 h avant, marquée « tardive » après) (#35)
+- [ ] **(Gedeon)** Expiration automatique : demande non traitée après 7 jours → statut Expirée, créneau libéré (#36)
+- [ ] **(Gedeon)** API pour marquer une prestation comme terminée (#37)
+- [ ] **(Francisco)** Bouton « Marquer comme terminée » sur le tableau de bord créateur (#38)
+- [x] **(Gedeon)** Journal des changements de statut (qui, quand, de quel statut vers quel statut) : base du module `bookings` (#39, PR #126), complétée par `ON DELETE SET NULL` sur la prestation et le créneau (#133, PR #134)
+- [ ] **Déploiement v0.2 + tests** (#40)
 
 ---
 
@@ -175,3 +185,4 @@ Le travail est réparti **par module** du monolithe modulaire : chaque module a 
 | 2026-11-11 | Cadrage S1 | Frontend servi par Spring Boot : build React embarqué dans le `.jar`, **un seul service Render** au lieu d'un Static Site séparé (#60) | Render Service Previews ne crée qu'un aperçu par service : un seul service montre l'API et le frontend ensemble |
 | 2026-11-12 | v0.1 → v0.2 et v0.3 | Ajustements de périmètre de la v0.1 : suppression de photos et d'albums, et vidéos → v0.2 (#94) ; choix des types de prestation dans « Mon profil » → v0.2 (#87) ; tarifs indicatifs du profil public → v0.2, avec les prestations à prix fixe (#27) ; statistiques de l'accueil → v0.3 (#76) ; optimisation de l'exclusion des créateurs suspendus → v0.2 (#98) | Livrer à temps une v0.1 testée : ces points dépendent de fonctionnalités prévues plus tard (prestations, réputation) ou ne bloquent pas l'usage de la v0.1 |
 | 2026-11-16 | Cadrage S1 | Hébergement : **frontend sur Vercel, backend seul sur Render**, reliés par CORS (#5, #106, #107, #108, #109) ; remplace la décision du 11/11 (frontend embarqué dans le `.jar`, #60) | Demande de l'enseignant (deux origines distinctes) |
+| 2026-11-27 | v0.2 | Règles de travail : **pas de PR sans issue assignée** (avant de coder, vérifier l'assignation et qu'aucune branche ni PR de l'autre membre ne couvre déjà l'issue) ; **revue formelle obligatoire** (« Approve » dans GitHub, un simple commentaire ne vaut pas approbation) ; les avertissements oxlint `set-state-in-effect` (#138) sont **reportés en v0.3** | Doublon #132 / #134 : la même correction (`ON DELETE SET NULL` sur `bookings`) a été codée en parallèle par les deux membres, et #132 a été fermée au profit de #134 ; une approbation par commentaire n'apparaît pas dans l'historique de revue de la PR |
