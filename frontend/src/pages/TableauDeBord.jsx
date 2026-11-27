@@ -32,12 +32,11 @@ export default function TableauDeBord() {
   const { user } = useAuth()
   const token = user?.access_token ?? null
 
-  // Rechargé à chaque nouveau token et après chaque action : la clé identifie la demande en cours,
-  // une réponse arrivée pour une clé dépassée est ignorée, et les données précédentes restent
-  // affichées pendant le rechargement
+  // Rechargé à chaque nouveau token et après chaque action (version) : une réponse arrivée après
+  // une demande plus récente est ignorée, et les données précédentes restent affichées pendant le
+  // rechargement
   const [version, setVersion] = useState(0)
-  const cle = `${token}:${version}`
-  const [chargement, setChargement] = useState({ cle: null, donnees: null, erreur: null })
+  const [chargement, setChargement] = useState({ donnees: null, erreur: null })
   const [statut, setStatut] = useState(null)
 
   const [actionErreur, setActionErreur] = useState(null)
@@ -50,17 +49,17 @@ export default function TableauDeBord() {
     let ignore = false
     getCreatorBookings(token)
       .then((donnees) => {
-        if (!ignore) setChargement({ cle, donnees, erreur: null })
+        if (!ignore) setChargement({ donnees, erreur: null })
       })
       .catch((err) => {
         if (!ignore) {
-          setChargement({ cle, donnees: null, erreur: err?.message ?? 'Impossible de charger les réservations reçues.' })
+          setChargement({ donnees: null, erreur: err?.message ?? 'Impossible de charger les réservations reçues.' })
         }
       })
     return () => {
       ignore = true
     }
-  }, [cle, token])
+  }, [token, version])
 
   // Bandeau de validation (#33) : facultatif, le tableau de bord s'affiche sans lui
   useEffect(() => {
