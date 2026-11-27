@@ -6,6 +6,7 @@ import be.heh.clipclap.offerings.AvailabilityApi;
 import be.heh.clipclap.offerings.AvailableSlot;
 import be.heh.clipclap.offerings.BookedPeriod;
 import be.heh.clipclap.offerings.BookedPeriodsProvider;
+import be.heh.clipclap.offerings.SlotUsageChecker;
 import be.heh.clipclap.users.UserApi;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
@@ -36,22 +37,26 @@ class AvailabilityService implements AvailabilityApi {
 
     // Tant que bookings ne fournit pas son implémentation, aucune période n'est occupée
     private static final BookedPeriodsProvider AUCUNE_RESERVATION = (creatorId, from, to) -> List.of();
+    private static final SlotUsageChecker AUCUN_CRENEAU_RESERVE = slotId -> false;
 
     private final AvailabilityRepository availability;
     private final OfferingRepository offerings;
     private final CreatorProfileService creatorProfiles;
     private final UserApi userApi;
     private final ObjectProvider<BookedPeriodsProvider> bookedPeriods;
+    private final ObjectProvider<SlotUsageChecker> slotUsage;
     private final Clock clock;
 
     AvailabilityService(AvailabilityRepository availability, OfferingRepository offerings,
                         CreatorProfileService creatorProfiles, UserApi userApi,
-                        ObjectProvider<BookedPeriodsProvider> bookedPeriods, Clock offeringsClock) {
+                        ObjectProvider<BookedPeriodsProvider> bookedPeriods,
+                        ObjectProvider<SlotUsageChecker> slotUsage, Clock offeringsClock) {
         this.availability = availability;
         this.offerings = offerings;
         this.creatorProfiles = creatorProfiles;
         this.userApi = userApi;
         this.bookedPeriods = bookedPeriods;
+        this.slotUsage = slotUsage;
         this.clock = offeringsClock;
     }
 
@@ -124,7 +129,9 @@ class AvailabilityService implements AvailabilityApi {
         var slot = availability.findById(slotId)
                 .filter(s -> s.creatorUserId() == userId)
                 .orElseThrow(() -> new SlotNotFoundException(slotId));
-        if (!reservations(userId, slot.start(), slot.end()).isEmpty()) {
+        // Réservation En attente ou Confirmée de ce créneau (#136) : les périodes confirmées
+        // ne suffisent pas, une demande en attente doit aussi bloquer la suppression
+        if (slotUsage.getIfAvailable(() -> AUCUN_CRENEAU_RESERVE).hasActiveBookings(slot.id())) {
             throw new SlotConflictException("Ce créneau est réservé : il ne peut pas être supprimé");
         }
         availability.delete(slotId);
