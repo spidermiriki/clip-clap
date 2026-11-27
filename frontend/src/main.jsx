@@ -14,6 +14,7 @@ import MesPrestations from './pages/MesPrestations.jsx'
 import MonProfilCreateur from './pages/MonProfilCreateur.jsx'
 import ProfilPublic from './pages/ProfilPublic.jsx'
 import Reservation from './pages/Reservation.jsx'
+import TableauDeBord from './pages/TableauDeBord.jsx'
 import { oidcConfig } from './auth/oidcConfig.js'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 
@@ -31,6 +32,14 @@ createRoot(document.getElementById('root')).render(
               element={(
                 <ProtectedRoute>
                   <Reservation />
+                </ProtectedRoute>
+              )}
+            />
+            <Route
+              path="tableau-de-bord"
+              element={(
+                <ProtectedRoute roles={['CREATOR']}>
+                  <TableauDeBord />
                 </ProtectedRoute>
               )}
             />
