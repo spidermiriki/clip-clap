@@ -13,6 +13,7 @@ import MesDisponibilites from './pages/MesDisponibilites.jsx'
 import MesPrestations from './pages/MesPrestations.jsx'
 import MonProfilCreateur from './pages/MonProfilCreateur.jsx'
 import ProfilPublic from './pages/ProfilPublic.jsx'
+import Reservation from './pages/Reservation.jsx'
 import { oidcConfig } from './auth/oidcConfig.js'
 import ProtectedRoute from './auth/ProtectedRoute.jsx'
 
@@ -25,6 +26,14 @@ createRoot(document.getElementById('root')).render(
             <Route index element={<Galerie />} />
             {/* Public, comme la galerie (#17) */}
             <Route path="createurs/:userId" element={<ProfilPublic />} />
+            <Route
+              path="createurs/:userId/reserver"
+              element={(
+                <ProtectedRoute>
+                  <Reservation />
+                </ProtectedRoute>
+              )}
+            />
             <Route
               path="mon-profil"
               element={(

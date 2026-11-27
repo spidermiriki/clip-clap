@@ -120,10 +120,10 @@ CREATE TABLE IF NOT EXISTS bookings (
     id          BIGSERIAL   PRIMARY KEY,
     client_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     creator_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki). Pas encore NOT NULL : la
-    -- création d'une réservation avec prestation et créneau choisis arrivera avec #29.
-    -- ON DELETE SET NULL (#133) : supprimer une prestation ou un créneau n'efface pas l'historique
-    -- d'une réservation passée (refusée, annulée, expirée, terminée) ; son prix reste figé.
+    -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki). Toujours renseignés à la
+    -- création (#29), mais restent nullable : ON DELETE SET NULL (#133) doit pouvoir les vider si la
+    -- prestation ou le créneau est supprimé après coup (réservation refusée, annulée, expirée ou
+    -- terminée) sans effacer l'historique ni le prix figé de la réservation.
     offering_id BIGINT REFERENCES offerings (id) ON DELETE SET NULL,
     slot_id     BIGINT REFERENCES availability_slots (id) ON DELETE SET NULL,
     -- Prix total figé au moment de la réservation (#29) : une prestation modifiée ensuite ne change

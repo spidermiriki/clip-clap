@@ -2,6 +2,8 @@ package be.heh.clipclap.bookings.internal;
 
 import be.heh.clipclap.bookings.Booking;
 import be.heh.clipclap.bookings.BookingDetail;
+import be.heh.clipclap.offerings.AvailabilityApi;
+import be.heh.clipclap.offerings.OfferingApi;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -9,12 +11,10 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Création d'une réservation et transitions de statut, avec journalisation (#39). La
- * sélection d'un créneau (#29), l'acceptation ou le refus (#31), l'annulation (#35),
- * l'expiration automatique (#36) et le passage à « Terminée » (#37) appelleront
- * {@link #changerStatut} depuis leurs propres points d'entrée (REST ou tâche planifiée) ;
- * aucun n'est encore implémenté, {@link #creer} et {@link #changerStatut} ne sont donc
- * utilisés que par les tests de ce module pour le moment.
+ * Création d'une réservation (#29) et transitions de statut, avec journalisation (#39).
+ * L'acceptation ou le refus (#31), l'annulation (#35), l'expiration automatique (#36) et le
+ * passage à « Terminée » (#37) appelleront {@link #changerStatut} depuis leurs propres points
+ * d'entrée (REST ou tâche planifiée) ; aucun n'est encore implémenté.
  */
 @Service
 class BookingServiceImpl {
@@ -26,14 +26,36 @@ class BookingServiceImpl {
     );
 
     private final BookingRepository bookings;
+    private final OfferingApi offeringApi;
+    private final AvailabilityApi availabilityApi;
 
-    BookingServiceImpl(BookingRepository bookings) {
+    BookingServiceImpl(BookingRepository bookings, OfferingApi offeringApi, AvailabilityApi availabilityApi) {
         this.bookings = bookings;
+        this.offeringApi = offeringApi;
+        this.availabilityApi = availabilityApi;
     }
 
     @Transactional
-    Booking creer(long clientId, long creatorId) {
-        Booking booking = bookings.create(clientId, creatorId);
+    Booking creer(long clientId, BookingCommand command) {
+        if (command == null || command.offeringId() == null || command.slotId() == null) {
+            throw new IllegalArgumentException("La prestation et le créneau sont obligatoires");
+        }
+        var offering = offeringApi.findOffering(command.offeringId())
+                .orElseThrow(() -> new OfferingNotFoundException(command.offeringId()));
+        if (offering.creatorUserId() == clientId) {
+            throw new SelfBookingException();
+        }
+        availabilityApi.findSlot(command.slotId())
+                .orElseThrow(() -> new SlotNotFoundException(command.slotId()));
+        if (!availabilityApi.isBookable(command.slotId(), command.offeringId())) {
+            throw new SlotNotBookableException(command.slotId());
+        }
+        Set<Long> optionIds = command.optionIds() == null ? Set.of() : command.optionIds();
+        var quote = offeringApi.quote(command.offeringId(), optionIds)
+                .orElseThrow(() -> new OfferingNotFoundException(command.offeringId()));
+
+        Booking booking = bookings.create(clientId, offering.creatorUserId(),
+                command.offeringId(), command.slotId(), quote.total());
         bookings.insertHistoryEntry(booking.id(), clientId, null, booking.status());
         return booking;
     }
