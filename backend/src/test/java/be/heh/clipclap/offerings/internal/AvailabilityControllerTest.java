@@ -4,6 +4,7 @@ import be.heh.clipclap.TestcontainersConfiguration;
 import be.heh.clipclap.offerings.AvailableSlot;
 import be.heh.clipclap.offerings.BookedPeriod;
 import be.heh.clipclap.offerings.BookedPeriodsProvider;
+import be.heh.clipclap.offerings.SlotUsageChecker;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
 
-// Horloge figée au 25 mars 2027 ; BookedPeriodsProvider simulé (bookings ne le fournit pas encore)
+// Horloge figée au 25 mars 2027 ; BookedPeriodsProvider et SlotUsageChecker simulés (fournis par bookings)
 @ApplicationModuleTest(mode = BootstrapMode.DIRECT_DEPENDENCIES)
 @Import(TestcontainersConfiguration.class)
 @Transactional
@@ -43,6 +44,7 @@ class AvailabilityControllerTest {
 
     @TestBean Clock offeringsClock;
     @MockitoBean BookedPeriodsProvider bookedPeriods;
+    @MockitoBean SlotUsageChecker slotUsage;
     @Autowired WebApplicationContext context;
     @Autowired JdbcClient jdbc;
     RestTestClient client;
@@ -126,12 +128,8 @@ class AvailabilityControllerTest {
                 INSERT INTO availability_slots (creator_id, starts_at, ends_at)
                 VALUES (:bob, '2027-04-02T12:00:00Z', '2027-04-02T13:00:00Z') RETURNING id
                 """).param("bob", bob).query(Long.class).single();
-        when(bookedPeriods.findBookedPeriods(anyLong(), any(), any())).thenAnswer(appel -> {
-            OffsetDateTime from = appel.getArgument(1);
-            return from.getDayOfMonth() == 3
-                    ? List.of(new BookedPeriod(OffsetDateTime.parse("2027-04-03T14:00+02:00"), OffsetDateTime.parse("2027-04-03T16:00+02:00")))
-                    : List.of();
-        });
+        // Réservation En attente ou Confirmée (#136)
+        when(slotUsage.hasActiveBookings(reserve)).thenReturn(true);
 
         client.delete().uri("/api/offerings/me/slots/{id}", libre).exchange().expectStatus().isNoContent();
         client.delete().uri("/api/offerings/me/slots/{id}", reserve)
@@ -139,6 +137,23 @@ class AvailabilityControllerTest {
                 .expectStatus().isEqualTo(409)
                 .expectBody().jsonPath("$.detail").isEqualTo("Ce créneau est réservé : il ne peut pas être supprimé");
         client.delete().uri("/api/offerings/me/slots/{id}", deBob).exchange().expectStatus().isNotFound();
+
+        assertThat(slotExiste(libre)).isFalse();
+        assertThat(slotExiste(reserve)).isTrue();
+    }
+
+    @Test
+    @WithMockUser(username = ALICE)
+    void supprimer_creneauSansReservationActive_204_memeSiUnePeriodeConfirmeeLeChevauche() {
+        // Seul SlotUsageChecker décide de la suppression ; BookedPeriodsProvider ne sert qu'au filtrage
+        insertCreator("alice@slots.test", ALICE);
+        long slot = create(VENDREDI_14H_16H);
+        when(bookedPeriods.findBookedPeriods(anyLong(), any(), any())).thenReturn(List.of(
+                new BookedPeriod(OffsetDateTime.parse("2027-04-02T14:00+02:00"), OffsetDateTime.parse("2027-04-02T16:00+02:00"))));
+
+        client.delete().uri("/api/offerings/me/slots/{id}", slot).exchange().expectStatus().isNoContent();
+
+        assertThat(slotExiste(slot)).isFalse();
     }
 
     // ── Préavis et marge (scénario 13) ──────────────────────────────────────
@@ -251,5 +266,10 @@ class AvailabilityControllerTest {
         long id = insertCreator(email, sub);
         jdbc.sql("UPDATE creator_profiles SET validation_status = 'VALIDATED' WHERE user_id = :id").param("id", id).update();
         return id;
+    }
+
+    private boolean slotExiste(long slotId) {
+        return jdbc.sql("SELECT EXISTS(SELECT 1 FROM availability_slots WHERE id = :id)")
+                .param("id", slotId).query(Boolean.class).single();
     }
 }
