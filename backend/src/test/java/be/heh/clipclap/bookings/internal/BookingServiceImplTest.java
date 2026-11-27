@@ -82,10 +82,32 @@ class BookingServiceImplTest {
         long secondClient = insertUser("second@bookings.test", "sub-second-3b", "CLIENT");
         service.creer(premierClient, new BookingCommand(offering, slot, Set.of()));
 
-        // isBookable() renvoie encore true pour le second client : seules les réservations
-        // CONFIRMEE réduisent la disponibilité (AvailabilityService) — c'est bien l'index
-        // uq_bookings_slot_active (#30), pas le recontrôle synchrone de #29, qui bloque ici.
+        // Depuis que findActivePeriods (#30, revue de #139) compte aussi EN_ATTENTE, isBookable()
+        // refuse déjà ce même créneau de façon synchrone (occupé par la première demande) ; seule
+        // une vraie course (deux INSERT concurrents, ni l'un ni l'autre encore visible par
+        // isBookable au moment de leur propre lecture) exercerait uq_bookings_slot_active
+        // elle-même — couvert séparément par BookingServiceImplConcurrenceTest, impossible à
+        // provoquer de façon fiable ici avec une vraie base dans un test à une seule transaction.
         assertThatThrownBy(() -> service.creer(secondClient, new BookingCommand(offering, slot, Set.of())))
+                .isInstanceOf(SlotNotBookableException.class);
+    }
+
+    @Test
+    void creer_demandeEnAttenteSurUnCreneauVoisin_bloqueLeVoisinDansLaMarge() {
+        // Revue de #139 : avant ce correctif, findActivePeriods (alors findConfirmedPeriods) ne
+        // comptait que CONFIRMEE — une demande En attente seule ne faisait pas respecter la marge.
+        long creator = insertCreator("creator@bookings.test", "sub-creator-marge");
+        setSettings(creator, 0, 30);
+        long offering = insertOffering(creator, 60, "100.00");
+        long slotProche = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        // Commence 15 min après la fin du premier : à l'intérieur de la marge de 30 min
+        long slotVoisin = insertSlot(creator, "2030-01-01T10:15+00:00", "2030-01-01T11:15+00:00");
+        long premierClient = insertUser("premier@bookings.test", "sub-premier-marge", "CLIENT");
+        long secondClient = insertUser("second@bookings.test", "sub-second-marge", "CLIENT");
+
+        service.creer(premierClient, new BookingCommand(offering, slotProche, Set.of())); // EN_ATTENTE seulement
+
+        assertThatThrownBy(() -> service.creer(secondClient, new BookingCommand(offering, slotVoisin, Set.of())))
                 .isInstanceOf(SlotNotBookableException.class);
     }
 
@@ -262,5 +284,11 @@ class BookingServiceImplTest {
                 .param("d", OffsetDateTime.parse(startsAt))
                 .param("f", OffsetDateTime.parse(endsAt))
                 .query(Long.class).single();
+    }
+
+    private void setSettings(long creatorId, int preavisHeures, int margeMinutes) {
+        jdbc.sql("INSERT INTO scheduling_settings (creator_id, min_notice_hours, buffer_minutes) VALUES (:c, :p, :m)")
+                .param("c", creatorId).param("p", preavisHeures).param("m", margeMinutes)
+                .update();
     }
 }

@@ -4,7 +4,7 @@ import be.heh.clipclap.bookings.Booking;
 import be.heh.clipclap.bookings.BookingDetail;
 import be.heh.clipclap.offerings.AvailabilityApi;
 import be.heh.clipclap.offerings.OfferingApi;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -64,7 +64,7 @@ class BookingServiceImpl {
             // concurrence réelle (scénario 21).
             booking = bookings.create(clientId, offering.creatorUserId(),
                     command.offeringId(), command.slotId(), quote.total());
-        } catch (DataIntegrityViolationException e) {
+        } catch (DuplicateKeyException e) {
             throw new SlotNotBookableException(command.slotId());
         }
         bookings.insertHistoryEntry(booking.id(), clientId, null, booking.status());

@@ -10,7 +10,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -87,7 +87,7 @@ class BookingServiceImplConcurrenceTest {
         // Une autre réservation vient d'être insérée sur ce créneau entre le recontrôle isBookable
         // et cet appel : la contrainte d'unicité uq_bookings_slot_active (#30) rejette l'INSERT.
         when(bookings.create(clientId, creatorId, offeringId, slotId, offering.basePrice()))
-                .thenThrow(new DataIntegrityViolationException("uq_bookings_slot_active"));
+                .thenThrow(new DuplicateKeyException("uq_bookings_slot_active"));
 
         assertThatThrownBy(() -> service.creer(clientId, command))
                 .isInstanceOf(SlotNotBookableException.class);
