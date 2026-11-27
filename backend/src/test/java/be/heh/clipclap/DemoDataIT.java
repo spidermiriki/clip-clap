@@ -2,6 +2,10 @@ package be.heh.clipclap;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
+
 import javax.sql.DataSource;
 
 import org.junit.jupiter.api.Test;
@@ -14,6 +18,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
+
+import be.heh.clipclap.offerings.AvailabilityApi;
 
 // @SpringBootTest et non @ApplicationModuleTest : les données de démonstration touchent plusieurs
 // modules (users, creators, catalog). Le profil « demo » lance son propre contexte, donc sa propre
@@ -34,6 +40,9 @@ class DemoDataIT {
 
 	@Autowired
 	DataSource dataSource;
+
+	@Autowired
+	AvailabilityApi availabilityApi;
 
 	@Test
 	void galerie_afficheLesCreateursDeDemo_sansLeSuspenduNiLeProfilEnAttente() {
@@ -127,6 +136,9 @@ class DemoDataIT {
 		long liensAvant = compter("SELECT COUNT(*) FROM creator_categories");
 		long albumsAvant = compter("SELECT COUNT(*) FROM albums");
 		long mediasAvant = compter("SELECT COUNT(*) FROM media");
+		long prestationsAvant = compter("SELECT COUNT(*) FROM offerings");
+		long optionsAvant = compter("SELECT COUNT(*) FROM offering_options");
+		long creneauxAvant = compter("SELECT COUNT(*) FROM availability_slots");
 
 		ResourceDatabasePopulator populator = new ResourceDatabasePopulator(new ClassPathResource("demo-data.sql"));
 		populator.setSqlScriptEncoding("UTF-8");
@@ -139,6 +151,62 @@ class DemoDataIT {
 		assertThat(compter("SELECT COUNT(*) FROM creator_categories")).isEqualTo(liensAvant);
 		assertThat(compter("SELECT COUNT(*) FROM albums")).isEqualTo(albumsAvant);
 		assertThat(compter("SELECT COUNT(*) FROM media")).isEqualTo(mediasAvant);
+		assertThat(prestationsAvant).isEqualTo(5);
+		assertThat(optionsAvant).isEqualTo(5);
+		assertThat(compter("SELECT COUNT(*) FROM offerings")).isEqualTo(prestationsAvant);
+		assertThat(compter("SELECT COUNT(*) FROM offering_options")).isEqualTo(optionsAvant);
+		assertThat(compter("SELECT COUNT(*) FROM availability_slots")).isEqualTo(creneauxAvant);
+	}
+
+	@Test
+	void profilPublic_afficheLesPrestationsDeDemo_avecLeurCategorieEtLeursOptions() {
+		long farid = idDe("farid.benali@clicclap.test");
+		long alice = idDe("alice.martin@clicclap.test");
+		int clip = jdbc.sql("SELECT id FROM categories WHERE name = 'Clip'").query(Integer.class).single();
+
+		client.get().uri("/api/catalog/creators/{id}", farid)
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody()
+			.jsonPath("$.offerings.length()").isEqualTo(3)
+			.jsonPath("$.offerings[?(@.name == 'Clip musical')].categoryId").isEqualTo(List.of(clip))
+			.jsonPath("$.offerings[?(@.name == 'Clip musical')].options.length()").isEqualTo(List.of(2));
+		client.get().uri("/api/catalog/creators/{id}", alice)
+			.exchange()
+			.expectStatus().isOk()
+			.expectBody()
+			.jsonPath("$.offerings.length()").isEqualTo(2)
+			.jsonPath("$.offerings[?(@.name == 'Reportage mariage')].durationMinutes").isEqualTo(List.of(480));
+	}
+
+	@Test
+	void creneauxDeDemo_couvrentLesTroisSemainesSuivantes_etSontReservables() {
+		long farid = idDe("farid.benali@clicclap.test");
+		long alice = idDe("alice.martin@clicclap.test");
+		// Même référence que le script : la date du jour à Bruxelles, vue par la base
+		LocalDate aujourdhui = jdbc.sql("SELECT (now() AT TIME ZONE 'Europe/Brussels')::date").query(LocalDate.class).single();
+
+		// 3 jours par semaine pour Farid, 2 pour Alice, sur 21 jours : 9 et 6 créneaux
+		assertThat(compter("SELECT COUNT(*) FROM availability_slots WHERE creator_id = " + farid)).isEqualTo(9);
+		assertThat(compter("SELECT COUNT(*) FROM availability_slots WHERE creator_id = " + alice)).isEqualTo(6);
+		LocalDate premier = jdbc.sql("SELECT MIN(starts_at AT TIME ZONE 'Europe/Brussels')::date FROM availability_slots")
+			.query(LocalDate.class).single();
+		LocalDate dernier = jdbc.sql("SELECT MAX(starts_at AT TIME ZONE 'Europe/Brussels')::date FROM availability_slots")
+			.query(LocalDate.class).single();
+		assertThat(premier).isAfter(aujourdhui);
+		assertThat(dernier).isBeforeOrEqualTo(aujourdhui.plusDays(21));
+
+		// Le samedi d'Alice (10:00 – 20:00) accueille un reportage mariage de 8 h
+		long samedi = jdbc.sql("""
+				SELECT id FROM availability_slots
+				WHERE creator_id = :alice AND EXTRACT(ISODOW FROM starts_at AT TIME ZONE 'Europe/Brussels') = 6
+				ORDER BY starts_at LIMIT 1
+				""").param("alice", alice).query(Long.class).single();
+		long mariage = jdbc.sql("SELECT id FROM offerings WHERE creator_id = :alice AND name = 'Reportage mariage'")
+			.param("alice", alice).query(Long.class).single();
+		assertThat(availabilityApi.isBookable(samedi, mariage)).isTrue();
+		assertThat(availabilityApi.findSlot(samedi)).hasValueSatisfying(slot ->
+			assertThat(slot.start().atZoneSameInstant(ZoneId.of("Europe/Brussels")).getHour()).isEqualTo(10));
 	}
 
 	private long idDe(String email) {
