@@ -128,25 +128,30 @@ JOIN users u ON u.email = op.email
 JOIN offerings f ON f.creator_id = u.id AND f.name = op.offering
 WHERE NOT EXISTS (SELECT 1 FROM offering_options x WHERE x.offering_id = f.id AND x.name = op.name);
 
--- Module offerings : créneaux libres de J+1 à J+21 (#141), calculés à partir de CURRENT_DATE pour ne jamais
--- périmer. Heures locales de Bruxelles (changement d'heure compris). Rejoué un autre jour, le script n'ajoute
--- que les jours qui manquent en fin de fenêtre, et les créneaux passés ne sont plus proposés à la réservation.
+-- Module offerings : créneaux libres de J+1 à J+21 (#141), J étant la date du jour à Bruxelles (et non
+-- CURRENT_DATE, qui suit le fuseau de la session) : ils ne périment jamais. Heures locales de Bruxelles,
+-- changement d'heure compris. Rejoué un autre jour, le script n'ajoute que les jours qui manquent en fin de
+-- fenêtre, et les créneaux passés ne sont plus proposés à la réservation.
+-- Début et fin sont calculés une seule fois (sous-requête c), puis réutilisés par le NOT EXISTS.
 INSERT INTO availability_slots (creator_id, starts_at, ends_at)
-SELECT u.id,
-       ((CURRENT_DATE + j.n) + d.debut) AT TIME ZONE 'Europe/Brussels',
-       ((CURRENT_DATE + j.n) + d.fin) AT TIME ZONE 'Europe/Brussels'
-FROM (VALUES
-    -- jour ISO : 1 = lundi … 7 = dimanche
-    ('farid.benali@clicclap.test', 2, TIME '14:00', TIME '18:00'),
-    ('farid.benali@clicclap.test', 4, TIME '14:00', TIME '18:00'),
-    ('farid.benali@clicclap.test', 6, TIME '10:00', TIME '18:00'),
-    ('alice.martin@clicclap.test', 3, TIME '10:00', TIME '12:00'),
-    ('alice.martin@clicclap.test', 6, TIME '10:00', TIME '20:00')
-) AS d (email, jour, debut, fin)
-JOIN users u ON u.email = d.email
-CROSS JOIN generate_series(1, 21) AS j (n)
-WHERE EXTRACT(ISODOW FROM CURRENT_DATE + j.n) = d.jour
-  AND NOT EXISTS (
-      SELECT 1 FROM availability_slots x
-      WHERE x.creator_id = u.id
-        AND x.starts_at = ((CURRENT_DATE + j.n) + d.debut) AT TIME ZONE 'Europe/Brussels');
+SELECT c.creator_id, c.starts_at, c.ends_at
+FROM (
+    SELECT u.id AS creator_id,
+           (jour.date + d.debut) AT TIME ZONE 'Europe/Brussels' AS starts_at,
+           (jour.date + d.fin) AT TIME ZONE 'Europe/Brussels' AS ends_at
+    FROM (VALUES
+        -- jour ISO : 1 = lundi … 7 = dimanche
+        ('farid.benali@clicclap.test', 2, TIME '14:00', TIME '18:00'),
+        ('farid.benali@clicclap.test', 4, TIME '14:00', TIME '18:00'),
+        ('farid.benali@clicclap.test', 6, TIME '10:00', TIME '18:00'),
+        ('alice.martin@clicclap.test', 3, TIME '10:00', TIME '12:00'),
+        ('alice.martin@clicclap.test', 6, TIME '10:00', TIME '20:00')
+    ) AS d (email, jour_iso, debut, fin)
+    JOIN users u ON u.email = d.email
+    CROSS JOIN generate_series(1, 21) AS j (n)
+    CROSS JOIN LATERAL (SELECT (now() AT TIME ZONE 'Europe/Brussels')::date + j.n AS date) AS jour
+    WHERE EXTRACT(ISODOW FROM jour.date) = d.jour_iso
+) AS c
+WHERE NOT EXISTS (
+    SELECT 1 FROM availability_slots x
+    WHERE x.creator_id = c.creator_id AND x.starts_at = c.starts_at);

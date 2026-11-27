@@ -10,7 +10,6 @@ import javax.sql.DataSource;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import be.heh.clipclap.offerings.AvailabilityApi;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureRestTestClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -19,6 +18,8 @@ import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.client.RestTestClient;
+
+import be.heh.clipclap.offerings.AvailabilityApi;
 
 // @SpringBootTest et non @ApplicationModuleTest : les données de démonstration touchent plusieurs
 // modules (users, creators, catalog). Le profil « demo » lance son propre contexte, donc sa propre
@@ -182,8 +183,8 @@ class DemoDataIT {
 	void creneauxDeDemo_couvrentLesTroisSemainesSuivantes_etSontReservables() {
 		long farid = idDe("farid.benali@clicclap.test");
 		long alice = idDe("alice.martin@clicclap.test");
-		// Même référence que le script : la date du jour de la base
-		LocalDate aujourdhui = jdbc.sql("SELECT CURRENT_DATE").query(LocalDate.class).single();
+		// Même référence que le script : la date du jour à Bruxelles, vue par la base
+		LocalDate aujourdhui = jdbc.sql("SELECT (now() AT TIME ZONE 'Europe/Brussels')::date").query(LocalDate.class).single();
 
 		// 3 jours par semaine pour Farid, 2 pour Alice, sur 21 jours : 9 et 6 créneaux
 		assertThat(compter("SELECT COUNT(*) FROM availability_slots WHERE creator_id = " + farid)).isEqualTo(9);
