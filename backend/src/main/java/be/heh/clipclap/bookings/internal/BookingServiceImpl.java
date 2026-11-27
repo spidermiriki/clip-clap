@@ -4,6 +4,7 @@ import be.heh.clipclap.bookings.Booking;
 import be.heh.clipclap.bookings.BookingDetail;
 import be.heh.clipclap.offerings.AvailabilityApi;
 import be.heh.clipclap.offerings.OfferingApi;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,8 +55,18 @@ class BookingServiceImpl {
         var quote = offeringApi.quote(command.offeringId(), optionIds)
                 .orElseThrow(() -> new OfferingNotFoundException(command.offeringId()));
 
-        Booking booking = bookings.create(clientId, offering.creatorUserId(),
-                command.offeringId(), command.slotId(), quote.total());
+        Booking booking;
+        try {
+            // uq_bookings_slot_active (#30) : si une autre réservation active a été créée sur ce
+            // créneau entre le recontrôle isBookable ci-dessus et cet INSERT, la contrainte
+            // d'unicité en base l'empêche — recontrôle synchrone et contrainte couvrent deux
+            // fenêtres différentes (avant/pendant l'écriture), la seconde seule est fiable sous
+            // concurrence réelle (scénario 21).
+            booking = bookings.create(clientId, offering.creatorUserId(),
+                    command.offeringId(), command.slotId(), quote.total());
+        } catch (DataIntegrityViolationException e) {
+            throw new SlotNotBookableException(command.slotId());
+        }
         bookings.insertHistoryEntry(booking.id(), clientId, null, booking.status());
         return booking;
     }

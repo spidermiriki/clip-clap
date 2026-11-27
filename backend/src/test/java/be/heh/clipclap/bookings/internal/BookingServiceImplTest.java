@@ -74,6 +74,37 @@ class BookingServiceImplTest {
     }
 
     @Test
+    void creer_creneauDejaReserveParUnAutreClient_leveSlotNotBookableException() {
+        long creator = insertCreator("creator@bookings.test", "sub-creator-3b");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long premierClient = insertUser("premier@bookings.test", "sub-premier-3b", "CLIENT");
+        long secondClient = insertUser("second@bookings.test", "sub-second-3b", "CLIENT");
+        service.creer(premierClient, new BookingCommand(offering, slot, Set.of()));
+
+        // isBookable() renvoie encore true pour le second client : seules les réservations
+        // CONFIRMEE réduisent la disponibilité (AvailabilityService) — c'est bien l'index
+        // uq_bookings_slot_active (#30), pas le recontrôle synchrone de #29, qui bloque ici.
+        assertThatThrownBy(() -> service.creer(secondClient, new BookingCommand(offering, slot, Set.of())))
+                .isInstanceOf(SlotNotBookableException.class);
+    }
+
+    @Test
+    void creer_creneauLibereApresRefus_permetUneNouvelleReservation() {
+        long creator = insertCreator("creator@bookings.test", "sub-creator-3c");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long premierClient = insertUser("premier@bookings.test", "sub-premier-3c", "CLIENT");
+        long secondClient = insertUser("second@bookings.test", "sub-second-3c", "CLIENT");
+        Booking premiere = service.creer(premierClient, new BookingCommand(offering, slot, Set.of()));
+        service.changerStatut(premiere.id(), creator, "REFUSEE");
+
+        Booking seconde = service.creer(secondClient, new BookingCommand(offering, slot, Set.of()));
+
+        assertThat(seconde.status()).isEqualTo("EN_ATTENTE");
+    }
+
+    @Test
     void creer_prestationInconnue_leveOfferingNotFoundException() {
         long client = insertUser("client@bookings.test", "sub-client-4", "CLIENT");
         long creator = insertCreator("creator@bookings.test", "sub-creator-4");

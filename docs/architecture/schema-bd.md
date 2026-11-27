@@ -268,7 +268,7 @@ Les demandes de réservation d'un client pour une prestation et un créneau d'un
 | `client_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_client` |
 | `creator_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_creator` |
 | `offering_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES offerings (id) ON DELETE SET NULL` (contrainte `bookings_offering_id_fkey`, #133) |
-| `slot_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES availability_slots (id) ON DELETE SET NULL` (contrainte `bookings_slot_id_fkey`, #133) ; index unique partiel `uq_bookings_slot_confirmee (slot_id) WHERE status = 'CONFIRMEE'` (anti-collision, #30) |
+| `slot_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES availability_slots (id) ON DELETE SET NULL` (contrainte `bookings_slot_id_fkey`, #133) ; index unique partiel `uq_bookings_slot_active (slot_id) WHERE status IN ('EN_ATTENTE', 'CONFIRMEE')` : anti-collision, une seule réservation active à la fois sur un créneau, qu'elle le devienne à la création ou à la confirmation (#30) |
 | `total_price` | `NUMERIC(10,2)` | prix de base + options choisies, figé à la création (#29) |
 | `status` | `VARCHAR(20)` | `NOT NULL`, défaut `'EN_ATTENTE'`, `CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE'))` |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
