@@ -24,6 +24,10 @@ erDiagram
     categories |o--o{ offerings : "classe"
     creator_profiles ||--o{ availability_slots : "ouvre"
     creator_profiles ||--o| scheduling_settings : "règle"
+    users ||--o{ bookings : "réserve ou reçoit"
+    offerings |o--o{ bookings : "réservée"
+    availability_slots |o--o{ bookings : "occupé par"
+    bookings ||--o{ booking_status_history : "trace"
 
     users {
         BIGSERIAL id PK
@@ -101,6 +105,26 @@ erDiagram
         BIGINT creator_id PK, FK "→ creator_profiles.user_id"
         INTEGER min_notice_hours "NOT NULL, 0 à 720"
         INTEGER buffer_minutes "NOT NULL, 0 à 480"
+    }
+
+    bookings {
+        BIGSERIAL id PK
+        BIGINT client_id FK "→ users.id, indexé"
+        BIGINT creator_id FK "→ users.id, indexé"
+        BIGINT offering_id FK "→ offerings.id, ON DELETE SET NULL"
+        BIGINT slot_id FK "→ availability_slots.id, ON DELETE SET NULL"
+        NUMERIC total_price "(10,2), prix figé"
+        VARCHAR(20) status "NOT NULL, EN_ATTENTE | CONFIRMEE | REFUSEE | ANNULEE | EXPIREE | TERMINEE"
+        TIMESTAMPTZ created_at "NOT NULL, défaut now()"
+    }
+
+    booking_status_history {
+        BIGSERIAL id PK
+        BIGINT booking_id FK "→ bookings.id, indexé"
+        BIGINT actor_id FK "→ users.id"
+        VARCHAR(20) previous_status "NULL à la création"
+        VARCHAR(20) new_status "NOT NULL"
+        TIMESTAMPTZ changed_at "NOT NULL, défaut now()"
     }
 ```
 
@@ -243,30 +267,30 @@ Les demandes de réservation d'un client pour une prestation et un créneau d'un
 | `id` | `BIGSERIAL` | clé primaire |
 | `client_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_client` |
 | `creator_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_creator` |
-| `offering_id` | `BIGINT` | `NOT NULL` (depuis #29), `REFERENCES offerings (id)` |
-| `slot_id` | `BIGINT` | `NOT NULL` (depuis #29), `REFERENCES availability_slots (id)` |
+| `offering_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES offerings (id) ON DELETE SET NULL` (contrainte `bookings_offering_id_fkey`, #133) |
+| `slot_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES availability_slots (id) ON DELETE SET NULL` (contrainte `bookings_slot_id_fkey`, #133) ; index unique partiel `uq_bookings_slot_confirmee (slot_id) WHERE status = 'CONFIRMEE'` (anti-collision, #30) |
 | `total_price` | `NUMERIC(10,2)` | prix de base + options choisies, figé à la création (#29) |
-| `status` | `VARCHAR(20)` | `NOT NULL`, défaut `'EN_ATTENTE'`, `CHECK` parmi `EN_ATTENTE`, `CONFIRMEE`, `REFUSEE`, `ANNULEE`, `EXPIREE`, `TERMINEE` |
+| `status` | `VARCHAR(20)` | `NOT NULL`, défaut `'EN_ATTENTE'`, `CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE'))` |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
 
-Index unique partiel `uq_bookings_slot_confirmee (slot_id) WHERE status = 'CONFIRMEE'` : anti-collision, un créneau ne peut être confirmé que par une seule réservation (#30).
+`ON DELETE SET NULL` : supprimer une prestation ou un créneau garde les réservations passées (refusées, annulées, expirées, terminées), avec leur prix figé — c'est pourquoi `offering_id`/`slot_id` restent nullables même si #29 les renseigne toujours à la création. Les deux contraintes sont recréées à chaque démarrage par un `ALTER TABLE … DROP CONSTRAINT IF EXISTS …, ADD CONSTRAINT …`, pour corriger une table créée avant #133.
 
 ### `booking_status_history` — module `bookings`
 
-Le journal des changements de statut d'une réservation (#39), une ligne par transition réussie, jamais modifiée.
+Le journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée.
 
 | Colonne | Type | Contraintes |
 |---------|------|-------------|
 | `id` | `BIGSERIAL` | clé primaire |
 | `booking_id` | `BIGINT` | `NOT NULL`, `REFERENCES bookings (id) ON DELETE CASCADE`, index `idx_booking_status_history_booking` |
 | `actor_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id)` |
-| `previous_status` | `VARCHAR(20)` | `NULL` pour la première entrée (création), sinon même `CHECK` que `status` |
-| `new_status` | `VARCHAR(20)` | `NOT NULL`, même `CHECK` que `status` |
+| `previous_status` | `VARCHAR(20)` | `NULL` pour la création ; mêmes valeurs que `bookings.status` |
+| `new_status` | `VARCHAR(20)` | `NOT NULL` ; mêmes valeurs que `bookings.status` |
 | `changed_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
 
 ### Suppressions en cascade
 
-Supprimer un compte supprime son profil créateur, puis ses albums, puis leurs médias, ainsi que ses associations de catégories et ses prestations avec leurs options. Supprimer une catégorie supprime seulement ses associations avec les créateurs, et retire la catégorie des prestations qui l'utilisaient.
+Supprimer un compte supprime son profil créateur, puis ses albums, puis leurs médias, ainsi que ses associations de catégories et ses prestations avec leurs options. Supprimer une catégorie supprime seulement ses associations avec les créateurs, et retire la catégorie des prestations qui l'utilisaient. Supprimer une prestation ou un créneau retire la référence des réservations qui les utilisaient (`SET NULL`), sans les supprimer.
 
 ---
 

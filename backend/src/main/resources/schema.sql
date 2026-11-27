@@ -120,9 +120,12 @@ CREATE TABLE IF NOT EXISTS bookings (
     id          BIGSERIAL   PRIMARY KEY,
     client_id   BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
     creator_id  BIGINT      NOT NULL REFERENCES users (id) ON DELETE CASCADE,
-    -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki).
-    offering_id BIGINT REFERENCES offerings (id),
-    slot_id     BIGINT REFERENCES availability_slots (id),
+    -- Prestation et créneau réservés (contrat de #29 avec @spidermiriki). Toujours renseignés à la
+    -- création (#29), mais restent nullable : ON DELETE SET NULL (#133) doit pouvoir les vider si la
+    -- prestation ou le créneau est supprimé après coup (réservation refusée, annulée, expirée ou
+    -- terminée) sans effacer l'historique ni le prix figé de la réservation.
+    offering_id BIGINT REFERENCES offerings (id) ON DELETE SET NULL,
+    slot_id     BIGINT REFERENCES availability_slots (id) ON DELETE SET NULL,
     -- Prix total figé au moment de la réservation (#29) : une prestation modifiée ensuite ne change
     -- pas le prix d'une réservation existante.
     total_price NUMERIC(10, 2),
@@ -131,16 +134,20 @@ CREATE TABLE IF NOT EXISTS bookings (
     created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- La table a pu être créée avant #133, sans ON DELETE : CREATE TABLE IF NOT EXISTS ne touche plus
+-- ses contraintes. Rejouable à chaque démarrage : chaque contrainte est supprimée puis recréée
+-- (noms générés par PostgreSQL, <table>_<colonne>_fkey), dans une seule instruction par contrainte.
+ALTER TABLE bookings
+    DROP CONSTRAINT IF EXISTS bookings_offering_id_fkey,
+    ADD CONSTRAINT bookings_offering_id_fkey FOREIGN KEY (offering_id) REFERENCES offerings (id) ON DELETE SET NULL;
+ALTER TABLE bookings
+    DROP CONSTRAINT IF EXISTS bookings_slot_id_fkey,
+    ADD CONSTRAINT bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES availability_slots (id) ON DELETE SET NULL;
+
 CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
 -- Anti-collision (#30, scénario 21) : un créneau ne peut être confirmé que par une seule réservation
 CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_slot_confirmee ON bookings (slot_id) WHERE status = 'CONFIRMEE';
-
--- offering_id et slot_id obligatoires depuis #29 : la création d'une réservation choisit toujours une
--- prestation et un créneau. ALTER plutôt que NOT NULL dans le CREATE TABLE (table déjà créée par #126) ;
--- aucune ligne ne peut exister sans eux, la fonctionnalité n'étant exposée qu'à partir de #29.
-ALTER TABLE bookings ALTER COLUMN offering_id SET NOT NULL;
-ALTER TABLE bookings ALTER COLUMN slot_id SET NOT NULL;
 
 -- Journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée
 CREATE TABLE IF NOT EXISTS booking_status_history (
