@@ -146,8 +146,12 @@ ALTER TABLE bookings
 
 CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
--- Anti-collision (#30, scénario 21) : un créneau ne peut être confirmé que par une seule réservation
-CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_slot_confirmee ON bookings (slot_id) WHERE status = 'CONFIRMEE';
+-- Anti-collision (#30, scénario 21) : un créneau ne peut avoir qu'une seule réservation active
+-- (En attente ou Confirmée) à la fois — qu'elle le devienne à la création ou à la confirmation.
+-- Remplace l'index posé par #39 (qui ne portait que sur CONFIRMEE, DROP INDEX car le nom change).
+DROP INDEX IF EXISTS uq_bookings_slot_confirmee;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_bookings_slot_active ON bookings (slot_id)
+    WHERE status IN ('EN_ATTENTE', 'CONFIRMEE');
 
 -- Journal des changements de statut (#39) : une ligne par transition réussie, jamais modifiée
 CREATE TABLE IF NOT EXISTS booking_status_history (

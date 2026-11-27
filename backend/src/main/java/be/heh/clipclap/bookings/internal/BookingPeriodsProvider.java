@@ -7,7 +7,10 @@ import org.springframework.stereotype.Component;
 import java.time.OffsetDateTime;
 import java.util.List;
 
-/** Inversion de dépendance (#28) : offerings retire des disponibilités les réservations confirmées. */
+/**
+ * Inversion de dépendance (#28) : offerings retire des disponibilités les réservations actives
+ * (En attente ou Confirmée, #30) — une demande non traitée doit aussi faire respecter la marge.
+ */
 @Component
 class BookingPeriodsProvider implements BookedPeriodsProvider {
 
@@ -19,6 +22,6 @@ class BookingPeriodsProvider implements BookedPeriodsProvider {
 
     @Override
     public List<BookedPeriod> findBookedPeriods(long creatorUserId, OffsetDateTime from, OffsetDateTime to) {
-        return bookings.findConfirmedPeriods(creatorUserId, from, to);
+        return bookings.findActivePeriods(creatorUserId, from, to);
     }
 }
