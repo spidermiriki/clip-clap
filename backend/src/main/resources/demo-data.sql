@@ -2,6 +2,7 @@
 -- Rejouable à chaque démarrage : ON CONFLICT DO NOTHING ou NOT EXISTS, identifiants retrouvés par e-mail.
 -- Comptes fictifs : domaine réservé .test et sub sans compte Zitadel, donc aucune connexion possible.
 -- Albums et photos de départ (#15) : 4 créateurs ont un album de 2 photos (pas de vidéo avant la v0.2, #94).
+-- Prestations et créneaux (#141) : Farid et Alice, créneaux sur les 3 semaines qui suivent la date du démarrage.
 
 -- Module users : 10 créateurs visibles, 1 compte suspendu
 INSERT INTO users (email, sub, role, suspended) VALUES
@@ -98,3 +99,54 @@ JOIN users u ON u.email = m.email
 JOIN albums al ON al.creator_id = u.id AND al.name = m.album
 WHERE NOT EXISTS (SELECT 1 FROM media x WHERE x.album_id = al.id AND x.cloudinary_public_id = m.public_id)
 ORDER BY m.ordre;
+
+-- Module offerings : prestations de Farid et d'Alice (#141), catégories de data.sql retrouvées par leur nom.
+-- Pas de clé unique sur offerings ni offering_options : NOT EXISTS évite les doublons quand le script est rejoué.
+INSERT INTO offerings (creator_id, name, duration_minutes, base_price, category_id)
+SELECT u.id, o.name, o.duration, o.price, c.id
+FROM (VALUES
+    ('farid.benali@clicclap.test', 'Clip musical',            180,  900.00, 'Clip'),
+    ('farid.benali@clicclap.test', 'Teaser réseaux sociaux',   60,  250.00, 'Clip'),
+    ('farid.benali@clicclap.test', 'Captation de concert',    240,  600.00, 'Événementiel'),
+    ('alice.martin@clicclap.test', 'Reportage mariage',       480, 1200.00, 'Mariage'),
+    ('alice.martin@clicclap.test', 'Séance portrait',          90,  150.00, 'Portrait')
+) AS o (email, name, duration, price, category)
+JOIN users u ON u.email = o.email
+JOIN categories c ON c.name = o.category
+WHERE NOT EXISTS (SELECT 1 FROM offerings x WHERE x.creator_id = u.id AND x.name = o.name);
+
+INSERT INTO offering_options (offering_id, name, extra_price)
+SELECT f.id, op.name, op.price
+FROM (VALUES
+    ('farid.benali@clicclap.test', 'Clip musical',           'Montage express 48 h',     150.00),
+    ('farid.benali@clicclap.test', 'Clip musical',           'Prises de vue par drone',  200.00),
+    ('farid.benali@clicclap.test', 'Teaser réseaux sociaux', 'Format vertical en plus',   50.00),
+    ('alice.martin@clicclap.test', 'Reportage mariage',      'Album imprimé',            250.00),
+    ('alice.martin@clicclap.test', 'Reportage mariage',      'Second photographe',       300.00)
+) AS op (email, offering, name, price)
+JOIN users u ON u.email = op.email
+JOIN offerings f ON f.creator_id = u.id AND f.name = op.offering
+WHERE NOT EXISTS (SELECT 1 FROM offering_options x WHERE x.offering_id = f.id AND x.name = op.name);
+
+-- Module offerings : créneaux libres de J+1 à J+21 (#141), calculés à partir de CURRENT_DATE pour ne jamais
+-- périmer. Heures locales de Bruxelles (changement d'heure compris). Rejoué un autre jour, le script n'ajoute
+-- que les jours qui manquent en fin de fenêtre, et les créneaux passés ne sont plus proposés à la réservation.
+INSERT INTO availability_slots (creator_id, starts_at, ends_at)
+SELECT u.id,
+       ((CURRENT_DATE + j.n) + d.debut) AT TIME ZONE 'Europe/Brussels',
+       ((CURRENT_DATE + j.n) + d.fin) AT TIME ZONE 'Europe/Brussels'
+FROM (VALUES
+    -- jour ISO : 1 = lundi … 7 = dimanche
+    ('farid.benali@clicclap.test', 2, TIME '14:00', TIME '18:00'),
+    ('farid.benali@clicclap.test', 4, TIME '14:00', TIME '18:00'),
+    ('farid.benali@clicclap.test', 6, TIME '10:00', TIME '18:00'),
+    ('alice.martin@clicclap.test', 3, TIME '10:00', TIME '12:00'),
+    ('alice.martin@clicclap.test', 6, TIME '10:00', TIME '20:00')
+) AS d (email, jour, debut, fin)
+JOIN users u ON u.email = d.email
+CROSS JOIN generate_series(1, 21) AS j (n)
+WHERE EXTRACT(ISODOW FROM CURRENT_DATE + j.n) = d.jour
+  AND NOT EXISTS (
+      SELECT 1 FROM availability_slots x
+      WHERE x.creator_id = u.id
+        AND x.starts_at = ((CURRENT_DATE + j.n) + d.debut) AT TIME ZONE 'Europe/Brussels');
