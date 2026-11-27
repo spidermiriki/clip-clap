@@ -26,7 +26,7 @@ import static be.heh.clipclap.offerings.internal.AvailabilityRepository.BRUXELLE
 /**
  * Créneaux libres, préavis et marge des créateurs (#28). Un créneau est réservable si son créateur
  * est validé et non suspendu, s'il commence après maintenant + préavis, et s'il ne touche aucune
- * réservation confirmée élargie de la marge (avant comme après).
+ * réservation active (En attente ou Confirmée, #30) élargie de la marge (avant comme après).
  */
 @Service
 class AvailabilityService implements AvailabilityApi {

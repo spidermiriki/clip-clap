@@ -64,13 +64,18 @@ class BookingRepository {
                 .single());
     }
 
-    /** Pour {@link be.heh.clipclap.offerings.BookedPeriodsProvider} : périodes confirmées qui chevauchent [from, to). */
-    List<BookedPeriod> findConfirmedPeriods(long creatorId, OffsetDateTime from, OffsetDateTime to) {
+    /**
+     * Pour {@link be.heh.clipclap.offerings.BookedPeriodsProvider} : périodes actives (En
+     * attente ou Confirmée) qui chevauchent [from, to) — une demande non encore traitée doit
+     * aussi faire respecter la marge (#30, revue de #139) : #31 (accepter/refuser) ne referait
+     * aucun contrôle de marge au moment de confirmer.
+     */
+    List<BookedPeriod> findActivePeriods(long creatorId, OffsetDateTime from, OffsetDateTime to) {
         return jdbc.sql("""
                 SELECT s.starts_at, s.ends_at
                 FROM bookings b
                 JOIN availability_slots s ON s.id = b.slot_id
-                WHERE b.creator_id = :creatorId AND b.status = 'CONFIRMEE'
+                WHERE b.creator_id = :creatorId AND b.status IN ('EN_ATTENTE', 'CONFIRMEE')
                   AND s.starts_at < :to AND s.ends_at > :from
                 """)
                 .param("creatorId", creatorId)
