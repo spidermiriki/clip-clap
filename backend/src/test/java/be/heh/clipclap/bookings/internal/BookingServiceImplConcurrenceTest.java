@@ -1,15 +1,18 @@
 package be.heh.clipclap.bookings.internal;
 
 import be.heh.clipclap.bookings.Booking;
+import be.heh.clipclap.creators.CreatorProfileService;
 import be.heh.clipclap.offerings.AvailabilityApi;
 import be.heh.clipclap.offerings.Offering;
 import be.heh.clipclap.offerings.OfferingApi;
 import be.heh.clipclap.offerings.PriceQuote;
+import be.heh.clipclap.users.UserApi;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DuplicateKeyException;
 
 import java.math.BigDecimal;
@@ -45,20 +48,29 @@ class BookingServiceImplConcurrenceTest {
     @Mock
     AvailabilityApi availabilityApi;
 
+    @Mock
+    CreatorProfileService creatorProfiles;
+
+    @Mock
+    UserApi userApi;
+
+    @Mock
+    ApplicationEventPublisher events;
+
     @InjectMocks
     BookingServiceImpl service;
 
     @Test
     void changerStatut_statutDejaChangeEntreLaLectureEtLEcriture_rejetteSansEcrireLHistorique() {
         long bookingId = 1L;
-        Booking luEnAttente = new Booking(bookingId, 10L, 20L, 30L, 40L, null, "EN_ATTENTE", Instant.now());
-        Booking reluApresLaCourse = new Booking(bookingId, 10L, 20L, 30L, 40L, null, "ANNULEE", Instant.now());
+        Booking luEnAttente = new Booking(bookingId, 10L, 20L, 30L, 40L, null, "EN_ATTENTE", Instant.now(), null);
+        Booking reluApresLaCourse = new Booking(bookingId, 10L, 20L, 30L, 40L, null, "ANNULEE", Instant.now(), null);
 
         when(bookings.findById(bookingId))
                 .thenReturn(Optional.of(luEnAttente), Optional.of(reluApresLaCourse));
         // Une autre requête a déjà fait passer la réservation à ANNULEE : la mise à jour conditionnée
         // par le statut lu (EN_ATTENTE) ne modifie donc aucune ligne.
-        when(bookings.updateStatusSiActuel(bookingId, "EN_ATTENTE", "CONFIRMEE")).thenReturn(false);
+        when(bookings.updateStatusSiActuel(bookingId, "EN_ATTENTE", "CONFIRMEE", null)).thenReturn(false);
 
         assertThatThrownBy(() -> service.changerStatut(bookingId, 20L, "CONFIRMEE"))
                 .isInstanceOf(InvalidBookingTransitionException.class)

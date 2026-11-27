@@ -1,6 +1,9 @@
 package be.heh.clipclap.users.internal;
 
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -46,6 +49,22 @@ class UserRepository {
 		return new HashSet<>(jdbc.sql("SELECT id FROM users WHERE suspended = true")
 			.query(Long.class)
 			.list());
+	}
+
+	/** E-mails de ces utilisateurs (#31), un par identifiant trouvé. */
+	Map<Long, String> findEmails(Set<Long> userIds) {
+		if (userIds.isEmpty()) {
+			return Map.of();
+		}
+		List<Map.Entry<Long, String>> lignes = jdbc.sql("SELECT id, email FROM users WHERE id IN (:ids)")
+			.param("ids", userIds)
+			.query((rs, rowNum) -> Map.entry(rs.getLong("id"), rs.getString("email")))
+			.list();
+		Map<Long, String> emails = new HashMap<>();
+		for (var ligne : lignes) {
+			emails.put(ligne.getKey(), ligne.getValue());
+		}
+		return emails;
 	}
 
 	/**

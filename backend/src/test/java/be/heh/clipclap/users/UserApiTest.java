@@ -73,6 +73,20 @@ class UserApiTest {
 		assertThat(userApi.findAllSuspendedIds()).isEmpty();
 	}
 
+	@Test
+	void findEmails_quelquesIdentifiantsConnus_renvoieUneEntreeParIdentifiantTrouve() {
+		long alice = insertUser("alice2@example.com", "zitadel-sub-alice2");
+		long bob = insertUser("bob2@example.com", "zitadel-sub-bob2");
+
+		assertThat(userApi.findEmails(Set.of(alice, bob, 999_999L)))
+				.containsOnly(java.util.Map.entry(alice, "alice2@example.com"), java.util.Map.entry(bob, "bob2@example.com"));
+	}
+
+	@Test
+	void findEmails_ensembleVide_renvoieVide() {
+		assertThat(userApi.findEmails(Set.of())).isEmpty();
+	}
+
 	private long insertUser(String email, String sub) {
 		return insertUser(email, sub, false);
 	}

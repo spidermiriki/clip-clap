@@ -144,6 +144,9 @@ ALTER TABLE bookings
     DROP CONSTRAINT IF EXISTS bookings_slot_id_fkey,
     ADD CONSTRAINT bookings_slot_id_fkey FOREIGN KEY (slot_id) REFERENCES availability_slots (id) ON DELETE SET NULL;
 
+-- Message de refus facultatif (#31), visible du client (#34)
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS refusal_message VARCHAR(500);
+
 CREATE INDEX IF NOT EXISTS idx_bookings_client  ON bookings (client_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_creator ON bookings (creator_id);
 -- Anti-collision (#30, scénario 21) : un créneau ne peut avoir qu'une seule réservation active

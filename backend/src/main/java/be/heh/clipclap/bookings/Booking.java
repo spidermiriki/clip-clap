@@ -11,5 +11,6 @@ public record Booking(
         Long slotId,
         BigDecimal totalPrice,
         String status,
-        Instant createdAt
+        Instant createdAt,
+        String refusalMessage
 ) {}
