@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDuree, formatPrix, parsePrix } from './format'
+import { formatCreneau, formatDuree, formatPrix, parsePrix } from './format'
 
 describe('formats (#27)', () => {
   it('affiche une durée en heures et minutes', () => {
@@ -29,5 +29,12 @@ describe('formats (#27)', () => {
     for (const saisie of ['', 'abc', '12,5,3', '-10', '10,555', '1,2.3,4']) {
       expect(parsePrix(saisie)).toBeNull()
     }
+  })
+
+  it("affiche un créneau à l'heure de Bruxelles, quel que soit le décalage reçu (#32)", () => {
+    expect(formatCreneau('2027-04-02T14:00:00+02:00', '2027-04-02T22:00:00+02:00'))
+      .toBe('vendredi 2 avril 2027, 14:00 – 22:00')
+    expect(formatCreneau('2027-04-02T12:00:00Z', '2027-04-02T13:30:00Z'))
+      .toBe('vendredi 2 avril 2027, 14:00 – 15:30')
   })
 })

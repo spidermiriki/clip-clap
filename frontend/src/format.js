@@ -36,3 +36,11 @@ export function formatDuree(minutes) {
   if (heures === 0) return `${reste} min`
   return reste === 0 ? `${heures} h` : `${heures} h ${String(reste).padStart(2, '0')}`
 }
+
+const JOUR = new Intl.DateTimeFormat('fr-BE', { timeZone: 'Europe/Brussels', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+const HEURE = new Intl.DateTimeFormat('fr-BE', { timeZone: 'Europe/Brussels', hour: '2-digit', minute: '2-digit' })
+
+/** Créneau à l'heure de Bruxelles (#32) : « vendredi 2 avril 2027, 14:00 – 22:00 » */
+export function formatCreneau(start, end) {
+  return `${JOUR.format(new Date(start))}, ${HEURE.format(new Date(start))} – ${HEURE.format(new Date(end))}`
+}

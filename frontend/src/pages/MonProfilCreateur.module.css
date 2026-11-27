@@ -80,14 +80,3 @@
   align-items: center;
   gap: 0.35rem;
 }
-
-.bandeau {
-  padding: 0.75rem 1rem;
-  border: 1px dashed var(--accent);
-  border-radius: 8px;
-  margin: 0 0 1rem;
-}
-
-.refuse {
-  border-color: #dc2626;
-}

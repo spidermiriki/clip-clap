@@ -38,11 +38,12 @@ describe('App — navigation selon le rôle', () => {
   // Sans `globals: true` dans la config Vitest, Testing Library ne démonte pas le rendu tout seul
   afterEach(cleanup)
 
-  it('un créateur voit « Mon profil » et « Mes albums »', async () => {
+  it('un créateur voit « Tableau de bord », « Mon profil » et « Mes albums »', async () => {
     mockAuth = connecteAvecRole('CREATOR')
     renderApp()
 
-    expect(await screen.findByRole('link', { name: 'Mon profil' })).toHaveAttribute('href', '/mon-profil')
+    expect(await screen.findByRole('link', { name: 'Tableau de bord' })).toHaveAttribute('href', '/tableau-de-bord')
+    expect(screen.getByRole('link', { name: 'Mon profil' })).toHaveAttribute('href', '/mon-profil')
     expect(screen.getByRole('link', { name: 'Mes albums' })).toHaveAttribute('href', '/mes-albums')
   })
 
@@ -51,6 +52,7 @@ describe('App — navigation selon le rôle', () => {
     renderApp()
 
     expect(await screen.findByRole('link', { name: 'Galerie' })).toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'Tableau de bord' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Mon profil' })).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Mes albums' })).not.toBeInTheDocument()
   })

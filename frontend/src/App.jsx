@@ -52,6 +52,7 @@ function App() {
           <>
             {roleFromProfile(auth.user?.profile) === 'CREATOR' && (
               <>
+                <Link to="/tableau-de-bord">Tableau de bord</Link>
                 <Link to="/mon-profil">Mon profil</Link>
                 <Link to="/mes-albums">Mes albums</Link>
                 <Link to="/mes-prestations">Mes prestations</Link>
