@@ -42,4 +42,39 @@ class BookingExceptionHandler {
         pd.setTitle("Utilisateur inconnu");
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
     }
+
+    @ExceptionHandler(OfferingNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleOfferingNotFound(OfferingNotFoundException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Prestation introuvable");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(SlotNotFoundException.class)
+    ResponseEntity<ProblemDetail> handleSlotNotFound(SlotNotFoundException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        pd.setTitle("Créneau introuvable");
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(pd);
+    }
+
+    @ExceptionHandler(SlotNotBookableException.class)
+    ResponseEntity<ProblemDetail> handleSlotNotBookable(SlotNotBookableException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        pd.setTitle("Créneau non réservable");
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(pd);
+    }
+
+    @ExceptionHandler(SelfBookingException.class)
+    ResponseEntity<ProblemDetail> handleSelfBooking(SelfBookingException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        pd.setTitle("Action refusée");
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(pd);
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ResponseEntity<ProblemDetail> handleIllegalArgument(IllegalArgumentException ex) {
+        var pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        pd.setTitle("Réservation invalide");
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(pd);
+    }
 }

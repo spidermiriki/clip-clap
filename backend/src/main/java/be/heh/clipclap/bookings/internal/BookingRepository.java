@@ -2,12 +2,15 @@ package be.heh.clipclap.bookings.internal;
 
 import be.heh.clipclap.bookings.Booking;
 import be.heh.clipclap.bookings.BookingStatusChange;
+import be.heh.clipclap.offerings.BookedPeriod;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Repository;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,16 +23,50 @@ class BookingRepository {
         this.jdbc = jdbc;
     }
 
-    Booking create(long clientId, long creatorId) {
+    Booking create(long clientId, long creatorId, long offeringId, long slotId, BigDecimal totalPrice) {
         return jdbc.sql("""
-                INSERT INTO bookings (client_id, creator_id)
-                VALUES (:clientId, :creatorId)
+                INSERT INTO bookings (client_id, creator_id, offering_id, slot_id, total_price)
+                VALUES (:clientId, :creatorId, :offeringId, :slotId, :totalPrice)
                 RETURNING *
                 """)
                 .param("clientId", clientId)
                 .param("creatorId", creatorId)
+                .param("offeringId", offeringId)
+                .param("slotId", slotId)
+                .param("totalPrice", totalPrice)
                 .query(BookingRepository::mapBooking)
                 .single();
+    }
+
+    /** Pour {@link be.heh.clipclap.offerings.OfferingUsageChecker} : prestation liée à une réservation active. */
+    boolean existsActiveForOffering(long offeringId) {
+        return Boolean.TRUE.equals(jdbc.sql("""
+                SELECT EXISTS(
+                    SELECT 1 FROM bookings
+                    WHERE offering_id = :offeringId AND status IN ('EN_ATTENTE', 'CONFIRMEE')
+                )
+                """)
+                .param("offeringId", offeringId)
+                .query(Boolean.class)
+                .single());
+    }
+
+    /** Pour {@link be.heh.clipclap.offerings.BookedPeriodsProvider} : périodes confirmées qui chevauchent [from, to). */
+    List<BookedPeriod> findConfirmedPeriods(long creatorId, OffsetDateTime from, OffsetDateTime to) {
+        return jdbc.sql("""
+                SELECT s.starts_at, s.ends_at
+                FROM bookings b
+                JOIN availability_slots s ON s.id = b.slot_id
+                WHERE b.creator_id = :creatorId AND b.status = 'CONFIRMEE'
+                  AND s.starts_at < :to AND s.ends_at > :from
+                """)
+                .param("creatorId", creatorId)
+                .param("from", from)
+                .param("to", to)
+                .query((rs, rowNum) -> new BookedPeriod(
+                        rs.getObject("starts_at", OffsetDateTime.class),
+                        rs.getObject("ends_at", OffsetDateTime.class)))
+                .list();
     }
 
     Optional<Booking> findById(long bookingId) {
@@ -87,6 +124,12 @@ class BookingRepository {
                 rs.getLong("id"),
                 rs.getLong("client_id"),
                 rs.getLong("creator_id"),
+                // offering_id/slot_id sont nullables (ON DELETE SET NULL, #133) : getLong renverrait 0
+                // au lieu de null pour une réservation passée dont la prestation ou le créneau a été
+                // supprimé depuis.
+                rs.getObject("offering_id", Long.class),
+                rs.getObject("slot_id", Long.class),
+                rs.getBigDecimal("total_price"),
                 rs.getString("status"),
                 toInstant(rs.getTimestamp("created_at"))
         );

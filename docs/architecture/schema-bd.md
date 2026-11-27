@@ -260,20 +260,20 @@ Le préavis minimum et la marge entre deux rendez-vous d'un créateur (#28). San
 
 ### `bookings` — module `bookings`
 
-Les réservations (#39, colonnes du contrat de #29). `offering_id` et `slot_id` restent facultatifs tant que la création d'une réservation (#29) n'existe pas.
+Les demandes de réservation d'un client pour une prestation et un créneau d'un créateur (#29). Le prix total est figé au moment de la réservation : modifier la prestation ensuite ne change pas une réservation existante.
 
 | Colonne | Type | Contraintes |
 |---------|------|-------------|
 | `id` | `BIGSERIAL` | clé primaire |
 | `client_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_client` |
 | `creator_id` | `BIGINT` | `NOT NULL`, `REFERENCES users (id) ON DELETE CASCADE`, index `idx_bookings_creator` |
-| `offering_id` | `BIGINT` | `REFERENCES offerings (id) ON DELETE SET NULL` (contrainte `bookings_offering_id_fkey`, #133) |
-| `slot_id` | `BIGINT` | `REFERENCES availability_slots (id) ON DELETE SET NULL` (contrainte `bookings_slot_id_fkey`, #133) ; index unique partiel `uq_bookings_slot_confirmee (slot_id) WHERE status = 'CONFIRMEE'` (anti-collision, #30) |
-| `total_price` | `NUMERIC(10,2)` | prix figé au moment de la réservation |
+| `offering_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES offerings (id) ON DELETE SET NULL` (contrainte `bookings_offering_id_fkey`, #133) |
+| `slot_id` | `BIGINT` | toujours renseigné à la création (#29) ; `REFERENCES availability_slots (id) ON DELETE SET NULL` (contrainte `bookings_slot_id_fkey`, #133) ; index unique partiel `uq_bookings_slot_confirmee (slot_id) WHERE status = 'CONFIRMEE'` (anti-collision, #30) |
+| `total_price` | `NUMERIC(10,2)` | prix de base + options choisies, figé à la création (#29) |
 | `status` | `VARCHAR(20)` | `NOT NULL`, défaut `'EN_ATTENTE'`, `CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE'))` |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
 
-`ON DELETE SET NULL` : supprimer une prestation ou un créneau garde les réservations passées (refusées, annulées, expirées, terminées), avec leur prix figé. Les deux contraintes sont recréées à chaque démarrage par un `ALTER TABLE … DROP CONSTRAINT IF EXISTS …, ADD CONSTRAINT …`, pour corriger une table créée avant #133.
+`ON DELETE SET NULL` : supprimer une prestation ou un créneau garde les réservations passées (refusées, annulées, expirées, terminées), avec leur prix figé — c'est pourquoi `offering_id`/`slot_id` restent nullables même si #29 les renseigne toujours à la création. Les deux contraintes sont recréées à chaque démarrage par un `ALTER TABLE … DROP CONSTRAINT IF EXISTS …, ADD CONSTRAINT …`, pour corriger une table créée avant #133.
 
 ### `booking_status_history` — module `bookings`
 

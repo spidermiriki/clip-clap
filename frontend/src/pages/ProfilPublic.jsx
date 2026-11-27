@@ -1,12 +1,16 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { useAuth } from 'react-oidc-context'
 import { getCategories, getCreatorProfile } from '../api/catalog'
+import { getMyProfile } from '../api/creators'
+import { roleFromProfile } from '../auth/role'
 import { formatDuree, formatPrix } from '../format'
 import styles from './ProfilPublic.module.css'
 
 // Profil public d'un créateur (wireframe 04, #17), ses prestations (#27) et ses albums (#15)
 export default function ProfilPublic() {
   const { userId } = useParams()
+  const auth = useAuth()
   // Un nouvel objet à chaque demande : « Réessayer » relance le chargement
   const [request, setRequest] = useState({ userId })
   const [profile, setProfile] = useState(null)
@@ -14,6 +18,8 @@ export default function ProfilPublic() {
   const [error, setError] = useState(null)
   // Noms des catégories de prestation (#123) : facultatifs, le profil s'affiche sans eux
   const [categories, setCategories] = useState([])
+  // Identifiant du créateur connecté, pour masquer « Réserver » sur son propre profil (#29)
+  const [ownUserId, setOwnUserId] = useState(null)
 
   if (request.userId !== userId) {
     // Navigation d'un profil à un autre : on repart de zéro pendant le rendu, sans effet en cascade
@@ -26,6 +32,24 @@ export default function ProfilPublic() {
   useEffect(() => {
     getCategories().then(setCategories).catch(() => setCategories([]))
   }, [])
+
+  useEffect(() => {
+    if (roleFromProfile(auth.user?.profile) !== 'CREATOR') {
+      setOwnUserId(null)
+      return
+    }
+    let ignore = false
+    getMyProfile(auth.user?.access_token)
+      .then((result) => {
+        if (!ignore) setOwnUserId(result?.userId ?? null)
+      })
+      .catch(() => {
+        if (!ignore) setOwnUserId(null)
+      })
+    return () => {
+      ignore = true
+    }
+  }, [auth.user])
 
   useEffect(() => {
     let ignore = false
@@ -86,6 +110,10 @@ export default function ProfilPublic() {
           {lieu && <p className={styles.lieu}>{lieu}</p>}
         </div>
       </header>
+
+      {profile.offerings?.length > 0 && String(ownUserId) !== String(userId) && (
+        <Link to={`/createurs/${userId}/reserver`} className={styles.reserver}>Réserver</Link>
+      )}
 
       <section aria-labelledby="titre-bio">
         <h2 id="titre-bio">À propos</h2>

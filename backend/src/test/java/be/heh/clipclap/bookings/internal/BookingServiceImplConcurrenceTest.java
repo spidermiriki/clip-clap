@@ -34,8 +34,8 @@ class BookingServiceImplConcurrenceTest {
     @Test
     void changerStatut_statutDejaChangeEntreLaLectureEtLEcriture_rejetteSansEcrireLHistorique() {
         long bookingId = 1L;
-        Booking luEnAttente = new Booking(bookingId, 10L, 20L, "EN_ATTENTE", Instant.now());
-        Booking reluApresLaCourse = new Booking(bookingId, 10L, 20L, "ANNULEE", Instant.now());
+        Booking luEnAttente = new Booking(bookingId, 10L, 20L, 30L, 40L, null, "EN_ATTENTE", Instant.now());
+        Booking reluApresLaCourse = new Booking(bookingId, 10L, 20L, 30L, 40L, null, "ANNULEE", Instant.now());
 
         when(bookings.findById(bookingId))
                 .thenReturn(Optional.of(luEnAttente), Optional.of(reluApresLaCourse));
