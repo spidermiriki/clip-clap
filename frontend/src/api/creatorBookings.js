@@ -30,6 +30,15 @@ export async function acceptBooking(bookingId, token) {
   return handleResponse(res, "Impossible d'accepter cette demande.")
 }
 
+/** Confirmée → Terminée (contrat de #37), une fois le créneau commencé ; renvoie la BookingView mise à jour. */
+export async function completeBooking(bookingId, token) {
+  const res = await fetch(apiUrl(`/api/bookings/${encodeURIComponent(bookingId)}/complete`), {
+    method: 'POST',
+    headers: headers(token),
+  })
+  return handleResponse(res, 'Impossible de marquer cette prestation comme terminée.')
+}
+
 /** En attente → Refusée, avec un message facultatif (500 caractères au plus). */
 export async function refuseBooking(bookingId, message, token) {
   const res = await fetch(apiUrl(`/api/bookings/${encodeURIComponent(bookingId)}/refuse`), {

@@ -1,6 +1,6 @@
 import { cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { acceptBooking, getCreatorBookings, refuseBooking } from '../api/creatorBookings'
+import { acceptBooking, completeBooking, getCreatorBookings, refuseBooking } from '../api/creatorBookings'
 import { getMyProfile } from '../api/creators'
 import TableauDeBord from './TableauDeBord'
 
@@ -9,6 +9,7 @@ vi.mock('../api/creatorBookings', () => ({
   getCreatorBookings: vi.fn(),
   acceptBooking: vi.fn(),
   refuseBooking: vi.fn(),
+  completeBooking: vi.fn(),
 }))
 vi.mock('../api/creators', () => ({ getMyProfile: vi.fn() }))
 
@@ -47,6 +48,7 @@ describe('TableauDeBord (#32, wireframe 08)', () => {
     vi.mocked(getCreatorBookings).mockReset().mockResolvedValue(reponse())
     vi.mocked(acceptBooking).mockReset()
     vi.mocked(refuseBooking).mockReset()
+    vi.mocked(completeBooking).mockReset()
     vi.mocked(getMyProfile).mockReset().mockResolvedValue({ validationStatus: 'VALIDATED' })
   })
 
@@ -172,5 +174,78 @@ describe('TableauDeBord (#32, wireframe 08)', () => {
 
     await screen.findByText('Reportage mariage')
     expect(screen.queryByRole('status')).not.toBeInTheDocument()
+  })
+})
+
+describe('TableauDeBord : « Marquer comme terminée » (#38, API de #37)', () => {
+  // Seule l'horloge est figée (Date), pas les minuteries : les findBy* continuent d'attendre normalement
+  const MAINTENANT = new Date('2027-04-02T16:00:00+02:00')
+
+  const COMMENCEE = {
+    ...EN_ATTENTE,
+    id: 20,
+    status: 'CONFIRMEE',
+    offering: { id: 5, name: 'Clip commencé' },
+    slot: { start: '2027-04-02T14:00:00+02:00', end: '2027-04-02T18:00:00+02:00' },
+  }
+  const A_VENIR = {
+    ...COMMENCEE,
+    id: 21,
+    offering: { id: 6, name: 'Clip à venir' },
+    slot: { start: '2027-04-03T14:00:00+02:00', end: '2027-04-03T18:00:00+02:00' },
+  }
+  const TERMINEE = { ...COMMENCEE, id: 22, status: 'TERMINEE', offering: { id: 7, name: 'Clip terminé' } }
+  const SANS_CRENEAU = { ...COMMENCEE, id: 23, slot: null, offering: { id: 8, name: 'Clip sans créneau' } }
+  const EN_ATTENTE_PASSEE = { ...COMMENCEE, id: 24, status: 'EN_ATTENTE', offering: { id: 9, name: 'Demande passée' } }
+
+  beforeEach(() => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(MAINTENANT)
+    vi.mocked(getCreatorBookings).mockReset()
+      .mockResolvedValue(reponse([COMMENCEE, A_VENIR, TERMINEE, SANS_CRENEAU, EN_ATTENTE_PASSEE]))
+    vi.mocked(completeBooking).mockReset()
+    vi.mocked(getMyProfile).mockReset().mockResolvedValue({ validationStatus: 'VALIDATED' })
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.useRealTimers()
+  })
+
+  it('apparaît seulement sur une réservation confirmée dont le créneau a commencé', async () => {
+    render(<TableauDeBord />)
+
+    const commencee = (await screen.findByText('Clip commencé')).closest('li')
+    expect(within(commencee).getByRole('button', { name: 'Marquer comme terminée' })).toBeInTheDocument()
+    for (const nom of ['Clip à venir', 'Clip terminé', 'Clip sans créneau', 'Demande passée']) {
+      expect(within(ligne(nom)).queryByRole('button', { name: 'Marquer comme terminée' })).not.toBeInTheDocument()
+    }
+  })
+
+  it('marque la prestation comme terminée puis recharge la liste', async () => {
+    vi.mocked(completeBooking).mockResolvedValue({ ...COMMENCEE, status: 'TERMINEE' })
+    vi.mocked(getCreatorBookings)
+      .mockResolvedValueOnce(reponse([COMMENCEE]))
+      .mockResolvedValueOnce(reponse([{ ...COMMENCEE, status: 'TERMINEE' }]))
+    render(<TableauDeBord />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Marquer comme terminée' }))
+
+    expect(completeBooking).toHaveBeenCalledWith(20, 'jeton')
+    await vi.waitFor(() => expect(screen.queryByRole('button', { name: 'Marquer comme terminée' })).not.toBeInTheDocument())
+    expect(ligne('Clip commencé')).toHaveTextContent('Terminée')
+  })
+
+  it.each([
+    ['Transition interdite : ANNULEE → TERMINEE'],
+    ['Prestation pas encore commencée'],
+  ])('affiche le 409 du backend (« %s ») et recharge la liste', async (message) => {
+    vi.mocked(completeBooking).mockRejectedValue({ status: 409, message })
+    render(<TableauDeBord />)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Marquer comme terminée' }))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(message)
+    await vi.waitFor(() => expect(getCreatorBookings).toHaveBeenCalledTimes(2))
   })
 })

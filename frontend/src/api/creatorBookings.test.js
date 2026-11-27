@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { acceptBooking, getCreatorBookings, refuseBooking } from './creatorBookings'
+import { acceptBooking, completeBooking, getCreatorBookings, refuseBooking } from './creatorBookings'
 
 function reponse(status, body) {
   return { ok: status < 400, status, json: async () => body }
@@ -71,5 +71,27 @@ describe('creatorBookings (contrat de #31)', () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false, status: 500, json: async () => { throw new Error('pas de JSON') } })))
     await expect(getCreatorBookings('jeton'))
       .rejects.toEqual({ status: 500, message: 'Impossible de charger les réservations reçues.' })
+  })
+
+  it('marque une prestation comme terminée par un POST sans corps (contrat de #37)', async () => {
+    const fetchMock = vi.fn(async () => reponse(200, { id: 13, status: 'TERMINEE' }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    expect(await completeBooking(13, 'jeton')).toEqual({ id: 13, status: 'TERMINEE' })
+    const [url, options] = fetchMock.mock.calls[0]
+    expect(url).toBe('/api/bookings/13/complete')
+    expect(options.method).toBe('POST')
+    expect(options.headers.Authorization).toBe('Bearer jeton')
+    expect(options.body).toBeUndefined()
+  })
+
+  it('remonte les deux 409 du passage à « Terminée »', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => reponse(409, { title: 'Transition invalide', detail: 'Transition interdite : ANNULEE → TERMINEE' })))
+    await expect(completeBooking(13, 'jeton'))
+      .rejects.toEqual({ status: 409, message: 'Transition interdite : ANNULEE → TERMINEE' })
+
+    vi.stubGlobal('fetch', vi.fn(async () => reponse(409, { title: 'Prestation pas encore commencée' })))
+    await expect(completeBooking(13, 'jeton'))
+      .rejects.toEqual({ status: 409, message: 'Prestation pas encore commencée' })
   })
 })
