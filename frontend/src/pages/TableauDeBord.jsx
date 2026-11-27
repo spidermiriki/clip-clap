@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from 'react-oidc-context'
-import { acceptBooking, getCreatorBookings, refuseBooking } from '../api/creatorBookings'
+import { acceptBooking, completeBooking, getCreatorBookings, refuseBooking } from '../api/creatorBookings'
 import { getMyProfile } from '../api/creators'
 import BandeauValidation from '../components/BandeauValidation'
 import { formatCreneau, formatPrix } from '../format'
@@ -27,7 +27,14 @@ function tauxAcceptation(counts) {
   return traitees === 0 ? null : acceptees / traitees
 }
 
-// Tableau de bord créateur (wireframe 08, #32) : demandes reçues, à accepter ou refuser (API de #31)
+/** « Marquer comme terminée » (#38) : réservation confirmée dont le créneau a commencé à l'heure du chargement. */
+function peutTerminer(booking, chargeLe) {
+  return booking.status === 'CONFIRMEE' && Boolean(booking.slot)
+    && new Date(booking.slot.start).getTime() <= chargeLe
+}
+
+// Tableau de bord créateur (wireframe 08, #32) : demandes reçues, à accepter ou refuser (API de #31),
+// et prestations commencées à marquer comme terminées (#38, API de #37)
 export default function TableauDeBord() {
   const { user } = useAuth()
   const token = user?.access_token ?? null
@@ -36,7 +43,8 @@ export default function TableauDeBord() {
   // une demande plus récente est ignorée, et les données précédentes restent affichées pendant le
   // rechargement
   const [version, setVersion] = useState(0)
-  const [chargement, setChargement] = useState({ donnees: null, erreur: null })
+  // chargeLe : heure du dernier chargement, qui décide si un créneau confirmé a commencé (#38)
+  const [chargement, setChargement] = useState({ donnees: null, erreur: null, chargeLe: 0 })
   const [statut, setStatut] = useState(null)
 
   const [actionErreur, setActionErreur] = useState(null)
@@ -49,11 +57,11 @@ export default function TableauDeBord() {
     let ignore = false
     getCreatorBookings(token)
       .then((donnees) => {
-        if (!ignore) setChargement({ donnees, erreur: null })
+        if (!ignore) setChargement({ donnees, erreur: null, chargeLe: Date.now() })
       })
       .catch((err) => {
         if (!ignore) {
-          setChargement({ donnees: null, erreur: err?.message ?? 'Impossible de charger les réservations reçues.' })
+          setChargement({ donnees: null, erreur: err?.message ?? 'Impossible de charger les réservations reçues.', chargeLe: Date.now() })
         }
       })
     return () => {
@@ -94,7 +102,7 @@ export default function TableauDeBord() {
     setMessage('')
   }
 
-  const { donnees, erreur } = chargement
+  const { donnees, erreur, chargeLe } = chargement
 
   if (!donnees && !erreur) {
     return <main className={styles.container}><p>Chargement…</p></main>
@@ -154,6 +162,15 @@ export default function TableauDeBord() {
                             Refuser
                           </button>
                         </>
+                      )}
+                      {peutTerminer(booking, chargeLe) && (
+                        <button
+                          type="button"
+                          disabled={enCours !== null}
+                          onClick={() => agir(booking.id, () => completeBooking(booking.id, token))}
+                        >
+                          Marquer comme terminée
+                        </button>
                       )}
                     </div>
                     {booking.status === 'EN_ATTENTE' && refusId === booking.id && (
