@@ -208,6 +208,146 @@ class BookingControllerTest {
                 .expectStatus().isUnauthorized();
     }
 
+    @Test
+    @WithMockUser(username = CREATOR_SUB)
+    void mine_renvoieLesComptesEtLesReservationsRecues() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of()));
+
+        client.get().uri("/api/bookings/creator")
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.counts.EN_ATTENTE").isEqualTo(1)
+                .jsonPath("$.counts.CONFIRMEE").isEqualTo(0)
+                .jsonPath("$.bookings.length()").isEqualTo(1)
+                .jsonPath("$.bookings[0].client.email").isEqualTo("client@bookings-controller.test")
+                .jsonPath("$.bookings[0].offering.name").isEqualTo("Prestation");
+    }
+
+    @Test
+    void mine_sansConnexion_renvoie401() {
+        client.get().uri("/api/bookings/creator")
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    @WithMockUser(username = CREATOR_SUB)
+    void accept_parLeCreateurConcerne_renvoie200() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long bookingId = bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of())).id();
+
+        client.post().uri("/api/bookings/{id}/accept", bookingId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("CONFIRMEE");
+    }
+
+    @Test
+    @WithMockUser(username = TIERS_SUB)
+    void accept_parUnTiers_renvoie403() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        insertUser("tiers@bookings-controller.test", TIERS_SUB, "CLIENT");
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long bookingId = bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of())).id();
+
+        client.post().uri("/api/bookings/{id}/accept", bookingId)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
+    @Test
+    @WithMockUser(username = CREATOR_SUB)
+    void accept_reservationInconnue_renvoie404() {
+        insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+
+        client.post().uri("/api/bookings/{id}/accept", 999_999)
+                .exchange()
+                .expectStatus().isNotFound();
+    }
+
+    @Test
+    @WithMockUser(username = CREATOR_SUB)
+    void accept_reservationPasEnAttente_renvoie409() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long bookingId = bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of())).id();
+        bookingService.changerStatut(bookingId, creatorId, "REFUSEE");
+
+        client.post().uri("/api/bookings/{id}/accept", bookingId)
+                .exchange()
+                .expectStatus().isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+    }
+
+    @Test
+    void accept_sansConnexion_renvoie401() {
+        client.post().uri("/api/bookings/{id}/accept", 1)
+                .exchange()
+                .expectStatus().isUnauthorized();
+    }
+
+    @Test
+    @WithMockUser(username = CREATOR_SUB)
+    void refuse_avecMessage_renvoie200AvecLeMessage() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long bookingId = bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of())).id();
+
+        client.post().uri("/api/bookings/{id}/refuse", bookingId)
+                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .body(new RefuseCommand("Indisponible ce jour-là"))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("REFUSEE")
+                .jsonPath("$.refusalMessage").isEqualTo("Indisponible ce jour-là");
+    }
+
+    @Test
+    @WithMockUser(username = CREATOR_SUB)
+    void refuse_sansCorps_renvoie200() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long bookingId = bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of())).id();
+
+        client.post().uri("/api/bookings/{id}/refuse", bookingId)
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody()
+                .jsonPath("$.status").isEqualTo("REFUSEE");
+    }
+
+    @Test
+    @WithMockUser(username = TIERS_SUB)
+    void refuse_parUnTiers_renvoie403() {
+        long clientId = insertUser("client@bookings-controller.test", CLIENT_SUB, "CLIENT");
+        long creatorId = insertCreator("creator@bookings-controller.test", CREATOR_SUB);
+        insertUser("tiers@bookings-controller.test", TIERS_SUB, "CLIENT");
+        long offeringId = insertOffering(creatorId, 60, "100.00");
+        long slotId = insertSlot(creatorId, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long bookingId = bookingService.creer(clientId, new BookingCommand(offeringId, slotId, java.util.Set.of())).id();
+
+        client.post().uri("/api/bookings/{id}/refuse", bookingId)
+                .exchange()
+                .expectStatus().isForbidden();
+    }
+
     private long insertUser(String email, String sub, String role) {
         return jdbc.sql("INSERT INTO users (email, sub, role) VALUES (:email, :sub, :role) RETURNING id")
                 .param("email", email).param("sub", sub).param("role", role)

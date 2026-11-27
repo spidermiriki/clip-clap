@@ -3,11 +3,16 @@ package be.heh.clipclap.bookings.internal;
 import be.heh.clipclap.TestcontainersConfiguration;
 import be.heh.clipclap.bookings.Booking;
 import be.heh.clipclap.bookings.BookingDetail;
+import be.heh.clipclap.bookings.BookingStatusChanged;
+import be.heh.clipclap.bookings.BookingView;
+import be.heh.clipclap.bookings.CreatorBookings;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.jdbc.core.simple.JdbcClient;
+import org.springframework.test.context.event.ApplicationEvents;
+import org.springframework.test.context.event.RecordApplicationEvents;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -18,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @SpringBootTest
+@RecordApplicationEvents
 @Transactional
 @Import(TestcontainersConfiguration.class)
 class BookingServiceImplTest {
@@ -241,6 +247,188 @@ class BookingServiceImplTest {
     void detail_reservationInconnue_renvoieBookingNotFound() {
         assertThatThrownBy(() -> service.detail(999_999L, 1L))
                 .isInstanceOf(BookingNotFoundException.class);
+    }
+
+    // ── Accepter / refuser (#31) ────────────────────────────────────────────
+
+    @Test
+    void accepter_parLeCreateurConcerne_confirmeEtRenvoieLaVue() {
+        long client = insertUser("client@bookings.test", "sub-client-accept", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-accept");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        BookingView vue = service.accepter(booking.id(), creator);
+
+        assertThat(vue.status()).isEqualTo("CONFIRMEE");
+        assertThat(vue.client().email()).isEqualTo("client@bookings.test");
+        assertThat(vue.offering().name()).isEqualTo("Prestation");
+        assertThat(vue.slot().start()).isEqualTo(OffsetDateTime.parse("2030-01-01T09:00+00:00"));
+    }
+
+    @Test
+    void accepter_parUnTiers_leveBookingAccessDeniedException() {
+        long client = insertUser("client@bookings.test", "sub-client-accept2", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-accept2");
+        long tiers = insertCreator("tiers@bookings.test", "sub-tiers-accept2");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        assertThatThrownBy(() -> service.accepter(booking.id(), tiers))
+                .isInstanceOf(BookingAccessDeniedException.class);
+    }
+
+    @Test
+    void accepter_reservationPasEnAttente_leveInvalidBookingTransitionException() {
+        long client = insertUser("client@bookings.test", "sub-client-accept3", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-accept3");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+        service.changerStatut(booking.id(), creator, "REFUSEE");
+
+        assertThatThrownBy(() -> service.accepter(booking.id(), creator))
+                .isInstanceOf(InvalidBookingTransitionException.class);
+    }
+
+    @Test
+    void refuser_parLeCreateurConcerne_refuseEtEnregistreLeMessage() {
+        long client = insertUser("client@bookings.test", "sub-client-refuse", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-refuse");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        BookingView vue = service.refuser(booking.id(), creator, new RefuseCommand("Indisponible ce jour-là"));
+
+        assertThat(vue.status()).isEqualTo("REFUSEE");
+        assertThat(vue.refusalMessage()).isEqualTo("Indisponible ce jour-là");
+    }
+
+    @Test
+    void refuser_sansMessage_refuseSansMessage() {
+        long client = insertUser("client@bookings.test", "sub-client-refuse2", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-refuse2");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        BookingView vue = service.refuser(booking.id(), creator, null);
+
+        assertThat(vue.status()).isEqualTo("REFUSEE");
+        assertThat(vue.refusalMessage()).isNull();
+    }
+
+    @Test
+    void refuser_messageTropLong_leveIllegalArgumentException() {
+        long client = insertUser("client@bookings.test", "sub-client-refuse3", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-refuse3");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+        String messageTropLong = "x".repeat(501);
+
+        assertThatThrownBy(() -> service.refuser(booking.id(), creator, new RefuseCommand(messageTropLong)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void refuser_parUnTiers_leveBookingAccessDeniedException() {
+        long client = insertUser("client@bookings.test", "sub-client-refuse4", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-refuse4");
+        long tiers = insertCreator("tiers@bookings.test", "sub-tiers-refuse4");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        assertThatThrownBy(() -> service.refuser(booking.id(), tiers, null))
+                .isInstanceOf(BookingAccessDeniedException.class);
+    }
+
+    // ── Tableau de bord créateur (#31) ──────────────────────────────────────
+
+    @Test
+    void listerPourCreateur_compteTousLesStatutsEtTrieParCreneauCroissant() {
+        long creator = insertCreator("creator@bookings.test", "sub-creator-liste");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slotTard = insertSlot(creator, "2030-01-02T09:00+00:00", "2030-01-02T10:00+00:00");
+        long slotTot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        long client1 = insertUser("client1@bookings.test", "sub-client-liste1", "CLIENT");
+        long client2 = insertUser("client2@bookings.test", "sub-client-liste2", "CLIENT");
+        Booking enregistreTard = service.creer(client1, new BookingCommand(offering, slotTard, Set.of()));
+        Booking enregistreTot = service.creer(client2, new BookingCommand(offering, slotTot, Set.of()));
+
+        CreatorBookings mine = service.listerPourCreateur(creator);
+
+        assertThat(mine.counts().keySet())
+                .containsExactlyInAnyOrder("EN_ATTENTE", "CONFIRMEE", "REFUSEE", "ANNULEE", "EXPIREE", "TERMINEE");
+        assertThat(mine.counts().get("EN_ATTENTE")).isEqualTo(2L);
+        assertThat(mine.counts().get("CONFIRMEE")).isEqualTo(0L);
+        assertThat(mine.bookings()).extracting(BookingView::id)
+                .containsExactly(enregistreTot.id(), enregistreTard.id());
+        assertThat(mine.bookings().get(0).creator().displayName()).isEqualTo("creator@bookings.test");
+    }
+
+    @Test
+    void listerPourCreateur_reservationSansCreneauApparaitEnDernier() {
+        long creator = insertCreator("creator@bookings.test", "sub-creator-liste2");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slotConserve = insertSlot(creator, "2030-06-01T09:00+00:00", "2030-06-01T10:00+00:00");
+        // Antérieur à slotConserve, mais supprimé ensuite : doit tout de même finir en dernier
+        long slotASupprimer = insertSlot(creator, "2029-01-01T09:00+00:00", "2029-01-01T10:00+00:00");
+        long client1 = insertUser("client1@bookings.test", "sub-client-liste3", "CLIENT");
+        long client2 = insertUser("client2@bookings.test", "sub-client-liste4", "CLIENT");
+        Booking avecCreneau = service.creer(client1, new BookingCommand(offering, slotConserve, Set.of()));
+        Booking sansCreneauBientot = service.creer(client2, new BookingCommand(offering, slotASupprimer, Set.of()));
+        service.changerStatut(sansCreneauBientot.id(), creator, "REFUSEE");
+        jdbc.sql("DELETE FROM availability_slots WHERE id = :id").param("id", slotASupprimer).update();
+
+        CreatorBookings mine = service.listerPourCreateur(creator);
+
+        assertThat(mine.bookings()).extracting(BookingView::id)
+                .containsExactly(avecCreneau.id(), sansCreneauBientot.id());
+        assertThat(mine.bookings().get(1).slot()).isNull();
+        assertThat(mine.bookings().get(1).offering()).isNotNull();
+    }
+
+    // ── Événement publié à chaque changement de statut (#31) ────────────────
+
+    @Test
+    void creer_publieUnEvenementBookingStatusChanged(ApplicationEvents events) {
+        long client = insertUser("client@bookings.test", "sub-client-event1", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-event1");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        var evenement = events.stream(BookingStatusChanged.class).findFirst().orElseThrow();
+        assertThat(evenement.bookingId()).isEqualTo(booking.id());
+        assertThat(evenement.clientId()).isEqualTo(client);
+        assertThat(evenement.creatorId()).isEqualTo(creator);
+        assertThat(evenement.previousStatus()).isNull();
+        assertThat(evenement.newStatus()).isEqualTo("EN_ATTENTE");
+        assertThat(evenement.actorId()).isEqualTo(client);
+        assertThat(evenement.occurredAt()).isEqualTo(booking.createdAt());
+    }
+
+    @Test
+    void changerStatut_publieUnEvenementAvecLActeurEtLesDeuxStatuts(ApplicationEvents events) {
+        long client = insertUser("client@bookings.test", "sub-client-event2", "CLIENT");
+        long creator = insertCreator("creator@bookings.test", "sub-creator-event2");
+        long offering = insertOffering(creator, 60, "100.00");
+        long slot = insertSlot(creator, "2030-01-01T09:00+00:00", "2030-01-01T10:00+00:00");
+        Booking booking = service.creer(client, new BookingCommand(offering, slot, Set.of()));
+
+        service.changerStatut(booking.id(), creator, "CONFIRMEE");
+
+        var transition = events.stream(BookingStatusChanged.class)
+                .filter(e -> "CONFIRMEE".equals(e.newStatus()))
+                .findFirst().orElseThrow();
+        assertThat(transition.previousStatus()).isEqualTo("EN_ATTENTE");
+        assertThat(transition.actorId()).isEqualTo(creator);
     }
 
     private long insertUser(String email, String sub, String role) {

@@ -272,6 +272,7 @@ Les demandes de réservation d'un client pour une prestation et un créneau d'un
 | `total_price` | `NUMERIC(10,2)` | prix de base + options choisies, figé à la création (#29) |
 | `status` | `VARCHAR(20)` | `NOT NULL`, défaut `'EN_ATTENTE'`, `CHECK (status IN ('EN_ATTENTE', 'CONFIRMEE', 'REFUSEE', 'ANNULEE', 'EXPIREE', 'TERMINEE'))` |
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL`, défaut `now()` |
+| `refusal_message` | `VARCHAR(500)` | facultatif, renseigné si le créateur refuse la demande avec un message (#31), visible du client (#34) |
 
 `ON DELETE SET NULL` : supprimer une prestation ou un créneau garde les réservations passées (refusées, annulées, expirées, terminées), avec leur prix figé — c'est pourquoi `offering_id`/`slot_id` restent nullables même si #29 les renseigne toujours à la création. Les deux contraintes sont recréées à chaque démarrage par un `ALTER TABLE … DROP CONSTRAINT IF EXISTS …, ADD CONSTRAINT …`, pour corriger une table créée avant #133.
 

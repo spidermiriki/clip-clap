@@ -1,5 +1,6 @@
 package be.heh.clipclap.users.internal;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -29,6 +30,11 @@ class UserApiImpl implements UserApi {
 	@Override
 	public Set<Long> findAllSuspendedIds() {
 		return repository.findAllSuspendedIds();
+	}
+
+	@Override
+	public Map<Long, String> findEmails(Set<Long> userIds) {
+		return repository.findEmails(userIds);
 	}
 
 }

@@ -1,5 +1,6 @@
 package be.heh.clipclap.users;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -32,5 +33,14 @@ public interface UserApi {
 	 * @return l'ensemble des ids de la table {@code users} où {@code suspended = true}
 	 */
 	Set<Long> findAllSuspendedIds();
+
+	/**
+	 * E-mails de ces utilisateurs (#31) : le créateur voit l'e-mail du client qui a réservé,
+	 * seule identité disponible dans {@code users}.
+	 *
+	 * @param userIds identifiants à résoudre (table {@code users})
+	 * @return une entrée par identifiant trouvé ; les identifiants inconnus sont absents
+	 */
+	Map<Long, String> findEmails(Set<Long> userIds);
 
 }

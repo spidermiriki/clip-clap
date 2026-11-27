@@ -94,6 +94,20 @@ class BookingRepository {
                 .optional();
     }
 
+    /** Réservations reçues par ce créateur (#31), créneau croissant, sans créneau en dernier. */
+    List<Booking> findByCreator(long creatorId) {
+        return jdbc.sql("""
+                SELECT b.*
+                FROM bookings b
+                LEFT JOIN availability_slots s ON s.id = b.slot_id
+                WHERE b.creator_id = :creatorId
+                ORDER BY s.starts_at ASC NULLS LAST
+                """)
+                .param("creatorId", creatorId)
+                .query(BookingRepository::mapBooking)
+                .list();
+    }
+
     /**
      * Transition conditionnée par le statut lu : la condition {@code AND status = :statutActuel}
      * porte l'exclusion mutuelle jusque dans la requête, sans verrou explicite. Renvoie {@code false}
@@ -101,11 +115,17 @@ class BookingRepository {
      * cette écriture (requête concurrente).
      */
     boolean updateStatusSiActuel(long bookingId, String statutActuel, String nouveauStatut) {
+        return updateStatusSiActuel(bookingId, statutActuel, nouveauStatut, null);
+    }
+
+    /** Variante de {@link #updateStatusSiActuel(long, String, String)} qui fixe aussi le message de refus (#31). */
+    boolean updateStatusSiActuel(long bookingId, String statutActuel, String nouveauStatut, String refusalMessage) {
         int lignesModifiees = jdbc.sql("""
-                UPDATE bookings SET status = :nouveauStatut
+                UPDATE bookings SET status = :nouveauStatut, refusal_message = :refusalMessage
                 WHERE id = :bookingId AND status = :statutActuel
                 """)
                 .param("nouveauStatut", nouveauStatut)
+                .param("refusalMessage", refusalMessage)
                 .param("bookingId", bookingId)
                 .param("statutActuel", statutActuel)
                 .update();
@@ -149,7 +169,8 @@ class BookingRepository {
                 rs.getObject("slot_id", Long.class),
                 rs.getBigDecimal("total_price"),
                 rs.getString("status"),
-                toInstant(rs.getTimestamp("created_at"))
+                toInstant(rs.getTimestamp("created_at")),
+                rs.getString("refusal_message")
         );
     }
 
