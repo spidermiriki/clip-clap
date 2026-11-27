@@ -51,6 +51,19 @@ class BookingRepository {
                 .single());
     }
 
+    /** Pour {@link be.heh.clipclap.offerings.SlotUsageChecker} : créneau lié à une réservation active. */
+    boolean existsActiveForSlot(long slotId) {
+        return Boolean.TRUE.equals(jdbc.sql("""
+                SELECT EXISTS(
+                    SELECT 1 FROM bookings
+                    WHERE slot_id = :slotId AND status IN ('EN_ATTENTE', 'CONFIRMEE')
+                )
+                """)
+                .param("slotId", slotId)
+                .query(Boolean.class)
+                .single());
+    }
+
     /** Pour {@link be.heh.clipclap.offerings.BookedPeriodsProvider} : périodes confirmées qui chevauchent [from, to). */
     List<BookedPeriod> findConfirmedPeriods(long creatorId, OffsetDateTime from, OffsetDateTime to) {
         return jdbc.sql("""
